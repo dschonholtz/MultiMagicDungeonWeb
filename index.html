@@ -345,7 +345,13 @@ class MmdSpell {
     if(this.lifeMs>this.maxLifeMs){this.destroy();return;}
     if(Math.abs(this.mesh.position.x)>115||Math.abs(this.mesh.position.z)>115) this.destroy();
   }
-  destroy() { if(!this.alive)return; this.alive=false; scene.remove(this.mesh); }
+  destroy() {
+    if(!this.alive)return; this.alive=false;
+    // Remove child PointLight before removing mesh so it doesn't linger in the scene graph
+    while(this.mesh.children.length) this.mesh.remove(this.mesh.children[0]);
+    scene.remove(this.mesh);
+    // Geometry and material are pooled (_geoCache/_matCache) — do NOT dispose them here
+  }
 }
 
 // MmdNetworkClient - WebSocket with offline fallback
