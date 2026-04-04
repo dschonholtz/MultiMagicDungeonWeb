@@ -1069,6 +1069,7 @@ class MmdSpell {
     scene.add(this._trail);
   }
   update(dt) {
+    if(!this.alive) return; // guard: destroyed externally before update ran
     this.mesh.position.addScaledVector(this.direction, this.speed*dt);
     this.distTraveled += this.speed * dt;
     this.lifeMs += dt * 1000;
