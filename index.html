@@ -521,6 +521,8 @@ document.getElementById('rename-btn').addEventListener('click',()=>{
   if(v) net.requestRename(v);
 });
 document.getElementById('rename-input').addEventListener('keydown',e=>{
+  // Prevent WASD/movement keys from firing while user is typing in the rename field
+  e.stopPropagation();
   if(e.key==='Enter'){const v=document.getElementById('rename-input').value.trim();if(v) net.requestRename(v);}
 });
 
