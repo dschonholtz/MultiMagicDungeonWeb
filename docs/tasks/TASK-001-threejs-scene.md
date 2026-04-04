@@ -1,43 +1,43 @@
-# TASK-001 — Three.js Scene Setup + Player Movement
+# TASK-001 — Three.js Scene + FPS Player Movement
 
-**Status:** DONE
-**Phase:** 0 — Vibe Jam Skeleton
-**Owner:** (unassigned)
+**Status**: IN_PROGRESS  
+**Phase**: 0 — Vibe Jam Skeleton
 
 ## Goal
 
-Establish a working Three.js scene with first-person player movement. This is the foundation all other systems build on.
+A working Three.js FPS scene where the player can move freely through the dungeon with WASD and look around with the mouse.
 
 ## Acceptance Criteria
 
-- [x] Three.js scene renders in browser with no console errors
-- [x] Player can move with WASD (or arrow keys)
-- [x] Mouse look works (pointer lock, pitch/yaw clamped)
-- [x] Camera stays at player eye height (y = 1.7)
-- [x] FPS is stable at 60+ on a modern laptop
-- [x] Scene has ambient + directional lighting
-- [x] Fog renders correctly (depth cue for dungeon atmosphere)
-- [x] Window resize handled (camera aspect + renderer size update)
+- [ ] Three.js scene renders without console errors
+- [ ] Player can move with WASD / arrow keys
+- [ ] Mouse look works via Pointer Lock API
+- [ ] Player height is fixed (no gravity needed in Phase 0)
+- [ ] Frame rate is acceptable (60fps on a mid-range laptop)
+- [ ] Scene has basic dungeon atmosphere: dark, foggy, lit by point lights
 
 ## Implementation Notes
 
-- Camera: `THREE.PerspectiveCamera`, FOV 75, near 0.1, far 500
-- Movement: accumulate direction from key state each frame, normalize, multiply by speed * dt
-- Mouse look: `pointerlockchange` + `mousemove` events, rotation order `YXZ`
-- Pitch clamped to ±(π/2 - small margin) to prevent gimbal flip
+- Use `THREE.PerspectiveCamera` with FOV 75
+- Apply yaw/pitch directly to `camera.rotation` using `YXZ` order (standard FPS)
+- Pitch clamp: `-Math.PI/3` to `Math.PI/3` (prevents flipping)
+- Movement direction is computed from yaw only (no pitch affecting movement)
+- Player Y is fixed to `PLAYER_HEIGHT = 5` (units above floor)
+- Fog: `THREE.Fog(0x0a0608, 30, 200)` — matches dungeon color
 
 ## Test Plan
 
-1. Open `index.html` in Chrome
-2. Click canvas to lock pointer
-3. Hold W — verify forward movement
-4. Hold S — verify backward movement
-5. Hold A/D — verify strafing
-6. Move mouse — verify smooth look, no flip at poles
-7. Open devtools — verify zero console errors
-8. Resize window — verify canvas fills viewport
+1. Open `index.html` in browser
+2. Enter a name and click "Enter Dungeon"
+3. Click canvas to request pointer lock
+4. Verify WASD moves the player (check position via `window.game.camera.position`)
+5. Verify mouse rotates view smoothly
+6. Open DevTools console — verify zero errors
 
-## Related
+## Dependencies
 
-- Feeds into: TASK-004 (dungeon geometry needs floor to walk on)
-- Feeds into: TASK-003 (spells fired from camera direction)
+None — this is the base task.
+
+## Blocked By
+
+Nothing.
