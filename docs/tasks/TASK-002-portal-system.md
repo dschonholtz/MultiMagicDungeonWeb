@@ -1,38 +1,53 @@
-# TASK-002 — Vibe Jam Portal System
+# TASK-002 — Vibe Jam 2026 Portal System
 
-**Status:** DONE
-**Phase:** 0 — Vibe Jam Skeleton
-**Owner:** (unassigned)
+**Status**: IN_PROGRESS  
+**Phase**: 0 — Vibe Jam Skeleton
 
 ## Goal
 
-Implement the Vibe Jam 2026 portal webring system. Players arriving from other Vibe Jam games enter with their state intact. Players can exit to the next game in the webring.
+Full implementation of the Vibe Jam 2026 portal system. Players can travel to other games in the jam via the green exit portal, and arrive from other games via a red start portal.
 
 ## Acceptance Criteria
 
-### Entry
-- [x] `?portal=true` in URL skips the start/name-entry screen
-- [x] `?username=alice` sets player display name (no name entry needed)
-- [x] `?hp=80` sets player HP to 80
-- [x] `?ref=othergame.com` spawns a RED torus portal at spawn point
-- [x] Red portal has 5-second collision delay (prevents instant bounce-back)
-- [x] "Arrived from: othergame.com" shown in HUD when ref present
-- [x] `?rotation_y=1.57` sets player initial camera rotation
+- [ ] `?portal=true` in the URL skips the name entry screen
+- [ ] `?username=X` sets the player name on arrival
+- [ ] `?ref=hostname` causes a red "return" portal to spawn near the player start
+- [ ] Red portal is not enterable for the first 5 seconds (prevents instant return)
+- [ ] Green exit portal is always visible in the dungeon
+- [ ] Walking into the green portal navigates to `https://jam.pieter.com/portal/2026` with correct outgoing params
+- [ ] Walking into the red return portal navigates back to the `ref` hostname with correct params
+- [ ] Outgoing params include: `portal=true`, `ref`, `username`, `color`, `speed`, `hp`
+- [ ] Portal has a glowing torus ring + translucent inner circle + label
+- [ ] Portal animates (slow rotation)
+- [ ] An iframe preload fires when the player gets within 50 units of the exit portal
 
-### Exit portal
-- [x] GREEN torus portal (0x00ff00) exists at a fixed world position
-- [x] Portal is labeled "VIBE JAM 2026"
-- [x] Within 50 units: hidden iframe preloads `https://jam.pieter.com/portal/2026`
-- [x] Within 15 units: "VIBE JAM 2026 PORTAL — WALK IN" indicator shown in HUD
-- [x] Within 2 units: redirect to `https://jam.pieter.com/portal/2026` with params
+## URL Param Spec
 
-### Start portal (return)
-- [x] Walking into red start portal returns to `ref` URL
-- [x] Params forwarded: `portal=true`, `username`, `color`, `speed`, `hp`
-- [x] `ref` param is NOT forwarded (prevents infinite loop)
-- [x] Only active after 5-second delay
+### Incoming
+| Param | Type | Meaning |
+|---|---|---|
+| `portal` | `"true"` | Arrived from another game; skip name screen |
+| `ref` | string | Hostname of the origin game |
+| `username` | string | Player name |
+| `color` | string | Player cosmetic color |
+| `speed` | float | Movement speed modifier |
+| `hp` | int | Current HP (carry-over) |
 
-## Related
+### Outgoing
+Same params, with `ref` set to `window.location.hostname`.
 
-- Depends on: TASK-001 (needs player + scene)
-- Vibe Jam docs: https://jam.pieter.com
+## Test Plan
+
+1. Open `index.html` — name screen appears. Enter name, proceed. Green portal visible in distance.
+2. Open `index.html?portal=true&username=Tester&ref=example.com` — name screen is skipped, red portal spawns near start.
+3. Walk to green portal — verify redirect to `jam.pieter.com/portal/2026` with correct params in URL.
+4. Try entering red portal immediately after spawn — should not work (5s delay).
+5. Wait 5s, walk into red portal — verify redirect to `http://example.com/?portal=true&...`.
+
+## Dependencies
+
+- TASK-001 (player movement must work to walk into portals)
+
+## Blocked By
+
+Nothing.
