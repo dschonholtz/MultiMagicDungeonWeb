@@ -136,6 +136,12 @@ const torch2  = new THREE.PointLight(0x4444ff, 1.0, 60);
 torch2.position.set(-30, 10, -20); scene.add(torch2);
 const dirLight = new THREE.DirectionalLight(0xffeedd, 0.4);
 dirLight.position.set(0, 40, 0); scene.add(dirLight);
+// Fill light from opposite side — cool blue to contrast warm key
+const fillLight = new THREE.DirectionalLight(0x8888ff, 0.3);
+fillLight.position.set(0, -10, 0); scene.add(fillLight);
+// Rim light from behind — warm orange separates players from background
+const rimLight = new THREE.DirectionalLight(0xff8844, 0.6);
+rimLight.position.set(0, 20, -40); scene.add(rimLight);
 
 // Dungeon renderer - builds geometry from layout data
 function renderDungeon(layout) {
