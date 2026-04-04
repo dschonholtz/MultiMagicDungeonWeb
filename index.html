@@ -8,548 +8,482 @@
   * { margin: 0; padding: 0; box-sizing: border-box; }
   body { background: #000; overflow: hidden; font-family: monospace; }
   #game-canvas { display: block; }
-  #hud {
-    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-    pointer-events: none; z-index: 10;
-  }
-  #health-bar-wrap {
-    position: absolute; top: 20px; left: 20px;
-    background: rgba(0,0,0,0.6); padding: 8px 12px; border-radius: 4px;
-  }
+  #hud { position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 10; }
+  #health-bar-wrap { position: absolute; top: 20px; left: 20px; background: rgba(0,0,0,0.6); padding: 8px 12px; border-radius: 4px; }
   #health-label { color: #aaa; font-size: 11px; margin-bottom: 4px; }
   #health-bar-bg { width: 160px; height: 10px; background: #333; border-radius: 2px; }
   #health-bar { height: 10px; background: #e44; border-radius: 2px; transition: width 0.2s; }
-  #arrived-from {
-    position: absolute; top: 20px; right: 20px;
-    background: rgba(0,0,0,0.6); color: #0f0; padding: 6px 12px;
-    border-radius: 4px; font-size: 12px; display: none;
-  }
-  #portal-hint {
-    position: absolute; bottom: 80px; left: 50%; transform: translateX(-50%);
-    background: rgba(0,255,0,0.15); color: #0f0; padding: 8px 20px;
-    border-radius: 4px; font-size: 14px; border: 1px solid #0f0;
-    display: none; text-align: center;
-  }
-  #spells {
-    position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%);
-    display: flex; gap: 12px;
-  }
-  .spell-slot {
-    width: 60px; height: 60px; background: rgba(0,0,0,0.7);
-    border: 2px solid #555; border-radius: 6px; display: flex;
-    flex-direction: column; align-items: center; justify-content: center;
-    color: #ccc; font-size: 10px; text-align: center; gap: 3px;
-  }
+  #player-count { position: absolute; top: 70px; left: 20px; background: rgba(0,0,0,0.5); color: #888; padding: 4px 10px; border-radius: 4px; font-size: 11px; }
+  #arrived-from { position: absolute; top: 20px; right: 20px; background: rgba(0,0,0,0.6); color: #0f0; padding: 6px 12px; border-radius: 4px; font-size: 12px; display: none; }
+  #portal-hint { position: absolute; bottom: 80px; left: 50%; transform: translateX(-50%); background: rgba(0,255,0,0.15); color: #0f0; padding: 8px 20px; border-radius: 4px; font-size: 14px; border: 1px solid #0f0; display: none; text-align: center; }
+  #spells { position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%); display: flex; gap: 12px; }
+  .spell-slot { width: 60px; height: 60px; background: rgba(0,0,0,0.7); border: 2px solid #555; border-radius: 6px; display: flex; flex-direction: column; align-items: center; justify-content: center; color: #ccc; font-size: 10px; text-align: center; gap: 3px; }
   .spell-slot .spell-icon { font-size: 20px; }
   .spell-slot.cooling { border-color: #333; opacity: 0.5; }
-  .spell-slot.ready { border-color: #888; }
-  #name-screen {
-    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-    background: rgba(0,0,0,0.92); display: flex; flex-direction: column;
-    align-items: center; justify-content: center; z-index: 100; color: #fff;
-  }
+  .spell-slot.ready   { border-color: #888; }
+  #name-screen { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.92); display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 100; color: #fff; }
   #name-screen h1 { font-size: 32px; margin-bottom: 8px; color: #a55; }
-  #name-screen p { color: #888; margin-bottom: 32px; font-size: 14px; }
-  #name-input {
-    background: #111; border: 1px solid #555; color: #fff;
-    padding: 10px 16px; font-size: 16px; font-family: monospace;
-    border-radius: 4px; width: 240px; text-align: center;
-  }
-  #name-btn {
-    margin-top: 12px; padding: 10px 32px; background: #a55;
-    border: none; color: #fff; font-size: 15px; font-family: monospace;
-    border-radius: 4px; cursor: pointer;
-  }
+  #name-screen p  { color: #888; margin-bottom: 32px; font-size: 14px; }
+  #name-input { background: #111; border: 1px solid #555; color: #fff; padding: 10px 16px; font-size: 16px; font-family: monospace; border-radius: 4px; width: 240px; text-align: center; }
+  #name-btn { margin-top: 12px; padding: 10px 32px; background: #a55; border: none; color: #fff; font-size: 15px; font-family: monospace; border-radius: 4px; cursor: pointer; }
   #name-btn:hover { background: #c66; }
-  #crosshair {
-    position: absolute; top: 50%; left: 50%;
-    transform: translate(-50%, -50%);
-    color: rgba(255,255,255,0.7); font-size: 18px; user-select: none;
-  }
+  #crosshair { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: rgba(255,255,255,0.7); font-size: 18px; user-select: none; }
 </style>
 </head>
 <body>
-
 <canvas id="game-canvas"></canvas>
-
 <div id="hud">
   <div id="health-bar-wrap">
     <div id="health-label">HP</div>
     <div id="health-bar-bg"><div id="health-bar" style="width:100%"></div></div>
   </div>
+  <div id="player-count">1 player in dungeon</div>
   <div id="arrived-from"></div>
-  <div id="portal-hint">⬆ VIBE JAM 2026 PORTAL — walk in to travel</div>
+  <div id="portal-hint">&#x2191; VIBE JAM 2026 PORTAL &#x2014; walk in to travel</div>
   <div id="spells">
-    <div class="spell-slot ready" id="spell-0">
-      <span class="spell-icon">🔥</span>
-      <span>Fireball</span>
-      <span style="color:#888;font-size:9px">LClick</span>
-    </div>
-    <div class="spell-slot ready" id="spell-1">
-      <span class="spell-icon">❄️</span>
-      <span>Frostbolt</span>
-      <span style="color:#888;font-size:9px">RClick</span>
-    </div>
-    <div class="spell-slot ready" id="spell-2">
-      <span class="spell-icon">🌀</span>
-      <span>Telekinesis</span>
-      <span style="color:#888;font-size:9px">E</span>
-    </div>
+    <div class="spell-slot ready" id="spell-0"><span class="spell-icon">&#x1F525;</span><span>Fireball</span><span style="color:#888;font-size:9px">LClick</span></div>
+    <div class="spell-slot ready" id="spell-1"><span class="spell-icon">&#x2744;&#xFE0F;</span><span>Frostbolt</span><span style="color:#888;font-size:9px">RClick</span></div>
+    <div class="spell-slot ready" id="spell-2"><span class="spell-icon">&#x1F300;</span><span>Telekinesis</span><span style="color:#888;font-size:9px">E</span></div>
   </div>
   <div id="crosshair">+</div>
 </div>
-
 <div id="name-screen">
   <h1>MultiMagicDungeonWeb</h1>
-  <p>Vibe Jam 2026 — Build dungeons. Raid others. Duel with spells.</p>
+  <p>Vibe Jam 2026 &#x2014; Build dungeons. Raid others. Duel with spells.</p>
   <input id="name-input" type="text" placeholder="Enter your name" maxlength="20" />
   <button id="name-btn">Enter Dungeon</button>
 </div>
-
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script>
 // ============================================================
-// MultiMagicDungeonWeb — Vibe Jam 2026
-// Phase 0 skeleton: Three.js dungeon + portal system + spell stubs
+// MultiMagicDungeonWeb - Vibe Jam 2026
+// Phase 1: Three.js dungeon + portals + WebSocket multiplayer
 // ============================================================
 
-const PORTAL_EXIT_URL = 'https://jam.pieter.com/portal/2026';
+// Config
+const WS_URL              = 'ws://localhost:8080'; // change to wss://... for production
+const PORTAL_EXIT_URL     = 'https://jam.pieter.com/portal/2026';
 const PORTAL_PRELOAD_DIST = 50;
-const PORTAL_ENTER_DIST = 18;
-const START_PORTAL_DELAY_MS = 5000;
-const PLAYER_SPEED = 0.18;
-const PLAYER_HEIGHT = 5;
-const HP_MAX = 100;
+const PORTAL_ENTER_DIST   = 18;  // 2D XZ distance
+const START_PORTAL_DELAY  = 5000;
+const PLAYER_SPEED        = 14;  // units/sec
+const PLAYER_HEIGHT       = 5;
+const HP_MAX              = 100;
+const SEND_MOVE_HZ        = 20;
 
-// ---- URL params ----
-const urlParams = new URLSearchParams(window.location.search);
+// URL params (Vibe Jam portal spec)
+const urlParams      = new URLSearchParams(window.location.search);
 const incomingPortal = urlParams.get('portal') === 'true';
 const incomingRef    = urlParams.get('ref') || '';
 const incomingUser   = urlParams.get('username') || '';
 const incomingColor  = urlParams.get('color') || 'white';
-const incomingSpeed  = parseFloat(urlParams.get('speed')) || PLAYER_SPEED;
-const incomingHp     = parseInt(urlParams.get('hp')) || HP_MAX;
+const incomingSpeed  = Math.max(1, Math.min(30, parseFloat(urlParams.get('speed')) || PLAYER_SPEED));
+const rawHp          = parseInt(urlParams.get('hp'), 10);
+const incomingHp     = Number.isFinite(rawHp) ? Math.max(0, Math.min(HP_MAX, rawHp)) : HP_MAX;
+// Validate ref - hostname pattern only, no protocol injection
+const REF_PATTERN    = /^[a-zA-Z0-9.-]+(:\d+)?$/;
+const safeRef        = (incomingRef && REF_PATTERN.test(incomingRef)) ? incomingRef : '';
 
-// ---- State ----
-let playerName = incomingUser || 'Wizard';
-let playerHp   = incomingHp;
-let portalPreloaded = false;
-let startPortalReady = false;  // becomes true after delay
-let gameStarted = false;
+// SPELL_DEFS registry - single source of truth for all spell properties
+const SPELL_DEFS = {
+  fireball:    { color: 0xff6600, size: 0.8, speed: 22,  maxLifeMs: 1333, cooldownMs:  666, icon: '&#x1F525;', label: 'Fireball',    key: 'LClick' },
+  frostbolt:   { color: 0x44aaff, size: 0.6, speed: 14,  maxLifeMs: 2000, cooldownMs: 1000, icon: '&#x2744;',  label: 'Frostbolt',   key: 'RClick' },
+  telekinesis: { color: 0xaa44ff, size: 1.0, speed: 18,  maxLifeMs: 1667, cooldownMs: 1500, icon: '&#x1F300;', label: 'Telekinesis', key: 'E'      },
+};
+// Shared geo/mat cache - no per-projectile GPU alloc
+const _geoCache = {}, _matCache = {};
+function getSpellGeo(s)  { return _geoCache[s] ??= new THREE.SphereGeometry(s, 8, 8); }
+function getSpellMat(c)  { return _matCache[c] ??= new THREE.MeshBasicMaterial({ color: c }); }
 
-// ---- Three.js setup ----
+// DungeonLayout data model - decoupled from rendering
+// Server can send a different layout for player-built dungeons (Phase 2)
+const DEFAULT_DUNGEON = {
+  rooms: [
+    { x:   0, z:   0, w: 80, d: 60 },
+    { x:  80, z:   0, w: 50, d: 40 },
+    { x: -80, z:   0, w: 50, d: 40 },
+    { x:   0, z: -80, w: 60, d: 50 },
+  ],
+  corridors: [
+    { x:  45, z:  0, w: 30, d: 15 },
+    { x: -45, z:  0, w: 30, d: 15 },
+    { x:   0, z: -45, w: 15, d: 30 },
+  ],
+  pillars: [[15,15],[-15,15],[15,-15],[-15,-15]],
+  spawnPoints: [
+    { x:  10, y: PLAYER_HEIGHT, z:  10 },
+    { x: -10, y: PLAYER_HEIGHT, z:  10 },
+    { x:  10, y: PLAYER_HEIGHT, z: -10 },
+    { x: -10, y: PLAYER_HEIGHT, z: -10 },
+    { x:  70, y: PLAYER_HEIGHT, z:   5 },
+    { x: -70, y: PLAYER_HEIGHT, z:   5 },
+    { x:   5, y: PLAYER_HEIGHT, z: -70 },
+    { x:  -5, y: PLAYER_HEIGHT, z: -70 },
+  ],
+};
+
+// Three.js core
 const canvas   = document.getElementById('game-canvas');
 const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
 renderer.setPixelRatio(window.devicePixelRatio);
 renderer.shadowMap.enabled = true;
-renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 renderer.setSize(window.innerWidth, window.innerHeight);
-
 const scene  = new THREE.Scene();
 scene.background = new THREE.Color(0x0a0608);
 scene.fog = new THREE.Fog(0x0a0608, 30, 200);
-
 const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 500);
-camera.position.set(0, PLAYER_HEIGHT, 0);
+const clock  = new THREE.Clock();
 
-// ---- Lighting ----
+// Lighting
 const ambient = new THREE.AmbientLight(0x221122, 0.6);
 scene.add(ambient);
-const torch1 = new THREE.PointLight(0xff6600, 1.5, 60);
-torch1.position.set(20, 10, 20);
-scene.add(torch1);
-const torch2 = new THREE.PointLight(0x4444ff, 1.0, 60);
-torch2.position.set(-30, 10, -20);
-scene.add(torch2);
+const torch1  = new THREE.PointLight(0xff6600, 1.5, 60);
+torch1.position.set(20, 10, 20); scene.add(torch1);
+const torch2  = new THREE.PointLight(0x4444ff, 1.0, 60);
+torch2.position.set(-30, 10, -20); scene.add(torch2);
 const dirLight = new THREE.DirectionalLight(0xffeedd, 0.4);
-dirLight.position.set(0, 40, 0);
-scene.add(dirLight);
+dirLight.position.set(0, 40, 0); scene.add(dirLight);
 
-// ---- Materials ----
-const stoneMat  = new THREE.MeshPhongMaterial({ color: 0x4a4055, shininess: 5 });
-const floorMat  = new THREE.MeshPhongMaterial({ color: 0x2a2030, shininess: 2 });
-const ceilingMat = new THREE.MeshPhongMaterial({ color: 0x1a1020, shininess: 0 });
-
-// ---- Dungeon geometry ----
-function buildDungeon() {
-  const rooms = [
-    { x: 0,   z: 0,   w: 80, d: 60 },   // main hall
-    { x: 80,  z: 0,   w: 50, d: 40 },   // east wing
-    { x: -80, z: 0,   w: 50, d: 40 },   // west wing
-    { x: 0,   z: -80, w: 60, d: 50 },   // north chamber
-  ];
-
-  rooms.forEach(room => {
-    // Floor
-    const floor = new THREE.Mesh(new THREE.PlaneGeometry(room.w, room.d), floorMat);
-    floor.rotation.x = -Math.PI / 2;
-    floor.position.set(room.x, 0, room.z);
-    scene.add(floor);
-
-    // Ceiling
-    const ceiling = new THREE.Mesh(new THREE.PlaneGeometry(room.w, room.d), ceilingMat);
-    ceiling.rotation.x = Math.PI / 2;
-    ceiling.position.set(room.x, 20, room.z);
-    scene.add(ceiling);
-
-    // Walls (4 sides)
-    const wallH = 20;
-    const walls = [
-      { pos: [room.x, wallH/2, room.z - room.d/2], rot: [0,0,0], size: [room.w, wallH] },
-      { pos: [room.x, wallH/2, room.z + room.d/2], rot: [0, Math.PI, 0], size: [room.w, wallH] },
-      { pos: [room.x - room.w/2, wallH/2, room.z], rot: [0, Math.PI/2, 0], size: [room.d, wallH] },
-      { pos: [room.x + room.w/2, wallH/2, room.z], rot: [0, -Math.PI/2, 0], size: [room.d, wallH] },
-    ];
-    walls.forEach(w => {
-      const mesh = new THREE.Mesh(new THREE.PlaneGeometry(...w.size), stoneMat);
-      mesh.position.set(...w.pos);
-      mesh.rotation.set(...w.rot);
-      scene.add(mesh);
+// Dungeon renderer - builds geometry from layout data
+function renderDungeon(layout) {
+  const sMat = new THREE.MeshPhongMaterial({ color: 0x4a4055, shininess: 5 });
+  const fMat = new THREE.MeshPhongMaterial({ color: 0x2a2030, shininess: 2 });
+  const cMat = new THREE.MeshPhongMaterial({ color: 0x1a1020, shininess: 0 });
+  const pMat = new THREE.MeshPhongMaterial({ color: 0x3a3045 });
+  const pGeo = new THREE.CylinderGeometry(1.5, 2, 20, 8);
+  const WH   = 20;
+  layout.rooms.forEach(r => {
+    const fl = new THREE.Mesh(new THREE.PlaneGeometry(r.w, r.d), fMat);
+    fl.rotation.x = -Math.PI/2; fl.position.set(r.x, 0, r.z); scene.add(fl);
+    const ce = new THREE.Mesh(new THREE.PlaneGeometry(r.w, r.d), cMat);
+    ce.rotation.x = Math.PI/2; ce.position.set(r.x, WH, r.z); scene.add(ce);
+    [[r.x, WH/2, r.z-r.d/2, 0,0,0, r.w,WH],
+     [r.x, WH/2, r.z+r.d/2, 0,Math.PI,0, r.w,WH],
+     [r.x-r.w/2, WH/2, r.z, 0,Math.PI/2,0, r.d,WH],
+     [r.x+r.w/2, WH/2, r.z, 0,-Math.PI/2,0, r.d,WH]
+    ].forEach(([px,py,pz,rx,ry,rz,gw,gh]) => {
+      const m = new THREE.Mesh(new THREE.PlaneGeometry(gw,gh), sMat);
+      m.position.set(px,py,pz); m.rotation.set(rx,ry,rz); scene.add(m);
     });
   });
-
-  // Connecting corridors
-  const corridors = [
-    { x: 45, z: 0, w: 30, d: 15 },
-    { x: -45, z: 0, w: 30, d: 15 },
-    { x: 0, z: -45, w: 15, d: 30 },
-  ];
-  corridors.forEach(c => {
-    const f = new THREE.Mesh(new THREE.PlaneGeometry(c.w, c.d), floorMat);
-    f.rotation.x = -Math.PI / 2;
-    f.position.set(c.x, 0, c.z);
-    scene.add(f);
-    const ce = new THREE.Mesh(new THREE.PlaneGeometry(c.w, c.d), ceilingMat);
-    ce.rotation.x = Math.PI / 2;
-    ce.position.set(c.x, 20, c.z);
-    scene.add(ce);
+  layout.corridors.forEach(c => {
+    const f2 = new THREE.Mesh(new THREE.PlaneGeometry(c.w,c.d), fMat);
+    f2.rotation.x=-Math.PI/2; f2.position.set(c.x,0,c.z); scene.add(f2);
+    const c2 = new THREE.Mesh(new THREE.PlaneGeometry(c.w,c.d), cMat);
+    c2.rotation.x=Math.PI/2; c2.position.set(c.x,WH,c.z); scene.add(c2);
   });
-
-  // Some pillars for atmosphere
-  const pillarMat = new THREE.MeshPhongMaterial({ color: 0x3a3045 });
-  const pillarGeo = new THREE.CylinderGeometry(1.5, 2, 20, 8);
-  const pillarPos = [
-    [15, 10, 15], [-15, 10, 15], [15, 10, -15], [-15, 10, -15],
-  ];
-  pillarPos.forEach(p => {
-    const mesh = new THREE.Mesh(pillarGeo, pillarMat);
-    mesh.position.set(...p);
-    scene.add(mesh);
+  layout.pillars.forEach(([px,pz]) => {
+    const m = new THREE.Mesh(pGeo, pMat); m.position.set(px,10,pz); scene.add(m);
   });
 }
+renderDungeon(DEFAULT_DUNGEON);
 
-buildDungeon();
-
-// ---- Portal helper ----
+// Portal helpers
 function makeLabelCanvas(text) {
-  const canvas = document.createElement('canvas');
-  canvas.width = 256; canvas.height = 64;
-  const ctx = canvas.getContext('2d');
-  ctx.fillStyle = 'rgba(0,0,0,0)';
-  ctx.fillRect(0, 0, 256, 64);
-  ctx.font = 'bold 22px monospace';
-  ctx.fillStyle = '#ffffff';
-  ctx.textAlign = 'center';
-  ctx.fillText(text, 128, 40);
-  return canvas;
+  const c = document.createElement('canvas'); c.width=256; c.height=64;
+  const ctx = c.getContext('2d');
+  ctx.font='bold 22px monospace'; ctx.fillStyle='#fff'; ctx.textAlign='center';
+  ctx.fillText(text, 128, 40); return c;
 }
-
 function createPortal(color, position, label) {
-  const group = new THREE.Group();
-  group.position.copy(position);
-  group.rotation.x = 0.35;
-
-  // Ring
-  const torus = new THREE.Mesh(
-    new THREE.TorusGeometry(15, 2, 16, 100),
-    new THREE.MeshPhongMaterial({ color, emissive: color, emissiveIntensity: 0.6,
-      transparent: true, opacity: 0.85 })
-  );
-  group.add(torus);
-
-  // Inner fill
-  const inner = new THREE.Mesh(
-    new THREE.CircleGeometry(13, 32),
-    new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.35, side: THREE.DoubleSide })
-  );
-  group.add(inner);
-
-  // Label
+  const g = new THREE.Group();
+  g.position.copy(position); g.rotation.x = 0.35;
+  g.add(new THREE.Mesh(new THREE.TorusGeometry(15,2,16,100),
+    new THREE.MeshPhongMaterial({ color, emissive:color, emissiveIntensity:0.6, transparent:true, opacity:0.85 })));
+  g.add(new THREE.Mesh(new THREE.CircleGeometry(13,32),
+    new THREE.MeshBasicMaterial({ color, transparent:true, opacity:0.35, side:THREE.DoubleSide })));
   if (label) {
-    const tex = new THREE.CanvasTexture(makeLabelCanvas(label));
-    const labelMesh = new THREE.Mesh(
-      new THREE.PlaneGeometry(30, 7),
-      new THREE.MeshBasicMaterial({ map: tex, transparent: true, side: THREE.DoubleSide })
-    );
-    labelMesh.position.set(0, 20, 0);
-    group.add(labelMesh);
+    const lm = new THREE.Mesh(new THREE.PlaneGeometry(30,7),
+      new THREE.MeshBasicMaterial({ map:new THREE.CanvasTexture(makeLabelCanvas(label)), transparent:true, side:THREE.DoubleSide }));
+    lm.position.set(0,20,0); g.add(lm);
   }
-
-  // Point light inside portal
-  const glow = new THREE.PointLight(color, 1.5, 40);
-  glow.position.set(0, 0, 0);
-  group.add(glow);
-
-  scene.add(group);
-  return group;
+  g.add(new THREE.PointLight(color, 1.5, 40));
+  scene.add(g); return g;
 }
 
-// Exit portal (always present)
-const exitPortalGroup = createPortal(0x00ff00, new THREE.Vector3(-200, 20, -80), 'VIBE JAM 2026');
-let startPortalGroup = null;
-
-// Start portal (only when arriving from another game)
-if (incomingPortal && incomingRef) {
-  startPortalGroup = createPortal(0xff0000, new THREE.Vector3(0, 20, 30), null);
-  setTimeout(() => { startPortalReady = true; }, START_PORTAL_DELAY_MS);
+// Exit portal inside west wing (reachable without wall clipping)
+const exitPortalGroup = createPortal(0x00ff00, new THREE.Vector3(-55, PLAYER_HEIGHT, 0), 'VIBE JAM 2026');
+let startPortalGroup = null, startPortalReady = false;
+if (incomingPortal && safeRef) {
+  startPortalGroup = createPortal(0xff0000, new THREE.Vector3(0, PLAYER_HEIGHT, 25), null);
+  setTimeout(() => { startPortalReady = true; }, START_PORTAL_DELAY);
 }
 
-// ---- Player movement ----
-const keys = {};
-document.addEventListener('keydown', e => { keys[e.code] = true; });
-document.addEventListener('keyup',   e => { keys[e.code] = false; });
-
-let yaw = 0, pitch = 0;
-let isLocked = false;
-
-canvas.addEventListener('click', () => {
-  if (gameStarted) canvas.requestPointerLock();
-});
-
-document.addEventListener('pointerlockchange', () => {
-  isLocked = document.pointerLockElement === canvas;
-});
-
-document.addEventListener('mousemove', e => {
-  if (!isLocked) return;
-  yaw   -= e.movementX * 0.002;
-  pitch -= e.movementY * 0.002;
-  pitch = Math.max(-Math.PI/3, Math.min(Math.PI/3, pitch));
-});
-
-function movePlayer() {
-  if (!isLocked) return;
-  const dir = new THREE.Vector3();
-  if (keys['KeyW'] || keys['ArrowUp'])    dir.z -= 1;
-  if (keys['KeyS'] || keys['ArrowDown'])  dir.z += 1;
-  if (keys['KeyA'] || keys['ArrowLeft'])  dir.x -= 1;
-  if (keys['KeyD'] || keys['ArrowRight']) dir.x += 1;
-  dir.normalize().multiplyScalar(PLAYER_SPEED * 5);
-  dir.applyEuler(new THREE.Euler(0, yaw, 0));
-  camera.position.add(dir);
-  camera.position.y = PLAYER_HEIGHT;
-  camera.rotation.set(pitch, yaw, 0, 'YXZ');
-}
-
-// ---- Spells ----
-const spellProjectiles = [];
-const cooldowns = { fireball: 0, frostbolt: 0, telekinesis: 0 };
-
-class MmdSpell {
-  constructor(type, position, direction) {
-    this.type = type;
-    this.alive = true;
-    this.life = 0;
-    this.maxLife = type === 'frostbolt' ? 120 : 80;
-    this.speed = type === 'frostbolt' ? 0.4 : 0.7;
-
-    const colors = { fireball: 0xff6600, frostbolt: 0x44aaff, telekinesis: 0xaa44ff };
-    const sizes  = { fireball: 0.8, frostbolt: 0.6, telekinesis: 1.0 };
-
-    this.mesh = new THREE.Mesh(
-      new THREE.SphereGeometry(sizes[type], 8, 8),
-      new THREE.MeshBasicMaterial({ color: colors[type] })
-    );
-    this.mesh.position.copy(position);
-    this.direction = direction.clone().normalize();
-    scene.add(this.mesh);
-
-    const light = new THREE.PointLight(colors[type], 1.5, 20);
-    this.mesh.add(light);
-  }
-
-  update() {
-    this.mesh.position.addScaledVector(this.direction, this.speed);
-    this.life++;
-    if (this.life > this.maxLife) this.destroy();
-    // Basic wall collision (simple bounds check)
-    if (Math.abs(this.mesh.position.x) > 110 || Math.abs(this.mesh.position.z) > 110) {
-      this.destroy();
+// MmdPlayer - owns player state; camera follows local instance
+class MmdPlayer {
+  constructor({ id, username, x, y, z, yaw=0, pitch=0, hp=HP_MAX, isLocal=false }) {
+    this.id=id; this.username=username; this.isLocal=isLocal;
+    this.position=new THREE.Vector3(x,y,z);
+    this.yaw=yaw; this.pitch=pitch; this.hp=hp;
+    this.cooldowns = Object.fromEntries(Object.keys(SPELL_DEFS).map(k=>[k,0]));
+    if (!isLocal) {
+      this.mesh = new THREE.Group();
+      const mat = new THREE.MeshPhongMaterial({ color:0x8855aa });
+      const body = new THREE.Mesh(new THREE.CylinderGeometry(1,1,6,8), mat);
+      body.position.y=3; this.mesh.add(body);
+      const head = new THREE.Mesh(new THREE.SphereGeometry(1.2,8,8), mat);
+      head.position.y=7.2; this.mesh.add(head);
+      const nc=document.createElement('canvas'); nc.width=256; nc.height=48;
+      const ctx=nc.getContext('2d');
+      ctx.font='bold 20px monospace'; ctx.fillStyle='#fff'; ctx.textAlign='center';
+      ctx.fillText(username.slice(0,18), 128, 32);
+      const nm=new THREE.Mesh(new THREE.PlaneGeometry(8,1.5),
+        new THREE.MeshBasicMaterial({ map:new THREE.CanvasTexture(nc), transparent:true, side:THREE.DoubleSide }));
+      nm.position.y=9.5; this.mesh.add(nm);
+      this.mesh.position.copy(this.position); scene.add(this.mesh);
+      this.targetPos=this.position.clone(); this.targetYaw=yaw;
     }
   }
-
-  destroy() {
-    this.alive = false;
-    scene.remove(this.mesh);
+  updateLocal(dt, keys, yaw, pitch) {
+    const dir=new THREE.Vector3();
+    if(keys['KeyW']||keys['ArrowUp'])    dir.z-=1;
+    if(keys['KeyS']||keys['ArrowDown'])  dir.z+=1;
+    if(keys['KeyA']||keys['ArrowLeft'])  dir.x-=1;
+    if(keys['KeyD']||keys['ArrowRight']) dir.x+=1;
+    if(dir.lengthSq()>0) {
+      dir.normalize().multiplyScalar(PLAYER_SPEED*dt);
+      dir.applyEuler(new THREE.Euler(0,yaw,0));
+      this.position.add(dir);
+    }
+    this.position.y=PLAYER_HEIGHT; this.yaw=yaw; this.pitch=pitch;
+    for(const k of Object.keys(this.cooldowns))
+      if(this.cooldowns[k]>0) this.cooldowns[k]=Math.max(0,this.cooldowns[k]-dt);
+    camera.position.copy(this.position);
+    camera.rotation.set(pitch,yaw,0,'YXZ');
   }
+  applyServerUpdate({ x,y,z,yaw }) { this.targetPos.set(x,y,z); this.targetYaw=yaw; }
+  interpolate(dt) {
+    const a=Math.min(1,dt*12);
+    this.position.lerp(this.targetPos,a);
+    this.yaw+=(this.targetYaw-this.yaw)*a;
+    this.mesh.position.copy(this.position); this.mesh.rotation.y=this.yaw;
+    if(this.mesh.children[2]) this.mesh.children[2].lookAt(camera.position);
+  }
+  destroy() { if(this.mesh) scene.remove(this.mesh); }
 }
 
+// MmdSpell - delta-time based, pooled geo/mat
+class MmdSpell {
+  constructor(type, position, direction, ownerId=null) {
+    const def=SPELL_DEFS[type];
+    if(!def){this.alive=false;return;}
+    this.type=type; this.ownerId=ownerId; this.alive=true;
+    this.lifeMs=0; this.maxLifeMs=def.maxLifeMs; this.speed=def.speed;
+    this.mesh=new THREE.Mesh(getSpellGeo(def.size), getSpellMat(def.color));
+    this.mesh.position.copy(position);
+    this.direction=direction.clone().normalize();
+    scene.add(this.mesh);
+    this.mesh.add(new THREE.PointLight(def.color, 1.5, 20));
+  }
+  update(dt) {
+    this.mesh.position.addScaledVector(this.direction, this.speed*dt);
+    this.lifeMs+=dt*1000;
+    if(this.lifeMs>this.maxLifeMs){this.destroy();return;}
+    if(Math.abs(this.mesh.position.x)>115||Math.abs(this.mesh.position.z)>115) this.destroy();
+  }
+  destroy() { if(!this.alive)return; this.alive=false; scene.remove(this.mesh); }
+}
+
+// MmdNetworkClient - WebSocket with offline fallback
+class MmdNetworkClient {
+  constructor(url) {
+    this.url=url; this.ws=null; this.connected=false;
+    this._username='Wizard'; this._moveInterval=null;
+  }
+  connect(username) {
+    this._username=username;
+    try { this.ws=new WebSocket(this.url); }
+    catch(e) { console.warn('[Net] unavailable - offline'); _createOfflinePlayer(username); return; }
+    const to=setTimeout(()=>{ if(!this.connected){console.warn('[Net] timeout - offline'); _createOfflinePlayer(username);} }, 3000);
+    this.ws.onopen=()=>{ clearTimeout(to); this.connected=true; this.send({type:'join',username}); };
+    this.ws.onmessage=(e)=>{ try{this._handle(JSON.parse(e.data));}catch(err){} };
+    this.ws.onclose=()=>{ clearTimeout(to); clearInterval(this._moveInterval); this.connected=false; if(!localPlayer)_createOfflinePlayer(username); };
+    this.ws.onerror=()=>{ console.warn('[Net] error'); };
+  }
+  _handle(msg) {
+    if(msg.type==='welcome')      this._onWelcome(msg);
+    else if(msg.type==='player_join')  this._onJoin(msg);
+    else if(msg.type==='player_leave') this._onLeave(msg);
+    else if(msg.type==='player_move')  this._onMove(msg);
+    else if(msg.type==='spell_cast')   this._onSpell(msg);
+  }
+  _onWelcome(msg) {
+    const sp=msg.spawnPoint||DEFAULT_DUNGEON.spawnPoints[0];
+    localPlayer=new MmdPlayer({id:msg.playerId,username:this._username,x:sp.x,y:sp.y,z:sp.z,hp:incomingHp,isLocal:true});
+    for(const p of(msg.players||[])) if(!remotePlayers.has(p.id)) remotePlayers.set(p.id,new MmdPlayer({...p,isLocal:false}));
+    _updatePlayerCount();
+    this._moveInterval=setInterval(()=>{
+      if(localPlayer&&this.connected) this.send({type:'move',x:localPlayer.position.x,y:localPlayer.position.y,z:localPlayer.position.z,yaw:localPlayer.yaw,pitch:localPlayer.pitch});
+    }, 1000/SEND_MOVE_HZ);
+  }
+  _onJoin(msg) {
+    const p=msg.player;
+    if(!remotePlayers.has(p.id)) remotePlayers.set(p.id,new MmdPlayer({...p,isLocal:false}));
+    _updatePlayerCount();
+  }
+  _onLeave(msg) {
+    const rp=remotePlayers.get(msg.playerId);
+    if(rp){rp.destroy();remotePlayers.delete(msg.playerId);}
+    _updatePlayerCount();
+  }
+  _onMove(msg) { const rp=remotePlayers.get(msg.playerId); if(rp) rp.applyServerUpdate(msg); }
+  _onSpell(msg) {
+    if(!SPELL_DEFS[msg.spellType]) return;
+    spellProjectiles.push(new MmdSpell(msg.spellType,new THREE.Vector3(msg.x,msg.y,msg.z),new THREE.Vector3(msg.dirX,msg.dirY,msg.dirZ),msg.playerId));
+  }
+  send(obj) { if(this.ws?.readyState===WebSocket.OPEN) this.ws.send(JSON.stringify(obj)); }
+  disconnect() { clearInterval(this._moveInterval); this.ws?.close(); }
+}
+
+// Game state
+let localPlayer        = null;
+const remotePlayers    = new Map();
+const spellProjectiles = [];
+const net              = new MmdNetworkClient(WS_URL);
+
+function _createOfflinePlayer(username) {
+  if(localPlayer) return;
+  localPlayer=new MmdPlayer({id:'offline-'+Date.now(),username,x:0,y:PLAYER_HEIGHT,z:0,hp:incomingHp,isLocal:true});
+}
+function _updatePlayerCount() {
+  const n=1+remotePlayers.size;
+  const el=document.getElementById('player-count');
+  if(el) el.textContent=n+(n===1?' player in dungeon':' players in dungeon');
+}
+
+// Spell casting
 function castSpell(type) {
-  if (cooldowns[type] > 0) return;
-  const dir = new THREE.Vector3(0, 0, -1).applyEuler(camera.rotation);
-  const pos = camera.position.clone().addScaledVector(dir, 3);
-  spellProjectiles.push(new MmdSpell(type, pos, dir));
-  const cd = { fireball: 40, frostbolt: 60, telekinesis: 90 };
-  cooldowns[type] = cd[type];
+  if(!localPlayer||!gameStarted) return;
+  if(localPlayer.cooldowns[type]>0) return;
+  const def=SPELL_DEFS[type];
+  const dir=new THREE.Vector3(0,0,-1).applyEuler(camera.rotation);
+  const pos=localPlayer.position.clone().addScaledVector(dir,3);
+  spellProjectiles.push(new MmdSpell(type,pos,dir,localPlayer.id));
+  localPlayer.cooldowns[type]=def.cooldownMs/1000;
+  net.send({type:'spell_cast',spellType:type,x:pos.x,y:pos.y,z:pos.z,dirX:dir.x,dirY:dir.y,dirZ:dir.z});
 }
 
-document.addEventListener('mousedown', e => {
-  if (!isLocked) return;
-  if (e.button === 0) castSpell('fireball');
-  if (e.button === 2) castSpell('frostbolt');
+// Input (single unified handler)
+const keys={};
+let yaw=0, pitch=0, isLocked=false;
+document.addEventListener('keydown',e=>{
+  keys[e.code]=true;
+  if(e.code==='KeyE'&&isLocked) castSpell('telekinesis');
+});
+document.addEventListener('keyup',e=>{ keys[e.code]=false; });
+document.addEventListener('mousemove',e=>{
+  if(!isLocked) return;
+  yaw-=e.movementX*0.002; pitch-=e.movementY*0.002;
+  pitch=Math.max(-Math.PI/3,Math.min(Math.PI/3,pitch));
+});
+document.addEventListener('mousedown',e=>{
+  if(!isLocked) return;
+  if(e.button===0) castSpell('fireball');
+  if(e.button===2) castSpell('frostbolt');
   e.preventDefault();
 });
-document.addEventListener('contextmenu', e => e.preventDefault());
-document.addEventListener('keydown', e => {
-  if (e.code === 'KeyE' && isLocked) castSpell('telekinesis');
-});
+document.addEventListener('contextmenu',e=>e.preventDefault());
+canvas.addEventListener('click',()=>{ if(gameStarted) canvas.requestPointerLock(); });
+document.addEventListener('pointerlockchange',()=>{ isLocked=document.pointerLockElement===canvas; });
 
-// ---- HUD ----
-function updateHud() {
-  document.getElementById('health-bar').style.width = playerHp + '%';
-  ['fireball','frostbolt','telekinesis'].forEach((s, i) => {
-    const el = document.getElementById('spell-' + i);
-    el.classList.toggle('cooling', cooldowns[s] > 0);
-    el.classList.toggle('ready', cooldowns[s] === 0);
-  });
-}
-
-// ---- Portal distance checks ----
-const portalHintEl = document.getElementById('portal-hint');
-
+// Portal checks (travel guard + 2D distance - fixes Y gap bug)
+const portalHintEl=document.getElementById('portal-hint');
+let portalPreloaded=false, traveling=false;
+function dist2D(a,b){const dx=a.x-b.x,dz=a.z-b.z;return Math.sqrt(dx*dx+dz*dz);}
 function checkPortals() {
-  const pos = camera.position;
-
-  // Exit portal
-  const exitPos = exitPortalGroup.position;
-  const distExit = pos.distanceTo(exitPos);
-
-  if (distExit < PORTAL_PRELOAD_DIST && !portalPreloaded) {
-    portalPreloaded = true;
-    const iframe = document.createElement('iframe');
-    iframe.src = PORTAL_EXIT_URL;
-    iframe.style.display = 'none';
-    document.body.appendChild(iframe);
+  if(traveling||!localPlayer) return;
+  const pos=localPlayer.position;
+  const dExit=dist2D(pos,exitPortalGroup.position);
+  portalHintEl.style.display=dExit<PORTAL_PRELOAD_DIST*1.5?'block':'none';
+  if(dExit<PORTAL_PRELOAD_DIST&&!portalPreloaded) {
+    portalPreloaded=true;
+    const ifr=document.createElement('iframe');
+    ifr.src=PORTAL_EXIT_URL; ifr.style.cssText='display:none;position:absolute';
+    document.body.appendChild(ifr);
   }
-
-  if (distExit < PORTAL_PRELOAD_DIST * 1.5) {
-    portalHintEl.style.display = 'block';
-  } else {
-    portalHintEl.style.display = 'none';
+  if(dExit<PORTAL_ENTER_DIST) {
+    traveling=true; net.disconnect();
+    const p=new URLSearchParams({portal:'true',ref:window.location.origin,username:localPlayer.username,color:'white',speed:PLAYER_SPEED.toFixed(2),hp:Math.round(localPlayer.hp)});
+    window.location.href=PORTAL_EXIT_URL+'?'+p; return;
   }
-
-  if (distExit < PORTAL_ENTER_DIST) {
-    travelToPortal();
-  }
-
-  // Start portal (back to origin game)
-  if (startPortalGroup && startPortalReady) {
-    const startPos = startPortalGroup.position;
-    const distStart = pos.distanceTo(startPos);
-    if (distStart < PORTAL_ENTER_DIST) {
-      returnToOrigin();
+  if(startPortalGroup&&startPortalReady) {
+    const dStart=dist2D(pos,startPortalGroup.position);
+    if(dStart<PORTAL_ENTER_DIST) {
+      traveling=true; net.disconnect();
+      const scheme=safeRef.startsWith('localhost')?'http':'https';
+      const p=new URLSearchParams({portal:'true',username:localPlayer.username,color:incomingColor,speed:PLAYER_SPEED.toFixed(2),hp:Math.round(localPlayer.hp)});
+      window.location.href=scheme+'://'+safeRef+'/?'+p;
     }
   }
 }
 
-function travelToPortal() {
-  const params = new URLSearchParams();
-  params.set('portal', 'true');
-  params.set('ref', window.location.hostname || 'multimagicdungeonweb');
-  params.set('username', playerName);
-  params.set('color', 'white');
-  params.set('speed', (PLAYER_SPEED * 5).toFixed(2));
-  params.set('hp', Math.round(playerHp).toString());
-  window.location.href = PORTAL_EXIT_URL + '?' + params.toString();
+// HUD
+function updateHud() {
+  if(!localPlayer) return;
+  document.getElementById('health-bar').style.width=localPlayer.hp+'%';
+  Object.keys(SPELL_DEFS).forEach((s,i)=>{
+    const el=document.getElementById('spell-'+i);
+    if(!el) return;
+    const c=localPlayer.cooldowns[s]>0;
+    el.classList.toggle('cooling',c); el.classList.toggle('ready',!c);
+  });
 }
 
-function returnToOrigin() {
-  if (!incomingRef) return;
-  const params = new URLSearchParams();
-  params.set('portal', 'true');
-  params.set('username', playerName);
-  params.set('color', incomingColor);
-  params.set('speed', (PLAYER_SPEED * 5).toFixed(2));
-  params.set('hp', Math.round(playerHp).toString());
-  const scheme = incomingRef.startsWith('localhost') ? 'http' : 'https';
-  window.location.href = scheme + '://' + incomingRef + '/?' + params.toString();
-}
-
-// ---- Portal animation ----
-let tick = 0;
-function animatePortals() {
-  tick += 0.02;
-  exitPortalGroup.rotation.z = tick * 0.3;
-  if (startPortalGroup) startPortalGroup.rotation.z = -tick * 0.3;
-}
-
-// ---- Start game ----
+// Game start
+let gameStarted=false;
 function startGame(name) {
-  playerName = name || playerName;
-  gameStarted = true;
-  document.getElementById('name-screen').style.display = 'none';
+  const username=(name||'Wizard').trim()||'Wizard';
+  gameStarted=true;
+  document.getElementById('name-screen').style.display='none';
   canvas.requestPointerLock();
-
-  if (incomingRef) {
-    const el = document.getElementById('arrived-from');
-    el.style.display = 'block';
-    el.textContent = 'Arrived from: ' + incomingRef;
-    setTimeout(() => { el.style.display = 'none'; }, 6000);
+  if(safeRef){
+    const el=document.getElementById('arrived-from');
+    el.style.display='block'; el.textContent='Arrived from: '+safeRef;
+    setTimeout(()=>{el.style.display='none';},6000);
   }
+  net.connect(username);
 }
+document.getElementById('name-btn').addEventListener('click',()=>startGame(document.getElementById('name-input').value));
+document.getElementById('name-input').addEventListener('keydown',e=>{ if(e.key==='Enter') startGame(document.getElementById('name-input').value); });
+if(incomingPortal) startGame(incomingUser);
 
-// Name screen
-document.getElementById('name-btn').addEventListener('click', () => {
-  startGame(document.getElementById('name-input').value.trim());
-});
-document.getElementById('name-input').addEventListener('keydown', e => {
-  if (e.key === 'Enter') startGame(document.getElementById('name-input').value.trim());
-});
-
-// If arriving via portal, skip name screen
-if (incomingPortal) {
-  startGame(incomingUser);
-}
-
-// ---- Window resize ----
-window.addEventListener('resize', () => {
-  camera.aspect = window.innerWidth / window.innerHeight;
+// Window resize
+window.addEventListener('resize',()=>{
+  camera.aspect=window.innerWidth/window.innerHeight;
   camera.updateProjectionMatrix();
-  renderer.setSize(window.innerWidth, window.innerHeight);
+  renderer.setSize(window.innerWidth,window.innerHeight);
 });
 
-// ---- Game loop ----
+// Game loop (delta-time throughout - framerate independent)
+let elapsedSecs=0;
 function gameLoop() {
   requestAnimationFrame(gameLoop);
-
-  if (!gameStarted) { renderer.render(scene, camera); return; }
-
-  movePlayer();
-
-  // Update spells
-  for (let i = spellProjectiles.length - 1; i >= 0; i--) {
-    spellProjectiles[i].update();
-    if (!spellProjectiles[i].alive) spellProjectiles.splice(i, 1);
+  const dt=Math.min(clock.getDelta(),0.1); // cap prevents spiral of death on tab refocus
+  elapsedSecs+=dt;
+  if(!gameStarted){renderer.render(scene,camera);return;}
+  if(localPlayer) localPlayer.updateLocal(dt,keys,yaw,pitch);
+  for(const rp of remotePlayers.values()) rp.interpolate(dt);
+  for(let i=spellProjectiles.length-1;i>=0;i--){
+    spellProjectiles[i].update(dt);
+    if(!spellProjectiles[i].alive) spellProjectiles.splice(i,1);
   }
-
-  // Cooldowns
-  Object.keys(cooldowns).forEach(k => { if (cooldowns[k] > 0) cooldowns[k]--; });
-
-  // Portal torch flicker
-  torch1.intensity = 1.3 + Math.sin(tick * 7) * 0.2;
-  torch2.intensity = 0.9 + Math.sin(tick * 5 + 1) * 0.15;
-
-  checkPortals();
-  animatePortals();
-  updateHud();
-
-  renderer.render(scene, camera);
+  torch1.intensity=1.3+Math.sin(elapsedSecs*7)*0.2;
+  torch2.intensity=0.9+Math.sin(elapsedSecs*5+1)*0.15;
+  exitPortalGroup.rotation.z=elapsedSecs*0.3;
+  if(startPortalGroup) startPortalGroup.rotation.z=-elapsedSecs*0.3;
+  checkPortals(); updateHud();
+  renderer.render(scene,camera);
 }
-
 gameLoop();
 
-// Expose for debugging
-window.game = { camera, scene, renderer, playerName, playerHp };
+// Debug (live getters)
+window.game={
+  scene,renderer,camera,
+  get localPlayer(){return localPlayer;},
+  get remotePlayers(){return remotePlayers;},
+  get spells(){return spellProjectiles;},
+  net,
+};
 </script>
 </body>
 </html>
