@@ -17,6 +17,10 @@ const wss = new WebSocketServer({ port: PORT });
 wss.on('connection', (ws) => {
   console.log(`[WS] Client connected (${wss.clients.size} total)`);
 
+  // Track whether client responded to last ping
+  ws.isAlive = true;
+  ws.on('pong', () => { ws.isAlive = true; });
+
   ws.on('message', (data) => {
     handler.handle(ws, data.toString());
   });
@@ -30,6 +34,22 @@ wss.on('connection', (ws) => {
     console.error('[WS] Error:', err.message);
   });
 });
+
+// Heartbeat: ping every 30s, terminate connections that don't pong within the interval
+const heartbeatInterval = setInterval(() => {
+  wss.clients.forEach((ws) => {
+    if (!ws.isAlive) {
+      // No pong since last ping — connection is dead
+      console.log('[WS] Terminating unresponsive client');
+      ws.terminate();
+      return;
+    }
+    ws.isAlive = false;
+    ws.ping();
+  });
+}, 30_000);
+
+wss.on('close', () => { clearInterval(heartbeatInterval); });
 
 wss.on('listening', () => {
   console.log(`MMD server running on ws://localhost:${PORT}`);
