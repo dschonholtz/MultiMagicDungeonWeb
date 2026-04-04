@@ -317,7 +317,8 @@ class MmdPlayer {
   }
   applyServerUpdate({ x,y,z,yaw }) { this.targetPos.set(x,y,z); this.targetYaw=yaw; }
   interpolate(dt) {
-    const a=Math.min(1,dt*12);
+    // Clamp alpha to 1.0 — prevents lerp overshoot when dt spikes at low frame rates
+    const a=Math.min(dt*12, 1.0);
     this.position.lerp(this.targetPos,a);
     this.yaw+=(this.targetYaw-this.yaw)*a;
     this.mesh.position.copy(this.position); this.mesh.rotation.y=this.yaw;
