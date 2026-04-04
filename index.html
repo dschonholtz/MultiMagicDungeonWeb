@@ -212,6 +212,26 @@ if (incomingPortal && safeRef) {
   setTimeout(() => { startPortalReady = true; }, START_PORTAL_DELAY);
 }
 
+// Shared toon cel-shading gradient (3 bands: shadow / mid / highlight)
+const _toonGradientMap = (() => {
+  const data = new Uint8Array([90, 160, 255]);
+  const tex = new THREE.DataTexture(data, 3, 1, THREE.LuminanceFormat);
+  tex.needsUpdate = true;
+  return tex;
+})();
+
+// Per-player color derived from id string
+function hashColor(id) {
+  let h = 0;
+  for (let i = 0; i < id.length; i++) h = (h * 31 + id.charCodeAt(i)) | 0;
+  const hue = Math.abs(h) % 360;
+  return {
+    body: new THREE.Color().setHSL(hue/360, 0.70, 0.50),
+    head: new THREE.Color().setHSL(hue/360, 0.60, 0.65),
+    legs: new THREE.Color().setHSL(hue/360, 0.70, 0.35),
+  };
+}
+
 // MmdPlayer - owns player state; camera follows local instance
 class MmdPlayer {
   constructor({ id, username, x, y, z, yaw=0, pitch=0, hp=HP_MAX, isLocal=false }) {
@@ -221,18 +241,38 @@ class MmdPlayer {
     this.cooldowns = Object.fromEntries(Object.keys(SPELL_DEFS).map(k=>[k,0]));
     if (!isLocal) {
       this.mesh = new THREE.Group();
-      const mat = new THREE.MeshPhongMaterial({ color:0x8855aa });
-      const body = new THREE.Mesh(new THREE.CylinderGeometry(1,1,6,8), mat);
-      body.position.y=3; this.mesh.add(body);
-      const head = new THREE.Mesh(new THREE.SphereGeometry(1.2,8,8), mat);
-      head.position.y=7.2; this.mesh.add(head);
+      const colors = hashColor(id);
+      const toonMat = c => new THREE.MeshToonMaterial({ color:c, gradientMap:_toonGradientMap, flatShading:true });
+      const addWithOutline = (group, mesh) => {
+        group.add(mesh);
+        const ol = mesh.clone();
+        ol.material = new THREE.MeshBasicMaterial({ color:0x000000, side:THREE.BackSide });
+        ol.scale.setScalar(1.05);
+        group.add(ol);
+      };
+
+      const legs = new THREE.Mesh(new THREE.CylinderGeometry(0.9,0.8,2.5,8), toonMat(colors.legs));
+      legs.position.y=1.25; addWithOutline(this.mesh, legs);
+
+      const torso = new THREE.Mesh(new THREE.CylinderGeometry(1.0,0.9,3.0,8), toonMat(colors.body));
+      torso.position.y=3.25; addWithOutline(this.mesh, torso);
+
+      const lArm = new THREE.Mesh(new THREE.CylinderGeometry(0.35,0.3,2.8,6), toonMat(colors.body));
+      lArm.position.set(-1.35,3.5,0); lArm.rotation.z=0.4; addWithOutline(this.mesh, lArm);
+
+      const rArm = new THREE.Mesh(new THREE.CylinderGeometry(0.35,0.3,2.8,6), toonMat(colors.body));
+      rArm.position.set(1.35,3.5,0); rArm.rotation.z=-0.4; addWithOutline(this.mesh, rArm);
+
+      const head = new THREE.Mesh(new THREE.SphereGeometry(1.15,10,10), toonMat(colors.head));
+      head.position.y=5.8; addWithOutline(this.mesh, head);
+
       const nc=document.createElement('canvas'); nc.width=256; nc.height=48;
       const ctx=nc.getContext('2d');
       ctx.font='bold 20px monospace'; ctx.fillStyle='#fff'; ctx.textAlign='center';
       ctx.fillText(username.slice(0,18), 128, 32);
       const nm=new THREE.Mesh(new THREE.PlaneGeometry(8,1.5),
         new THREE.MeshBasicMaterial({ map:new THREE.CanvasTexture(nc), transparent:true, side:THREE.DoubleSide }));
-      nm.position.y=9.5; this.mesh.add(nm);
+      nm.position.y=8.5; this.mesh.add(nm);
       this.namePlateMesh=nm;
       this.mesh.position.copy(this.position); scene.add(this.mesh);
       this.targetPos=this.position.clone(); this.targetYaw=yaw;
@@ -272,7 +312,7 @@ class MmdPlayer {
     this.position.lerp(this.targetPos,a);
     this.yaw+=(this.targetYaw-this.yaw)*a;
     this.mesh.position.copy(this.position); this.mesh.rotation.y=this.yaw;
-    if(this.mesh.children[2]) this.mesh.children[2].lookAt(camera.position);
+    if(this.namePlateMesh) this.namePlateMesh.lookAt(camera.position);
   }
   destroy() { if(this.mesh) scene.remove(this.mesh); }
 }
