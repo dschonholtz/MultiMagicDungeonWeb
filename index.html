@@ -1,0 +1,768 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MultiMagicDungeon Web — Vibe Jam 2026</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { background: #000; overflow: hidden; font-family: 'Courier New', monospace; color: #fff; }
+    #canvas-container { width: 100vw; height: 100vh; }
+    canvas { display: block; }
+
+    /* HUD */
+    #hud { position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 10; }
+    #health-bar-container { position: absolute; top: 20px; left: 20px; }
+    #health-label { font-size: 12px; color: #aaa; margin-bottom: 4px; letter-spacing: 1px; }
+    #health-bar-bg { width: 200px; height: 16px; background: #333; border: 1px solid #555; border-radius: 3px; overflow: hidden; }
+    #health-bar { height: 100%; background: linear-gradient(90deg, #8b0000, #ff2200); width: 100%; transition: width 0.2s; }
+    #health-text { font-size: 11px; color: #ff6666; margin-top: 3px; }
+
+    #spells-hud { position: absolute; bottom: 30px; left: 50%; transform: translateX(-50%); display: flex; gap: 16px; }
+    .spell-slot { width: 64px; height: 64px; border: 2px solid #555; border-radius: 8px; background: rgba(0,0,0,0.6); display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative; }
+    .spell-slot.ready { border-color: #888; }
+    .spell-slot.active { border-color: #fff; box-shadow: 0 0 10px rgba(255,255,255,0.3); }
+    .spell-icon { font-size: 24px; }
+    .spell-label { font-size: 9px; color: #999; margin-top: 2px; letter-spacing: 0.5px; }
+    .spell-key { position: absolute; top: 3px; right: 5px; font-size: 9px; color: #666; }
+    .cooldown-overlay { position: absolute; bottom: 0; left: 0; width: 100%; background: rgba(0,0,0,0.7); border-radius: 0 0 6px 6px; transition: height 0.1s; }
+
+    #portal-indicator { position: absolute; bottom: 120px; left: 50%; transform: translateX(-50%); background: rgba(0,80,0,0.8); border: 2px solid #00ff00; border-radius: 8px; padding: 8px 20px; font-size: 14px; color: #00ff00; letter-spacing: 2px; text-shadow: 0 0 10px #00ff00; display: none; animation: pulse 1.5s infinite; }
+    @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.6; } }
+
+    #crosshair { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 20px; height: 20px; pointer-events: none; }
+    #crosshair::before, #crosshair::after { content: ''; position: absolute; background: rgba(255,255,255,0.7); }
+    #crosshair::before { width: 2px; height: 100%; left: 50%; transform: translateX(-50%); }
+    #crosshair::after { height: 2px; width: 100%; top: 50%; transform: translateY(-50%); }
+
+    #arrived-from { position: absolute; top: 20px; right: 20px; background: rgba(0,0,0,0.7); border: 1px solid #444; border-radius: 6px; padding: 8px 14px; font-size: 11px; color: #aaa; display: none; }
+    #arrived-from span { color: #7ec8e3; }
+
+    #player-name-display { position: absolute; top: 20px; left: 50%; transform: translateX(-50%); font-size: 13px; color: #ccc; letter-spacing: 1px; }
+
+    /* Start screen */
+    #start-screen { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: radial-gradient(ellipse at center, #1a0a2e 0%, #000 100%); z-index: 100; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+    #start-screen h1 { font-size: 48px; color: #9b59b6; text-shadow: 0 0 30px #9b59b6, 0 0 60px #9b59b6; letter-spacing: 4px; margin-bottom: 10px; }
+    #start-screen .subtitle { font-size: 14px; color: #666; letter-spacing: 6px; margin-bottom: 60px; }
+    #name-input { background: rgba(255,255,255,0.05); border: 1px solid #555; color: #fff; font-family: 'Courier New', monospace; font-size: 18px; padding: 12px 20px; width: 300px; text-align: center; border-radius: 4px; outline: none; margin-bottom: 20px; }
+    #name-input:focus { border-color: #9b59b6; box-shadow: 0 0 10px rgba(155,89,182,0.3); }
+    #enter-btn { background: transparent; border: 2px solid #9b59b6; color: #9b59b6; font-family: 'Courier New', monospace; font-size: 14px; letter-spacing: 3px; padding: 12px 40px; cursor: pointer; border-radius: 4px; transition: all 0.2s; }
+    #enter-btn:hover { background: #9b59b6; color: #000; box-shadow: 0 0 20px rgba(155,89,182,0.5); }
+    #vibe-jam-badge { position: absolute; bottom: 30px; font-size: 11px; color: #333; letter-spacing: 3px; }
+
+    #instructions { position: absolute; bottom: 30px; left: 20px; font-size: 11px; color: #444; line-height: 1.8; }
+    #lock-prompt { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: rgba(0,0,0,0.8); border: 1px solid #444; padding: 20px 40px; border-radius: 8px; text-align: center; font-size: 14px; color: #888; display: none; }
+  </style>
+</head>
+<body>
+
+<!-- Start Screen (hidden if arriving via portal) -->
+<div id="start-screen">
+  <h1>MULTI MAGIC DUNGEON</h1>
+  <div class="subtitle">VIBE JAM 2026</div>
+  <input id="name-input" type="text" placeholder="ENTER YOUR NAME" maxlength="20" autocomplete="off" />
+  <button id="enter-btn">ENTER DUNGEON</button>
+  <div id="vibe-jam-badge">VIBE JAM 2026 — ENTER THE PORTAL</div>
+</div>
+
+<!-- Main Canvas -->
+<div id="canvas-container"></div>
+
+<!-- HUD -->
+<div id="hud">
+  <div id="health-bar-container">
+    <div id="health-label">HP</div>
+    <div id="health-bar-bg"><div id="health-bar"></div></div>
+    <div id="health-text">100 / 100</div>
+  </div>
+
+  <div id="spells-hud">
+    <div class="spell-slot ready" id="spell-fireball">
+      <div class="spell-key">LMB</div>
+      <div class="spell-icon">🔥</div>
+      <div class="spell-label">FIREBALL</div>
+      <div class="cooldown-overlay" id="cd-fireball" style="height:0%"></div>
+    </div>
+    <div class="spell-slot ready" id="spell-frostbolt">
+      <div class="spell-key">RMB</div>
+      <div class="spell-icon">❄️</div>
+      <div class="spell-label">FROSTBOLT</div>
+      <div class="cooldown-overlay" id="cd-frostbolt" style="height:0%"></div>
+    </div>
+    <div class="spell-slot ready" id="spell-telekinesis">
+      <div class="spell-key">E</div>
+      <div class="spell-icon">🌀</div>
+      <div class="spell-label">TELEKINESIS</div>
+      <div class="cooldown-overlay" id="cd-telekinesis" style="height:0%"></div>
+    </div>
+  </div>
+
+  <div id="crosshair"></div>
+  <div id="portal-indicator">⬤ VIBE JAM 2026 PORTAL — WALK IN</div>
+  <div id="arrived-from">Arrived from: <span id="ref-domain"></span></div>
+  <div id="player-name-display"></div>
+  <div id="instructions">WASD — Move &nbsp;|&nbsp; Mouse — Look &nbsp;|&nbsp; LMB — Fireball &nbsp;|&nbsp; RMB — Frostbolt &nbsp;|&nbsp; E — Telekinesis</div>
+</div>
+
+<div id="lock-prompt">Click to capture mouse</div>
+
+<!-- Hidden iframe for portal preload -->
+<iframe id="portal-preload" style="display:none" src="about:blank"></iframe>
+
+<script type="module">
+// ============================================================
+// THREE.JS IMPORT
+// ============================================================
+import * as THREE from 'https://unpkg.com/three@0.160.0/build/three.module.js';
+
+// ============================================================
+// PORTAL SYSTEM — MmdPortal
+// ============================================================
+class MmdPortal {
+  constructor() {
+    this.params = new URLSearchParams(window.location.search);
+    this.isPortalEntry = this.params.get('portal') === 'true';
+    this.refUrl = this.params.get('ref') || null;
+    this.incomingUsername = this.params.get('username') || null;
+    this.incomingColor = this.params.get('color') || 'white';
+    this.incomingSpeed = parseFloat(this.params.get('speed')) || null;
+    this.incomingHp = parseInt(this.params.get('hp')) || null;
+    this.incomingRotationY = parseFloat(this.params.get('rotation_y')) || 0;
+
+    this.exitPortalMesh = null;
+    this.startPortalMesh = null;
+    this.startPortalActive = false; // 5-sec delay
+
+    this.preloaded = false;
+    this.portalIndicatorEl = document.getElementById('portal-indicator');
+    this.arrivedFromEl = document.getElementById('arrived-from');
+    this.refDomainEl = document.getElementById('ref-domain');
+    this.preloadIframe = document.getElementById('portal-preload');
+  }
+
+  /** Build the exit (green) portal — always present */
+  createExitPortal(scene) {
+    const geometry = new THREE.TorusGeometry(3, 0.3, 16, 64);
+    const material = new THREE.MeshStandardMaterial({
+      color: 0x00ff00,
+      emissive: 0x00aa00,
+      emissiveIntensity: 1.5,
+      roughness: 0.2,
+      metalness: 0.5,
+    });
+    this.exitPortalMesh = new THREE.Mesh(geometry, material);
+    this.exitPortalMesh.position.set(0, 3, -38);
+    this.exitPortalMesh.rotation.y = Math.PI;
+    scene.add(this.exitPortalMesh);
+
+    // Inner glow disc
+    const discGeo = new THREE.CircleGeometry(2.7, 32);
+    const discMat = new THREE.MeshBasicMaterial({ color: 0x004400, side: THREE.DoubleSide, transparent: true, opacity: 0.5 });
+    const disc = new THREE.Mesh(discGeo, discMat);
+    disc.position.set(0, 3, -37.95);
+    disc.rotation.y = Math.PI;
+    scene.add(disc);
+
+    // Point light inside portal
+    const light = new THREE.PointLight(0x00ff00, 2, 15);
+    light.position.set(0, 3, -38);
+    scene.add(light);
+
+    // Label sprite
+    this._addLabel(scene, 'VIBE JAM 2026', new THREE.Vector3(0, 7, -38), 0x00ff00);
+  }
+
+  /** Build the start (red) portal — only if arriving via portal with ref */
+  createStartPortal(scene) {
+    if (!this.isPortalEntry || !this.refUrl) return;
+
+    const geometry = new THREE.TorusGeometry(3, 0.3, 16, 64);
+    const material = new THREE.MeshStandardMaterial({
+      color: 0xff0000,
+      emissive: 0xaa0000,
+      emissiveIntensity: 1.5,
+      roughness: 0.2,
+      metalness: 0.5,
+    });
+    this.startPortalMesh = new THREE.Mesh(geometry, material);
+    this.startPortalMesh.position.set(0, 3, 5); // near spawn
+    scene.add(this.startPortalMesh);
+
+    const discGeo = new THREE.CircleGeometry(2.7, 32);
+    const discMat = new THREE.MeshBasicMaterial({ color: 0x440000, side: THREE.DoubleSide, transparent: true, opacity: 0.5 });
+    const disc = new THREE.Mesh(discGeo, discMat);
+    disc.position.set(0, 3, 5.05);
+    scene.add(disc);
+
+    const light = new THREE.PointLight(0xff0000, 2, 12);
+    light.position.set(0, 3, 5);
+    scene.add(light);
+
+    const refDomain = this._extractDomain(this.refUrl);
+    this._addLabel(scene, `← ${refDomain}`, new THREE.Vector3(0, 7, 5), 0xff4444);
+
+    // 5-second delay before collision is active
+    setTimeout(() => { this.startPortalActive = true; }, 5000);
+  }
+
+  _extractDomain(url) {
+    try {
+      if (!url.startsWith('http')) url = 'https://' + url;
+      return new URL(url).hostname;
+    } catch { return url; }
+  }
+
+  _addLabel(scene, text, position, color) {
+    const canvas = document.createElement('canvas');
+    canvas.width = 512; canvas.height = 128;
+    const ctx = canvas.getContext('2d');
+    ctx.fillStyle = 'transparent';
+    ctx.clearRect(0, 0, 512, 128);
+    ctx.fillStyle = `#${color.toString(16).padStart(6, '0')}`;
+    ctx.font = 'bold 48px Courier New';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.shadowColor = `#${color.toString(16).padStart(6, '0')}`;
+    ctx.shadowBlur = 20;
+    ctx.fillText(text, 256, 64);
+    const texture = new THREE.CanvasTexture(canvas);
+    const mat = new THREE.SpriteMaterial({ map: texture, transparent: true });
+    const sprite = new THREE.Sprite(mat);
+    sprite.position.copy(position);
+    sprite.scale.set(8, 2, 1);
+    scene.add(sprite);
+  }
+
+  /** Call every frame. playerPos = THREE.Vector3, playerState = { username, hp, speed } */
+  update(playerPos, playerState) {
+    // Animate portals
+    if (this.exitPortalMesh) this.exitPortalMesh.rotation.z += 0.01;
+    if (this.startPortalMesh) this.startPortalMesh.rotation.z -= 0.01;
+
+    // Exit portal proximity
+    if (this.exitPortalMesh) {
+      const dist = playerPos.distanceTo(this.exitPortalMesh.position);
+
+      // Preload iframe within 50 units
+      if (dist < 50 && !this.preloaded) {
+        this.preloaded = true;
+        this.preloadIframe.src = 'https://jam.pieter.com/portal/2026';
+      }
+
+      // Show indicator within 15 units
+      if (dist < 15) {
+        this.portalIndicatorEl.style.display = 'block';
+      } else {
+        this.portalIndicatorEl.style.display = 'none';
+      }
+
+      // Trigger redirect within 2 units
+      if (dist < 2) {
+        this._exitToJam(playerState);
+      }
+    }
+
+    // Start portal collision
+    if (this.startPortalMesh && this.startPortalActive) {
+      const dist = playerPos.distanceTo(this.startPortalMesh.position);
+      if (dist < 2) {
+        this._returnToRef(playerState);
+      }
+    }
+  }
+
+  _exitToJam(state) {
+    const params = new URLSearchParams({
+      portal: 'true',
+      ref: window.location.hostname,
+      username: state.username || 'adventurer',
+      color: 'white',
+      speed: (state.speed || 0).toFixed(2),
+      hp: Math.round(state.hp || 100),
+    });
+    window.location.href = `https://jam.pieter.com/portal/2026?${params.toString()}`;
+  }
+
+  _returnToRef(state) {
+    if (!this.refUrl) return;
+    let base = this.refUrl;
+    if (!base.startsWith('http')) base = 'https://' + base;
+    const params = new URLSearchParams({
+      portal: 'true',
+      username: state.username || 'adventurer',
+      color: state.color || 'white',
+      speed: (state.speed || 0).toFixed(2),
+      hp: Math.round(state.hp || 100),
+    });
+    window.location.href = `${base}?${params.toString()}`;
+  }
+
+  showArrivedFrom() {
+    if (this.refUrl) {
+      this.arrivedFromEl.style.display = 'block';
+      this.refDomainEl.textContent = this._extractDomain(this.refUrl);
+    }
+  }
+}
+
+// ============================================================
+// SPELL SYSTEM — MmdSpell base + Fireball, Frostbolt, Telekinesis
+// ============================================================
+
+/** Base spell interface — Phase 2 will flesh these out fully */
+class MmdSpell {
+  constructor(name, cooldownMs) {
+    this.name = name;
+    this.cooldownMs = cooldownMs;
+    this.lastCast = 0;
+    this.projectiles = [];
+  }
+  get isReady() { return (Date.now() - this.lastCast) >= this.cooldownMs; }
+  get cooldownFraction() { return Math.max(0, 1 - (Date.now() - this.lastCast) / this.cooldownMs); }
+
+  cast(camera, scene) {
+    if (!this.isReady) return false;
+    this.lastCast = Date.now();
+    this._spawnProjectile(camera, scene);
+    return true;
+  }
+
+  _spawnProjectile(camera, scene) { /* override */ }
+
+  update(dt, scene) {
+    for (let i = this.projectiles.length - 1; i >= 0; i--) {
+      const p = this.projectiles[i];
+      p.mesh.position.addScaledVector(p.velocity, dt);
+      p.life -= dt;
+      if (p.life <= 0) {
+        scene.remove(p.mesh);
+        this.projectiles.splice(i, 1);
+      }
+    }
+  }
+
+  dispose(scene) {
+    this.projectiles.forEach(p => scene.remove(p.mesh));
+    this.projectiles = [];
+  }
+}
+
+/** FIREBALL — left click. Glowing orange sphere, travels forward fast. */
+class MmdFireball extends MmdSpell {
+  constructor() { super('Fireball', 800); }
+
+  _spawnProjectile(camera, scene) {
+    const geo = new THREE.SphereGeometry(0.25, 8, 8);
+    const mat = new THREE.MeshStandardMaterial({ color: 0xff6600, emissive: 0xff3300, emissiveIntensity: 2, roughness: 0.3 });
+    const mesh = new THREE.Mesh(geo, mat);
+
+    const dir = new THREE.Vector3();
+    camera.getWorldDirection(dir);
+    mesh.position.copy(camera.position).addScaledVector(dir, 1.5);
+
+    // Projectile light
+    const light = new THREE.PointLight(0xff6600, 2, 8);
+    mesh.add(light);
+    scene.add(mesh);
+
+    this.projectiles.push({ mesh, velocity: dir.multiplyScalar(25), life: 3.0 });
+  }
+}
+
+/** FROSTBOLT — right click. Blue sphere, slower, placeholder slow effect. */
+class MmdFrostbolt extends MmdSpell {
+  constructor() { super('Frostbolt', 1200); }
+
+  _spawnProjectile(camera, scene) {
+    const geo = new THREE.SphereGeometry(0.2, 8, 8);
+    const mat = new THREE.MeshStandardMaterial({ color: 0x88ccff, emissive: 0x0044aa, emissiveIntensity: 1.5, roughness: 0.1, metalness: 0.8 });
+    const mesh = new THREE.Mesh(geo, mat);
+
+    const dir = new THREE.Vector3();
+    camera.getWorldDirection(dir);
+    mesh.position.copy(camera.position).addScaledVector(dir, 1.5);
+
+    const light = new THREE.PointLight(0x88ccff, 1.5, 6);
+    mesh.add(light);
+    scene.add(mesh);
+
+    // TODO Phase 2: onHit() applies slow debuff to target
+    this.projectiles.push({ mesh, velocity: dir.multiplyScalar(14), life: 4.0 });
+  }
+}
+
+/** TELEKINESIS — E key. Raycast pull effect placeholder. */
+class MmdTelekinesis extends MmdSpell {
+  constructor() { super('Telekinesis', 2000); }
+  _spawnProjectile(camera, scene) {
+    // TODO Phase 2: pull nearest object toward player
+    // For now, spawn a brief swirling particle at camera direction impact
+    const dir = new THREE.Vector3();
+    camera.getWorldDirection(dir);
+    const geo = new THREE.TorusGeometry(0.5, 0.05, 8, 24);
+    const mat = new THREE.MeshBasicMaterial({ color: 0xcc88ff, transparent: true, opacity: 0.8 });
+    const mesh = new THREE.Mesh(geo, mat);
+    mesh.position.copy(camera.position).addScaledVector(dir, 8);
+    mesh.lookAt(camera.position);
+    scene.add(mesh);
+    this.projectiles.push({ mesh, velocity: new THREE.Vector3(0,0,0), life: 0.4 });
+  }
+}
+
+// ============================================================
+// PLAYER — MmdPlayer
+// ============================================================
+class MmdPlayer {
+  constructor(portal) {
+    this.username = portal.incomingUsername || 'adventurer';
+    this.hp = portal.incomingHp !== null ? portal.incomingHp : 100;
+    this.maxHp = 100;
+    this.speed = 8;
+    this.color = portal.incomingColor || 'white';
+
+    this.camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 500);
+    this.camera.position.set(0, 1.7, 0);
+    if (portal.incomingRotationY) this.camera.rotation.y = portal.incomingRotationY;
+
+    this.velocity = new THREE.Vector3();
+    this.onGround = true;
+    this.currentSpeed = 0;
+
+    // Input state
+    this.keys = {};
+    this.pitch = 0;
+    this.yaw = portal.incomingRotationY || 0;
+    this.isLocked = false;
+
+    this.spells = {
+      fireball: new MmdFireball(),
+      frostbolt: new MmdFrostbolt(),
+      telekinesis: new MmdTelekinesis(),
+    };
+
+    // HUD elements
+    this.healthBarEl = document.getElementById('health-bar');
+    this.healthTextEl = document.getElementById('health-text');
+    this.nameDisplayEl = document.getElementById('player-name-display');
+    this.nameDisplayEl.textContent = this.username.toUpperCase();
+
+    this._bindInput();
+  }
+
+  _bindInput() {
+    document.addEventListener('keydown', e => {
+      this.keys[e.code] = true;
+      if (e.code === 'KeyE') {
+        this.spells.telekinesis.cast(this.camera, this._scene);
+      }
+    });
+    document.addEventListener('keyup', e => { this.keys[e.code] = false; });
+
+    document.addEventListener('mousedown', e => {
+      if (!this.isLocked) return;
+      if (e.button === 0) this.spells.fireball.cast(this.camera, this._scene);
+      if (e.button === 2) this.spells.frostbolt.cast(this.camera, this._scene);
+    });
+
+    document.addEventListener('contextmenu', e => e.preventDefault());
+
+    document.addEventListener('mousemove', e => {
+      if (!this.isLocked) return;
+      const sens = 0.002;
+      this.yaw -= e.movementX * sens;
+      this.pitch -= e.movementY * sens;
+      this.pitch = Math.max(-Math.PI / 2.2, Math.min(Math.PI / 2.2, this.pitch));
+      this.camera.rotation.order = 'YXZ';
+      this.camera.rotation.y = this.yaw;
+      this.camera.rotation.x = this.pitch;
+    });
+
+    document.addEventListener('pointerlockchange', () => {
+      this.isLocked = document.pointerLockElement !== null;
+      document.getElementById('lock-prompt').style.display = this.isLocked ? 'none' : 'block';
+    });
+
+    document.getElementById('canvas-container').addEventListener('click', () => {
+      document.getElementById('canvas-container').requestPointerLock();
+    });
+  }
+
+  attachScene(scene) { this._scene = scene; }
+
+  update(dt) {
+    // Movement
+    const forward = new THREE.Vector3(-Math.sin(this.yaw), 0, -Math.cos(this.yaw));
+    const right = new THREE.Vector3(Math.cos(this.yaw), 0, -Math.sin(this.yaw));
+    const move = new THREE.Vector3();
+
+    if (this.keys['KeyW'] || this.keys['ArrowUp']) move.add(forward);
+    if (this.keys['KeyS'] || this.keys['ArrowDown']) move.sub(forward);
+    if (this.keys['KeyA'] || this.keys['ArrowLeft']) move.sub(right);
+    if (this.keys['KeyD'] || this.keys['ArrowRight']) move.add(right);
+
+    if (move.length() > 0) move.normalize();
+    this.currentSpeed = move.length() * this.speed;
+    this.camera.position.addScaledVector(move, this.speed * dt);
+
+    // Keep player on floor
+    this.camera.position.y = 1.7;
+
+    // Update spells
+    if (this._scene) {
+      this.spells.fireball.update(dt, this._scene);
+      this.spells.frostbolt.update(dt, this._scene);
+      this.spells.telekinesis.update(dt, this._scene);
+    }
+
+    this._updateHUD();
+  }
+
+  _updateHUD() {
+    const pct = (this.hp / this.maxHp) * 100;
+    this.healthBarEl.style.width = pct + '%';
+    this.healthTextEl.textContent = `${Math.round(this.hp)} / ${this.maxHp}`;
+
+    const updateCooldown = (spell, id) => {
+      document.getElementById(id).style.height = (spell.cooldownFraction * 100) + '%';
+    };
+    updateCooldown(this.spells.fireball, 'cd-fireball');
+    updateCooldown(this.spells.frostbolt, 'cd-frostbolt');
+    updateCooldown(this.spells.telekinesis, 'cd-telekinesis');
+  }
+
+  get state() {
+    return {
+      username: this.username,
+      hp: this.hp,
+      speed: this.currentSpeed,
+      color: this.color,
+      rotationY: this.yaw,
+    };
+  }
+}
+
+// ============================================================
+// DUNGEON — MmdDungeon
+// ============================================================
+class MmdDungeon {
+  constructor(scene) {
+    this.scene = scene;
+    this._buildMaterials();
+    this._buildWorld();
+  }
+
+  _buildMaterials() {
+    // Stone floor texture (procedural)
+    const stoneCanvas = document.createElement('canvas');
+    stoneCanvas.width = stoneCanvas.height = 256;
+    const ctx = stoneCanvas.getContext('2d');
+    for (let y = 0; y < 256; y += 32) {
+      for (let x = 0; x < 256; x += 32) {
+        const shade = 40 + Math.random() * 20;
+        ctx.fillStyle = `rgb(${shade},${shade},${shade})`;
+        ctx.fillRect(x + 1, y + 1, 30, 30);
+      }
+    }
+    const stoneTex = new THREE.CanvasTexture(stoneCanvas);
+    stoneTex.wrapS = stoneTex.wrapT = THREE.RepeatWrapping;
+    stoneTex.repeat.set(4, 4);
+
+    this.floorMat = new THREE.MeshStandardMaterial({ map: stoneTex, roughness: 0.9, metalness: 0.0 });
+
+    const wallCanvas = document.createElement('canvas');
+    wallCanvas.width = wallCanvas.height = 256;
+    const wctx = wallCanvas.getContext('2d');
+    for (let y = 0; y < 256; y += 24) {
+      for (let x = 0; x < 256; x += 48) {
+        const offset = (Math.floor(y / 24) % 2) * 24;
+        const shade = 35 + Math.random() * 25;
+        wctx.fillStyle = `rgb(${shade},${shade - 2},${shade - 5})`;
+        wctx.fillRect((x + offset) % 256 + 1, y + 1, 46, 22);
+      }
+    }
+    const wallTex = new THREE.CanvasTexture(wallCanvas);
+    wallTex.wrapS = wallTex.wrapT = THREE.RepeatWrapping;
+    wallTex.repeat.set(3, 2);
+    this.wallMat = new THREE.MeshStandardMaterial({ map: wallTex, roughness: 0.95, metalness: 0.1 });
+
+    this.ceilMat = new THREE.MeshStandardMaterial({ color: 0x1a1a1a, roughness: 1.0 });
+  }
+
+  _box(w, h, d, mat, x, y, z) {
+    const geo = new THREE.BoxGeometry(w, h, d);
+    const mesh = new THREE.Mesh(geo, mat);
+    mesh.position.set(x, y, z);
+    mesh.receiveShadow = true;
+    mesh.castShadow = true;
+    this.scene.add(mesh);
+    return mesh;
+  }
+
+  _buildWorld() {
+    // === MAIN CHAMBER (entry) ===
+    this._box(20, 0.1, 50, this.floorMat, 0, 0, -15);       // floor
+    this._box(20, 8, 0.2, this.wallMat, 0, 4, 10);           // back wall (entrance side)
+    this._box(20, 8, 0.2, this.wallMat, 0, 4, -40);          // far wall
+    this._box(0.2, 8, 50, this.wallMat, -10, 4, -15);        // left wall
+    this._box(0.2, 8, 50, this.wallMat, 10, 4, -15);         // right wall
+    this._box(20, 0.1, 50, this.ceilMat, 0, 8, -15);         // ceiling
+
+    // === CORRIDOR ===
+    this._box(8, 0.1, 20, this.floorMat, 0, 0, -50);
+    this._box(8, 8, 0.2, this.wallMat, 0, 4, -60);
+    this._box(0.2, 8, 20, this.wallMat, -4, 4, -50);
+    this._box(0.2, 8, 20, this.wallMat, 4, 4, -50);
+    this._box(8, 0.1, 20, this.ceilMat, 0, 8, -50);
+
+    // === TREASURE CHAMBER ===
+    this._box(24, 0.1, 24, this.floorMat, 0, 0, -72);
+    this._box(24, 8, 0.2, this.wallMat, 0, 4, -84);
+    this._box(0.2, 8, 24, this.wallMat, -12, 4, -72);
+    this._box(0.2, 8, 24, this.wallMat, 12, 4, -72);
+    this._box(24, 0.1, 24, this.ceilMat, 0, 8, -72);
+
+    // Some pillars
+    for (const [px, pz] of [[-6, -65], [6, -65], [-6, -79], [6, -79]]) {
+      this._box(1.2, 8, 1.2, this.wallMat, px, 4, pz);
+    }
+
+    // Torches (orange point lights)
+    const torchPositions = [
+      [-9, 4, -10], [9, 4, -10], [-9, 4, -30], [9, 4, -30],
+      [-3.5, 4, -45], [3.5, 4, -45], [-11, 4, -65], [11, 4, -65],
+    ];
+    for (const [tx, ty, tz] of torchPositions) {
+      const light = new THREE.PointLight(0xff8833, 1.2, 12);
+      light.position.set(tx, ty, tz);
+      this.scene.add(light);
+
+      // Flickering (cheap: random intensity each frame via update)
+      light._isFlicker = true;
+      light._baseIntensity = 1.2;
+
+      // Torch geometry
+      const geo = new THREE.CylinderGeometry(0.05, 0.08, 0.4, 6);
+      const mat = new THREE.MeshStandardMaterial({ color: 0x553300 });
+      const torchMesh = new THREE.Mesh(geo, mat);
+      torchMesh.position.set(tx, ty - 0.2, tz);
+      this.scene.add(torchMesh);
+    }
+
+    this._torchLights = this.scene.children.filter(c => c._isFlicker);
+  }
+
+  update(dt) {
+    // Flicker torches
+    for (const light of this._torchLights) {
+      light.intensity = light._baseIntensity + (Math.random() - 0.5) * 0.4;
+    }
+  }
+}
+
+// ============================================================
+// MAIN GAME — MmdGame
+// ============================================================
+class MmdGame {
+  constructor() {
+    this.portal = new MmdPortal();
+    this.renderer = null;
+    this.scene = null;
+    this.player = null;
+    this.dungeon = null;
+    this.clock = new THREE.Clock();
+    this.running = false;
+  }
+
+  init() {
+    // Scene
+    this.scene = new THREE.Scene();
+    this.scene.background = new THREE.Color(0x0a0005);
+    this.scene.fog = new THREE.Fog(0x0a0005, 20, 80);
+
+    // Renderer
+    this.renderer = new THREE.WebGLRenderer({ antialias: true });
+    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    this.renderer.setSize(window.innerWidth, window.innerHeight);
+    this.renderer.shadowMap.enabled = true;
+    this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    document.getElementById('canvas-container').appendChild(this.renderer.domElement);
+
+    // Lighting
+    const ambient = new THREE.AmbientLight(0x220033, 0.8);
+    this.scene.add(ambient);
+    const dirLight = new THREE.DirectionalLight(0x9966cc, 0.4);
+    dirLight.position.set(5, 10, 5);
+    this.scene.add(dirLight);
+
+    // Player
+    this.player = new MmdPlayer(this.portal);
+    this.player.attachScene(this.scene);
+    this.scene.add(this.player.camera);
+
+    // Dungeon
+    this.dungeon = new MmdDungeon(this.scene);
+
+    // Portals
+    this.portal.createExitPortal(this.scene);
+    this.portal.createStartPortal(this.scene);
+
+    // Show arrived-from banner
+    this.portal.showArrivedFrom();
+
+    // Resize handler
+    window.addEventListener('resize', () => {
+      this.player.camera.aspect = window.innerWidth / window.innerHeight;
+      this.player.camera.updateProjectionMatrix();
+      this.renderer.setSize(window.innerWidth, window.innerHeight);
+    });
+
+    this.running = true;
+    this._loop();
+  }
+
+  _loop() {
+    if (!this.running) return;
+    requestAnimationFrame(() => this._loop());
+
+    const dt = Math.min(this.clock.getDelta(), 0.05);
+
+    this.player.update(dt);
+    this.dungeon.update(dt);
+    this.portal.update(this.player.camera.position, this.player.state);
+
+    this.renderer.render(this.scene, this.player.camera);
+  }
+}
+
+// ============================================================
+// BOOTSTRAP
+// ============================================================
+const game = new MmdGame();
+const portal = new MmdPortal();
+
+if (portal.isPortalEntry) {
+  // Skip start screen, go straight in
+  document.getElementById('start-screen').style.display = 'none';
+  game.init();
+} else {
+  // Show start screen
+  const startScreen = document.getElementById('start-screen');
+  const nameInput = document.getElementById('name-input');
+  const enterBtn = document.getElementById('enter-btn');
+
+  const startGame = () => {
+    const name = nameInput.value.trim() || 'adventurer';
+    startScreen.style.display = 'none';
+    // Override portal username with what user typed
+    game.portal.incomingUsername = name;
+    game.init();
+    document.getElementById('canvas-container').requestPointerLock();
+  };
+
+  enterBtn.addEventListener('click', startGame);
+  nameInput.addEventListener('keydown', e => { if (e.key === 'Enter') startGame(); });
+  nameInput.focus();
+}
+</script>
+</body>
+</html>
