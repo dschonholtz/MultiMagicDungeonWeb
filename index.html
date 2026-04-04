@@ -218,6 +218,9 @@ if (incomingPortal && safeRef) {
 const _toonGradientMap = (() => {
   const data = new Uint8Array([90, 160, 255]);
   const tex = new THREE.DataTexture(data, 3, 1, THREE.LuminanceFormat);
+  // NearestFilter keeps toon bands crisp — linear filtering blurs the step edges
+  tex.minFilter = THREE.NearestFilter;
+  tex.magFilter = THREE.NearestFilter;
   tex.needsUpdate = true;
   return tex;
 })();
