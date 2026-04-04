@@ -14,19 +14,17 @@
   #health-bar-bg { width: 160px; height: 10px; background: #333; border-radius: 2px; }
   #health-bar { height: 10px; background: #e44; border-radius: 2px; transition: width 0.2s; }
   #player-count { position: absolute; top: 70px; left: 20px; background: rgba(0,0,0,0.5); color: #888; padding: 4px 10px; border-radius: 4px; font-size: 11px; }
-  #arrived-from { position: absolute; top: 20px; right: 20px; background: rgba(0,0,0,0.6); color: #0f0; padding: 6px 12px; border-radius: 4px; font-size: 12px; display: none; }
+  #arrived-from { position: absolute; top: 60px; right: 20px; background: rgba(0,0,0,0.6); color: #0f0; padding: 6px 12px; border-radius: 4px; font-size: 12px; display: none; }
   #portal-hint { position: absolute; bottom: 80px; left: 50%; transform: translateX(-50%); background: rgba(0,255,0,0.15); color: #0f0; padding: 8px 20px; border-radius: 4px; font-size: 14px; border: 1px solid #0f0; display: none; text-align: center; }
   #spells { position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%); display: flex; gap: 12px; }
   .spell-slot { width: 60px; height: 60px; background: rgba(0,0,0,0.7); border: 2px solid #555; border-radius: 6px; display: flex; flex-direction: column; align-items: center; justify-content: center; color: #ccc; font-size: 10px; text-align: center; gap: 3px; }
   .spell-slot .spell-icon { font-size: 20px; }
   .spell-slot.cooling { border-color: #333; opacity: 0.5; }
   .spell-slot.ready   { border-color: #888; }
-  #name-screen { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.92); display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 100; color: #fff; }
-  #name-screen h1 { font-size: 32px; margin-bottom: 8px; color: #a55; }
-  #name-screen p  { color: #888; margin-bottom: 32px; font-size: 14px; }
-  #name-input { background: #111; border: 1px solid #555; color: #fff; padding: 10px 16px; font-size: 16px; font-family: monospace; border-radius: 4px; width: 240px; text-align: center; }
-  #name-btn { margin-top: 12px; padding: 10px 32px; background: #a55; border: none; color: #fff; font-size: 15px; font-family: monospace; border-radius: 4px; cursor: pointer; }
-  #name-btn:hover { background: #c66; }
+  #rename-panel { position: absolute; top: 20px; right: 20px; background: rgba(0,0,0,0.7); padding: 6px 10px; border-radius: 4px; display: flex; gap: 6px; align-items: center; pointer-events: all; }
+  #rename-input { background: #111; border: 1px solid #555; color: #fff; padding: 4px 8px; font-size: 12px; font-family: monospace; border-radius: 3px; width: 130px; }
+  #rename-btn { padding: 4px 10px; background: #555; border: none; color: #fff; font-size: 12px; font-family: monospace; border-radius: 3px; cursor: pointer; }
+  #rename-btn:hover { background: #777; }
   #crosshair { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: rgba(255,255,255,0.7); font-size: 18px; user-select: none; }
 </style>
 </head>
@@ -46,12 +44,7 @@
     <div class="spell-slot ready" id="spell-2"><span class="spell-icon">&#x1F300;</span><span>Telekinesis</span><span style="color:#888;font-size:9px">E</span></div>
   </div>
   <div id="crosshair">+</div>
-</div>
-<div id="name-screen">
-  <h1>MultiMagicDungeonWeb</h1>
-  <p>Vibe Jam 2026 &#x2014; Build dungeons. Raid others. Duel with spells.</p>
-  <input id="name-input" type="text" placeholder="Enter your name" maxlength="20" />
-  <button id="name-btn">Enter Dungeon</button>
+  <div id="rename-panel"><input id="rename-input" type="text" placeholder="Rename…" maxlength="24" /><button id="rename-btn">Set</button></div>
 </div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script>
@@ -240,6 +233,7 @@ class MmdPlayer {
       const nm=new THREE.Mesh(new THREE.PlaneGeometry(8,1.5),
         new THREE.MeshBasicMaterial({ map:new THREE.CanvasTexture(nc), transparent:true, side:THREE.DoubleSide }));
       nm.position.y=9.5; this.mesh.add(nm);
+      this.namePlateMesh=nm;
       this.mesh.position.copy(this.position); scene.add(this.mesh);
       this.targetPos=this.position.clone(); this.targetYaw=yaw;
     }
@@ -260,6 +254,17 @@ class MmdPlayer {
       if(this.cooldowns[k]>0) this.cooldowns[k]=Math.max(0,this.cooldowns[k]-dt);
     camera.position.copy(this.position);
     camera.rotation.set(pitch,yaw,0,'YXZ');
+  }
+  updateUsername(username) {
+    this.username=username;
+    if(!this.namePlateMesh) return;
+    const nc=document.createElement('canvas'); nc.width=256; nc.height=48;
+    const ctx=nc.getContext('2d');
+    ctx.font='bold 20px monospace'; ctx.fillStyle='#fff'; ctx.textAlign='center';
+    ctx.fillText(username.slice(0,18),128,32);
+    this.namePlateMesh.material.map.dispose();
+    this.namePlateMesh.material.map=new THREE.CanvasTexture(nc);
+    this.namePlateMesh.material.needsUpdate=true;
   }
   applyServerUpdate({ x,y,z,yaw }) { this.targetPos.set(x,y,z); this.targetYaw=yaw; }
   interpolate(dt) {
@@ -311,11 +316,12 @@ class MmdNetworkClient {
     this.ws.onerror=()=>{ console.warn('[Net] error'); };
   }
   _handle(msg) {
-    if(msg.type==='welcome')      this._onWelcome(msg);
-    else if(msg.type==='player_join')  this._onJoin(msg);
-    else if(msg.type==='player_leave') this._onLeave(msg);
-    else if(msg.type==='player_move')  this._onMove(msg);
-    else if(msg.type==='spell_cast')   this._onSpell(msg);
+    if(msg.type==='welcome')            this._onWelcome(msg);
+    else if(msg.type==='player_join')   this._onJoin(msg);
+    else if(msg.type==='player_leave')  this._onLeave(msg);
+    else if(msg.type==='player_move')   this._onMove(msg);
+    else if(msg.type==='spell_cast')    this._onSpell(msg);
+    else if(msg.type==='player_rename') this._onRename(msg);
   }
   _onWelcome(msg) {
     const sp=msg.spawnPoint||DEFAULT_DUNGEON.spawnPoints[0];
@@ -340,6 +346,17 @@ class MmdNetworkClient {
   _onSpell(msg) {
     if(!SPELL_DEFS[msg.spellType]) return;
     spellProjectiles.push(new MmdSpell(msg.spellType,new THREE.Vector3(msg.x,msg.y,msg.z),new THREE.Vector3(msg.dirX,msg.dirY,msg.dirZ),msg.playerId));
+  }
+  _onRename(msg) {
+    const rp=remotePlayers.get(msg.playerId);
+    if(rp) rp.updateUsername(msg.username);
+  }
+  requestRename(newName) {
+    const trimmed=newName.trim().slice(0,24);
+    if(!trimmed) return;
+    this._username=trimmed;
+    if(localPlayer) localPlayer.username=trimmed;
+    this.send({type:'rename',username:trimmed});
   }
   send(obj) { if(this.ws?.readyState===WebSocket.OPEN) this.ws.send(JSON.stringify(obj)); }
   disconnect() { clearInterval(this._moveInterval); this.ws?.close(); }
@@ -439,23 +456,24 @@ function updateHud() {
   });
 }
 
-// Game start
-let gameStarted=false;
-function startGame(name) {
-  const username=(name||'Wizard').trim()||'Wizard';
-  gameStarted=true;
-  document.getElementById('name-screen').style.display='none';
-  canvas.requestPointerLock();
-  if(safeRef){
-    const el=document.getElementById('arrived-from');
-    el.style.display='block'; el.textContent='Arrived from: '+safeRef;
-    setTimeout(()=>{el.style.display='none';},6000);
-  }
-  net.connect(username);
+// Auto-start: use portal username if arriving via portal, otherwise generate a guest name
+const defaultName = incomingUser || ('Guest'+Math.floor(Math.random()*10000).toString().padStart(4,'0'));
+let gameStarted=true;
+if(safeRef){
+  const el=document.getElementById('arrived-from');
+  el.style.display='block'; el.textContent='Arrived from: '+safeRef;
+  setTimeout(()=>{el.style.display='none';},6000);
 }
-document.getElementById('name-btn').addEventListener('click',()=>startGame(document.getElementById('name-input').value));
-document.getElementById('name-input').addEventListener('keydown',e=>{ if(e.key==='Enter') startGame(document.getElementById('name-input').value); });
-if(incomingPortal) startGame(incomingUser);
+net.connect(defaultName);
+
+// Rename panel
+document.getElementById('rename-btn').addEventListener('click',()=>{
+  const v=document.getElementById('rename-input').value.trim();
+  if(v) net.requestRename(v);
+});
+document.getElementById('rename-input').addEventListener('keydown',e=>{
+  if(e.key==='Enter'){const v=document.getElementById('rename-input').value.trim();if(v) net.requestRename(v);}
+});
 
 // Window resize
 window.addEventListener('resize',()=>{

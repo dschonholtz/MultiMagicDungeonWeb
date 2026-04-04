@@ -21,9 +21,10 @@ export class MessageHandler {
     }
 
     switch (msg.type) {
-      case 'join':     return this._onJoin(ws, msg);
-      case 'move':     return this._onMove(ws, msg);
+      case 'join':       return this._onJoin(ws, msg);
+      case 'move':       return this._onMove(ws, msg);
       case 'spell_cast': return this._onSpellCast(ws, msg);
+      case 'rename':     return this._onRename(ws, msg);
       default:
         console.warn(`[MSG] Unknown type: ${msg.type}`);
     }
@@ -100,6 +101,26 @@ export class MessageHandler {
       dirY: Number(msg.dirY) || 0,
       dirZ: Number(msg.dirZ) || 0,
     });
+  }
+
+  _onRename(ws, msg) {
+    const player = this._playerForWs(ws);
+    if (!player) return;
+
+    const username = String(msg.username || '').trim().slice(0, 24);
+    if (!username) return;
+
+    player.username = username;
+
+    const session = this.sessionManager.getSessionForPlayer(player.id);
+    if (!session) return;
+
+    const out = JSON.stringify({ type: 'player_rename', playerId: player.id, username });
+    for (const p of session.players.values()) {
+      if (p.ws.readyState === 1) p.ws.send(out);
+    }
+
+    console.log(`[Rename] ${player.id.slice(0, 8)} → ${username}`);
   }
 
   onDisconnect(ws) {
