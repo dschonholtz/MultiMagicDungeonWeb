@@ -130,3 +130,35 @@ function hashColor(id) {
 - **Script type**: `<script type="module">` — top-level `await` is fine
 - **No build step**: CDN imports only (Three.js r128 via importmap at top of script)
 - **`keys` Set**: holds `e.code` values (e.g., `'KeyW'`, `'Space'`, `'Digit1'`), not `e.key`
+
+## Portal gotchas
+
+### TorusGeometry orientation
+`TorusGeometry` faces the **Z axis** by default — the hole of the ring is aligned with Z. If the portal is placed on the west wall (player approaches from the east walking west along the X axis), the player will see the torus edge-on (a thin line) instead of the ring face. Fix:
+```javascript
+portalGroup.rotation.y = Math.PI / 2; // rotate so ring faces along X axis
+```
+Always check which axis the player approaches from and rotate accordingly.
+
+### Portal placement inside dungeon walls
+The dungeon main room spans roughly x=[-40, 40]. Placing a portal at x=-55 puts it outside the west wall — unreachable. Keep portals at least 10 units inside the nearest wall (e.g., x=-30 for a west-wall portal in this dungeon).
+
+### Gradient map filter requirement
+The toon shading `DataTexture` used as `gradientMap` **must** have `NearestFilter` on both min and mag filters, or Three.js will blur the step edges and the cel-shading bands look washed out:
+```javascript
+tex.minFilter = THREE.NearestFilter;
+tex.magFilter = THREE.NearestFilter;
+tex.needsUpdate = true;
+```
+Without this, `MeshToonMaterial` silently degrades to smooth shading.
+
+### 3-light rig for readable characters
+A single directional key light leaves remote players flat. Add:
+```javascript
+// Fill: cool blue from opposite direction
+const fillLight = new THREE.DirectionalLight(0x8888ff, 0.3);
+// Rim: warm orange from behind to separate players from background
+const rimLight = new THREE.DirectionalLight(0xff8844, 0.6);
+rimLight.position.set(0, 20, -40);
+```
+This creates visible depth separation without post-processing.
