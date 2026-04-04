@@ -14,40 +14,24 @@
   #health-bar-bg { width: 160px; height: 10px; background: #333; border-radius: 2px; }
   #health-bar { height: 10px; background: #e44; border-radius: 2px; transition: width 0.2s; }
   #player-count { position: absolute; top: 70px; left: 20px; background: rgba(0,0,0,0.5); color: #888; padding: 4px 10px; border-radius: 4px; font-size: 11px; }
-  #arrived-from { position: absolute; top: 60px; right: 20px; background: rgba(0,0,0,0.6); color: #0f0; padding: 6px 12px; border-radius: 4px; font-size: 12px; display: none; }
+  #arrived-from { position: absolute; top: 20px; right: 20px; background: rgba(0,0,0,0.6); color: #0f0; padding: 6px 12px; border-radius: 4px; font-size: 12px; display: none; }
   #portal-hint { position: absolute; bottom: 80px; left: 50%; transform: translateX(-50%); background: rgba(0,255,0,0.15); color: #0f0; padding: 8px 20px; border-radius: 4px; font-size: 14px; border: 1px solid #0f0; display: none; text-align: center; }
   #spells { position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%); display: flex; gap: 12px; }
   .spell-slot { width: 60px; height: 60px; background: rgba(0,0,0,0.7); border: 2px solid #555; border-radius: 6px; display: flex; flex-direction: column; align-items: center; justify-content: center; color: #ccc; font-size: 10px; text-align: center; gap: 3px; }
   .spell-slot .spell-icon { font-size: 20px; }
   .spell-slot.cooling { border-color: #333; opacity: 0.5; }
   .spell-slot.ready   { border-color: #888; }
-  #settings-gear { position: absolute; top: 20px; right: 20px; background: rgba(0,0,0,0.6); border: 1px solid #555; color: #ccc; width: 34px; height: 34px; border-radius: 4px; font-size: 18px; cursor: pointer; display: flex; align-items: center; justify-content: center; pointer-events: all; }
-  #settings-gear:hover { background: rgba(0,0,0,0.8); color: #fff; border-color: #777; }
-  #settings-panel { position: absolute; top: 62px; right: 20px; background: rgba(0,0,0,0.7); padding: 6px 10px; border-radius: 4px; display: none; gap: 6px; align-items: center; pointer-events: all; }
-  #settings-panel.open { display: flex; }
-  #rename-input { background: #111; border: 1px solid #555; color: #fff; padding: 4px 8px; font-size: 12px; font-family: monospace; border-radius: 3px; width: 130px; }
-  #rename-btn { padding: 4px 10px; background: #555; border: none; color: #fff; font-size: 12px; font-family: monospace; border-radius: 3px; cursor: pointer; }
-  #rename-btn:hover { background: #777; }
-  #minimap { position: absolute; top: 120px; right: 20px; width: 180px; height: 180px; background: rgba(0,0,0,0.55); border-radius: 4px; border: 1px solid #444; }
-  #interact-hint { position: absolute; bottom: 160px; left: 50%; transform: translateX(-50%); background: rgba(60,20,100,0.22); color: #c090ff; padding: 8px 20px; border-radius: 4px; font-size: 14px; border: 1px solid #8040cc; display: none; text-align: center; cursor: pointer; user-select: none; }
-  #rotate-prompt { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 200; align-items: center; justify-content: center; color: #fff; font-size: 24px; text-align: center; pointer-events: none; }
+  #name-screen { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.92); display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 100; color: #fff; }
+  #name-screen h1 { font-size: 32px; margin-bottom: 8px; color: #a55; }
+  #name-screen p  { color: #888; margin-bottom: 32px; font-size: 14px; }
+  #name-input { background: #111; border: 1px solid #555; color: #fff; padding: 10px 16px; font-size: 16px; font-family: monospace; border-radius: 4px; width: 240px; text-align: center; }
+  #name-btn { margin-top: 12px; padding: 10px 32px; background: #a55; border: none; color: #fff; font-size: 15px; font-family: monospace; border-radius: 4px; cursor: pointer; }
+  #name-btn:hover { background: #c66; }
   #crosshair { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: rgba(255,255,255,0.7); font-size: 18px; user-select: none; }
-  #game-canvas { touch-action: none; }
-  #joystick-outer { display: none; position: fixed; bottom: 30px; left: 30px; width: 200px; height: 200px; border-radius: 50%; background: rgba(255,255,255,0.07); border: 2px solid rgba(255,255,255,0.22); touch-action: none; z-index: 100; }
-  #joystick-knob { position: absolute; width: 80px; height: 80px; border-radius: 50%; background: rgba(255,255,255,0.30); border: 2px solid rgba(255,255,255,0.45); top: 50%; left: 50%; transform: translate(-50%,-50%); pointer-events: none; }
-  #mobile-spells { display: none; position: fixed; bottom: 30px; right: 20px; flex-direction: column; gap: 10px; z-index: 100; }
-  .mbtn { width: 70px; height: 70px; border-radius: 10px; background: rgba(0,0,0,0.72); border: 2px solid #888; color: #fff; font-size: 26px; display: flex; align-items: center; justify-content: center; touch-action: none; user-select: none; cursor: pointer; }
-  .mbtn.cooling { opacity: 0.4; border-color: #444; }
 </style>
 </head>
 <body>
 <canvas id="game-canvas"></canvas>
-<div id="joystick-outer"><div id="joystick-knob"></div></div>
-<div id="mobile-spells">
-  <div class="mbtn" id="mbtn-fireball">&#x1F525;</div>
-  <div class="mbtn" id="mbtn-frostbolt">&#x2744;&#xFE0F;</div>
-  <div class="mbtn" id="mbtn-telekinesis">&#x1F300;</div>
-</div>
 <div id="hud">
   <div id="health-bar-wrap">
     <div id="health-label">HP</div>
@@ -56,29 +40,28 @@
   <div id="player-count">1 player in dungeon</div>
   <div id="arrived-from"></div>
   <div id="portal-hint">&#x2191; VIBE JAM 2026 PORTAL &#x2014; walk in to travel</div>
-  <canvas id="minimap" width="180" height="180"></canvas>
-  <div id="interact-hint"></div>
   <div id="spells">
     <div class="spell-slot ready" id="spell-0"><span class="spell-icon">&#x1F525;</span><span>Fireball</span><span style="color:#888;font-size:9px">LClick</span></div>
     <div class="spell-slot ready" id="spell-1"><span class="spell-icon">&#x2744;&#xFE0F;</span><span>Frostbolt</span><span style="color:#888;font-size:9px">RClick</span></div>
     <div class="spell-slot ready" id="spell-2"><span class="spell-icon">&#x1F300;</span><span>Telekinesis</span><span style="color:#888;font-size:9px">E</span></div>
   </div>
   <div id="crosshair">+</div>
-  <div id="rotate-prompt">&#x21BB; Rotate for best experience</div>
-  <button id="settings-gear" title="Settings">&#x2699;</button>
-  <div id="settings-panel"><input id="rename-input" type="text" placeholder="Rename…" maxlength="24" /><button id="rename-btn">Set</button></div>
+</div>
+<div id="name-screen">
+  <h1>MultiMagicDungeonWeb</h1>
+  <p>Vibe Jam 2026 &#x2014; Build dungeons. Raid others. Duel with spells.</p>
+  <input id="name-input" type="text" placeholder="Enter your name" maxlength="20" />
+  <button id="name-btn">Enter Dungeon</button>
 </div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/utils/SkeletonUtils.js"></script>
 <script>
 // ============================================================
 // MultiMagicDungeonWeb - Vibe Jam 2026
 // Phase 1: Three.js dungeon + portals + WebSocket multiplayer
 // ============================================================
 
-// === CONSTANTS ===
-const WS_URL              = 'ws://5.161.208.234:8080'; // production Hetzner server
+// Config
+const WS_URL              = 'ws://localhost:8080'; // change to wss://... for production
 const PORTAL_EXIT_URL     = 'https://jam.pieter.com/portal/2026';
 const PORTAL_PRELOAD_DIST = 50;
 const PORTAL_ENTER_DIST   = 18;  // 2D XZ distance
@@ -87,25 +70,6 @@ const PLAYER_SPEED        = 14;  // units/sec
 const PLAYER_HEIGHT       = 5;
 const HP_MAX              = 100;
 const SEND_MOVE_HZ        = 20;
-// Portal geometry
-const PORTAL_RING_RADIUS       = 4.0;   // torus major radius (units)
-const PORTAL_RING_TUBE         = 0.25;  // torus tube radius — thin elegant ring
-const PORTAL_VOID_EMISSIVE     = 0.06;  // void circle emissive — faint inner colour hint
-const PORTAL_EMISSIVE_INTENSITY = 2.0;  // ring torus emissive — bright, this is the visible beacon
-const PORTAL_LIGHT_INTENSITY   = 1.5;  // point light — reduced to avoid green-washing the dungeon
-const PORTAL_LIGHT_DIST        = 40;    // point light falloff distance
-// Portal animation
-const PORTAL_RING_SPIN         = 0.8;   // rad/sec ring rotation speed
-const PORTAL_VOID_SPIN         = 0.5;   // rad/sec void counter-rotation speed
-const PORTAL_PULSE_AMP         = 0.06;  // scale pulse amplitude (±6%)
-const PORTAL_PULSE_FREQ        = 2.0;   // scale pulse frequency (rad/sec)
-// Torch flicker
-const TORCH1_BASE_INTENSITY    = 1.3;
-const TORCH1_FLICKER_AMP       = 0.2;
-const TORCH1_FLICKER_FREQ      = 7;     // rad/sec
-const TORCH2_BASE_INTENSITY    = 0.9;
-const TORCH2_FLICKER_AMP       = 0.15;
-const TORCH2_FLICKER_FREQ      = 5;     // rad/sec
 
 // URL params (Vibe Jam portal spec)
 const urlParams      = new URLSearchParams(window.location.search);
@@ -120,20 +84,17 @@ const incomingHp     = Number.isFinite(rawHp) ? Math.max(0, Math.min(HP_MAX, raw
 const REF_PATTERN    = /^[a-zA-Z0-9.-]+(:\d+)?$/;
 const safeRef        = (incomingRef && REF_PATTERN.test(incomingRef)) ? incomingRef : '';
 
-// === SPELL SYSTEM ===
 // SPELL_DEFS registry - single source of truth for all spell properties
 const SPELL_DEFS = {
-  fireball:    { color: 0xff6600, size: 0.8, speed: 22,  maxLifeMs: 6000, maxDist: 80,  cooldownMs:  666, icon: '&#x1F525;', label: 'Fireball',    key: 'LClick' },
-  frostbolt:   { color: 0x44aaff, size: 0.6, speed: 14,  maxLifeMs: 6000, maxDist: 60,  cooldownMs: 1000, icon: '&#x2744;',  label: 'Frostbolt',   key: 'RClick' },
-  telekinesis: { color: 0xaa44ff, size: 1.0, speed: 18,  maxLifeMs: 6000, maxDist: 90,  cooldownMs: 1500, icon: '&#x1F300;', label: 'Telekinesis', key: 'E'      },
+  fireball:    { color: 0xff6600, size: 0.8, speed: 22,  maxLifeMs: 1333, cooldownMs:  666, icon: '&#x1F525;', label: 'Fireball',    key: 'LClick' },
+  frostbolt:   { color: 0x44aaff, size: 0.6, speed: 14,  maxLifeMs: 2000, cooldownMs: 1000, icon: '&#x2744;',  label: 'Frostbolt',   key: 'RClick' },
+  telekinesis: { color: 0xaa44ff, size: 1.0, speed: 18,  maxLifeMs: 1667, cooldownMs: 1500, icon: '&#x1F300;', label: 'Telekinesis', key: 'E'      },
 };
 // Shared geo/mat cache - no per-projectile GPU alloc
 const _geoCache = {}, _matCache = {};
-let _charGltf = null; // Character GLTF — loaded once, cloned per remote player
 function getSpellGeo(s)  { return _geoCache[s] ??= new THREE.SphereGeometry(s, 8, 8); }
 function getSpellMat(c)  { return _matCache[c] ??= new THREE.MeshBasicMaterial({ color: c }); }
 
-// === DUNGEON LAYOUT ===
 // DungeonLayout data model - decoupled from rendering
 // Server can send a different layout for player-built dungeons (Phase 2)
 const DEFAULT_DUNGEON = {
@@ -141,22 +102,14 @@ const DEFAULT_DUNGEON = {
     { x:   0, z:   0, w: 80, d: 60 },
     { x:  80, z:   0, w: 50, d: 40 },
     { x: -80, z:   0, w: 50, d: 40 },
-    { x:   0, z:  -80, w:  60, d:  50 },
-    { x:   0, z: -200, w: 110, d:  90 },  // boss chamber
+    { x:   0, z: -80, w: 60, d: 50 },
   ],
   corridors: [
-    { x:  47.5, z:   0,    w: 15, d: 15 },    // room 1 (maxX=40) → room 2 (minX=55)
-    { x: -47.5, z:   0,    w: 15, d: 15 },    // room 1 (minX=-40) → room 3 (maxX=-55)
-    { x:   0,   z: -42.5,  w: 15, d: 25 },    // room 1 (minZ=-30) → room 4 (maxZ=-55)
-    { x:  80,   z: -50,    w: 12, d: 60 },    // trap corridor — room 2 (minZ=-20) south to z=-80
-    { x:  52,   z: -80,    w: 44, d: 12 },    // connector: trap (minX=74) → room 4 (maxX=30)
-    { x:   0,   z:-130,    w: 15, d: 50 },    // room 4 (minZ=-105) → boss chamber (maxZ=-155)
+    { x:  45, z:  0, w: 30, d: 15 },
+    { x: -45, z:  0, w: 30, d: 15 },
+    { x:   0, z: -45, w: 15, d: 30 },
   ],
-  pillars: [
-    [15,15],[-15,15],[15,-15],[-15,-15],
-    [20,-180],[-20,-180],[35,-180],[-35,-180],
-    [20,-220],[-20,-220],[35,-220],[-35,-220],
-  ],
+  pillars: [[15,15],[-15,15],[15,-15],[-15,-15]],
   spawnPoints: [
     { x:  10, y: PLAYER_HEIGHT, z:  10 },
     { x: -10, y: PLAYER_HEIGHT, z:  10 },
@@ -169,468 +122,62 @@ const DEFAULT_DUNGEON = {
   ],
 };
 
-// === THREE.JS CORE ===
+// Three.js core
 const canvas   = document.getElementById('game-canvas');
 const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
 renderer.setPixelRatio(window.devicePixelRatio);
 renderer.shadowMap.enabled = true;
 renderer.setSize(window.innerWidth, window.innerHeight);
 const scene  = new THREE.Scene();
-scene.background = new THREE.Color(0x08030d);
-scene.fog = new THREE.Fog(0x08030d, 15, 70);
+scene.background = new THREE.Color(0x0a0608);
+scene.fog = new THREE.Fog(0x0a0608, 30, 200);
 const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 500);
-camera.position.set(0, PLAYER_HEIGHT, 0); // prevent camera-inside-floor black view before player spawns
 const clock  = new THREE.Clock();
 
 // Lighting
-// Low ambient for dark dungeon depth — torches are the primary light source
-const ambient = new THREE.AmbientLight(0x110a1a, 0.25);
+const ambient = new THREE.AmbientLight(0x221122, 0.6);
 scene.add(ambient);
-// Torch cluster: warm orange/yellow point lights simulate wall sconces
-const _torchPositions = [
-  [0,   7,  0],   // center
-  [30,  7,  20],  // east wing
-  [-30, 7,  20],  // west wing
-  [0,   7, -35],  // south corridor
-  [70,  7,   0],  // east room
-  [-70, 7,   0],  // west room
-  [0,   7, -80],  // south room
-];
-const _torchLights = _torchPositions.map(([x,y,z]) => {
-  const t = new THREE.PointLight(0xffaa33, 1.5, 22);
-  t.position.set(x, y, z); scene.add(t); return t;
-});
-// Keep torch1/torch2 references for the game loop flicker animation
-const torch1 = _torchLights[0];
-const torch2 = _torchLights[1];
-// Cool rim from above — gives ceiling a slightly different cast
-const rimLight = new THREE.DirectionalLight(0x6655aa, 0.2);
-rimLight.position.set(0, 30, 0); scene.add(rimLight);
+const torch1  = new THREE.PointLight(0xff6600, 1.5, 60);
+torch1.position.set(20, 10, 20); scene.add(torch1);
+const torch2  = new THREE.PointLight(0x4444ff, 1.0, 60);
+torch2.position.set(-30, 10, -20); scene.add(torch2);
+const dirLight = new THREE.DirectionalLight(0xffeedd, 0.4);
+dirLight.position.set(0, 40, 0); scene.add(dirLight);
 
-// === PROCEDURAL TEXTURES ===
-// Canvas-generated textures — no CORS, no external deps, reliable across all browsers
-function makeCanvasTex(w, h, drawFn) {
-  const canvas = document.createElement('canvas');
-  canvas.width = w; canvas.height = h;
-  drawFn(canvas.getContext('2d'));
-  const tex = new THREE.CanvasTexture(canvas);
-  tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
-  return tex;
-}
-
-// Seeded pseudo-random for deterministic brick variation
-function seededRand(seed) {
-  let s = seed;
-  return () => { s = (s * 1664525 + 1013904223) & 0xffffffff; return (s >>> 0) / 0xffffffff; };
-}
-
-// Stone brick wall — staggered rows, mortar joints, per-brick hue/lightness variation
-const _wallTex = makeCanvasTex(512, 512, ctx => {
-  const rand = seededRand(42);
-  const COLS = 8, ROWS = 4;
-  const bw = 512 / COLS, bh = 512 / ROWS;
-  const mortar = 6; // pixels
-  // Mortar background
-  ctx.fillStyle = 'hsl(0,0%,13%)';
-  ctx.fillRect(0, 0, 512, 512);
-  for (let row = 0; row < ROWS; row++) {
-    const offset = (row % 2) * (bw / 2);
-    for (let col = -1; col <= COLS; col++) {
-      const x = col * bw + offset + mortar / 2;
-      const y = row * bh + mortar / 2;
-      const w = bw - mortar;
-      const h = bh - mortar;
-      const hue   = 20 + rand() * 12;
-      const sat   = 18 + rand() * 22;
-      const light = 24 + rand() * 18;
-      ctx.fillStyle = `hsl(${hue},${sat}%,${light}%)`;
-      ctx.fillRect(x, y, w, h);
-      // Subtle face variation — darker top edge (shadow), lighter bottom
-      const grad = ctx.createLinearGradient(x, y, x, y + h);
-      grad.addColorStop(0,   `hsla(0,0%,0%,0.18)`);
-      grad.addColorStop(0.5, `hsla(0,0%,0%,0.0)`);
-      grad.addColorStop(1,   `hsla(0,0%,100%,0.06)`);
-      ctx.fillStyle = grad;
-      ctx.fillRect(x, y, w, h);
-      // Per-pixel noise simulation via tiny rects
-      for (let n = 0; n < 8; n++) {
-        const nx = x + rand() * w;
-        const ny = y + rand() * h;
-        const alpha = rand() * 0.08;
-        ctx.fillStyle = `rgba(0,0,0,${alpha})`;
-        ctx.fillRect(nx, ny, 2, 2);
-      }
-    }
-  }
-});
-_wallTex.repeat.set(4, 2);
-
-// Stone floor — large square tiles with grout lines and slight color variation
-const _floorTex = makeCanvasTex(512, 512, ctx => {
-  const rand = seededRand(99);
-  const TILES = 4;
-  const tw = 512 / TILES;
-  const grout = 5;
-  ctx.fillStyle = 'hsl(0,0%,10%)';
-  ctx.fillRect(0, 0, 512, 512);
-  for (let row = 0; row < TILES; row++) {
-    for (let col = 0; col < TILES; col++) {
-      const x = col * tw + grout / 2;
-      const y = row * tw + grout / 2;
-      const s = tw - grout;
-      const hue   = 210 + rand() * 20;
-      const sat   = 5  + rand() * 8;
-      const light = 18 + rand() * 10;
-      ctx.fillStyle = `hsl(${hue},${sat}%,${light}%)`;
-      ctx.fillRect(x, y, s, s);
-      // Subtle beveled highlight top-left
-      const hi = ctx.createLinearGradient(x, y, x + s, y + s);
-      hi.addColorStop(0,   `hsla(0,0%,100%,0.07)`);
-      hi.addColorStop(0.5, `hsla(0,0%,0%,0.0)`);
-      hi.addColorStop(1,   `hsla(0,0%,0%,0.1)`);
-      ctx.fillStyle = hi;
-      ctx.fillRect(x, y, s, s);
-    }
-  }
-});
-_floorTex.repeat.set(8, 8);
-
-// Dark ceiling — similar to wall but much darker, minimal detail reads at distance
-const _ceilTex = makeCanvasTex(256, 256, ctx => {
-  const rand = seededRand(7);
-  ctx.fillStyle = 'hsl(270,8%,7%)';
-  ctx.fillRect(0, 0, 256, 256);
-  const COLS = 4, ROWS = 4;
-  const bw = 256 / COLS, bh = 256 / ROWS;
-  const mortar = 4;
-  for (let row = 0; row < ROWS; row++) {
-    const offset = (row % 2) * (bw / 2);
-    for (let col = -1; col <= COLS; col++) {
-      const x = col * bw + offset + mortar / 2;
-      const y = row * bh + mortar / 2;
-      const hue = 260 + rand() * 20;
-      const light = 7 + rand() * 6;
-      ctx.fillStyle = `hsl(${hue},10%,${light}%)`;
-      ctx.fillRect(x, y, bw - mortar, bh - mortar);
-    }
-  }
-});
-_ceilTex.repeat.set(4, 4);
-
-// Shared MeshStandardMaterial instances — lighting interacts with roughness
-function makeWallMat() {
-  return new THREE.MeshStandardMaterial({ map: _wallTex, roughness: 0.9, metalness: 0.03 });
-}
-function makeFloorMat() {
-  return new THREE.MeshStandardMaterial({ map: _floorTex, roughness: 0.85, metalness: 0.04 });
-}
-function makeCeilMat() {
-  return new THREE.MeshStandardMaterial({ map: _ceilTex, roughness: 1.0, metalness: 0.0 });
-}
-
-// === DUNGEON RENDERER ===
-// Wall meshes collected here so the spell raycaster can test against them
-const wallMeshes = [];
 // Dungeon renderer - builds geometry from layout data
 function renderDungeon(layout) {
-  const pMat = new THREE.MeshStandardMaterial({ color: 0x3a2e50, roughness: 0.9, metalness: 0.05 });
+  const sMat = new THREE.MeshPhongMaterial({ color: 0x4a4055, shininess: 5 });
+  const fMat = new THREE.MeshPhongMaterial({ color: 0x2a2030, shininess: 2 });
+  const cMat = new THREE.MeshPhongMaterial({ color: 0x1a1020, shininess: 0 });
+  const pMat = new THREE.MeshPhongMaterial({ color: 0x3a3045 });
   const pGeo = new THREE.CylinderGeometry(1.5, 2, 20, 8);
   const WH   = 20;
-  const EPS  = 0.5; // snap tolerance for shared-face detection
-
-  const addWall = (px, py, pz, rx, ry, rz, gw, gh) => {
-    // Wall UV repeat proportional to size so bricks stay roughly same scale
-    const tex = _wallTex.clone();
-    tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
-    tex.repeat.set(gw / 12, gh / 12);
-    const mat = new THREE.MeshStandardMaterial({ map: tex, roughness: 0.9, metalness: 0.03 });
-    const m = new THREE.Mesh(new THREE.PlaneGeometry(gw, gh), mat);
-    m.position.set(px, py, pz); m.rotation.set(rx, ry, rz); scene.add(m);
-    wallMeshes.push(m); // collected for spell raycasting
-  };
-
-  // Pre-compute AABB for every room and corridor
-  const allBoxes = [...layout.rooms, ...layout.corridors].map(b => ({
-    minX: b.x - b.w / 2, maxX: b.x + b.w / 2,
-    minZ: b.z - b.d / 2, maxZ: b.z + b.d / 2,
-  }));
-  // For each face, check if another box's OPPOSITE face touches it with overlapping span.
-  // North face of A (at z=z0): skip if any B has maxZ≈z0 and overlapping X span.
-  const hasN = (z, x0, x1) => allBoxes.some(b => Math.abs(b.maxZ - z) < EPS && b.minX < x1 - EPS && b.maxX > x0 + EPS);
-  const hasS = (z, x0, x1) => allBoxes.some(b => Math.abs(b.minZ - z) < EPS && b.minX < x1 - EPS && b.maxX > x0 + EPS);
-  const hasW = (x, z0, z1) => allBoxes.some(b => Math.abs(b.maxX - x) < EPS && b.minZ < z1 - EPS && b.maxZ > z0 + EPS);
-  const hasE = (x, z0, z1) => allBoxes.some(b => Math.abs(b.minX - x) < EPS && b.minZ < z1 - EPS && b.maxZ > z0 + EPS);
-
-  // Unified loop over rooms + corridors — doorways open automatically where boxes share a face
-  [...layout.rooms, ...layout.corridors].forEach(b => {
-    const x0 = b.x - b.w / 2, x1 = b.x + b.w / 2;
-    const z0 = b.z - b.d / 2, z1 = b.z + b.d / 2;
-
-    // Floor
-    const flTex = _floorTex.clone();
-    flTex.wrapS = flTex.wrapT = THREE.RepeatWrapping;
-    flTex.repeat.set(b.w / 8, b.d / 8);
-    const fl = new THREE.Mesh(new THREE.PlaneGeometry(b.w, b.d),
-      new THREE.MeshStandardMaterial({ map: flTex, roughness: 0.85, metalness: 0.04 }));
-    fl.rotation.x = -Math.PI/2; fl.position.set(b.x, 0, b.z); scene.add(fl);
-
-    // Ceiling
-    const ceTex = _ceilTex.clone();
-    ceTex.wrapS = ceTex.wrapT = THREE.RepeatWrapping;
-    ceTex.repeat.set(b.w / 10, b.d / 10);
-    const ce = new THREE.Mesh(new THREE.PlaneGeometry(b.w, b.d),
-      new THREE.MeshStandardMaterial({ map: ceTex, roughness: 1.0, metalness: 0.0 }));
-    ce.rotation.x = Math.PI/2; ce.position.set(b.x, WH, b.z); scene.add(ce);
-
-    // Walls — skip any face that is shared with an adjacent box (that face becomes a doorway)
-    if (!hasN(z0, x0, x1)) addWall(b.x, WH/2, z0, 0,           0,         0, b.w, WH);
-    if (!hasS(z1, x0, x1)) addWall(b.x, WH/2, z1, 0,   Math.PI,           0, b.w, WH);
-    if (!hasW(x0, z0, z1)) addWall(x0,  WH/2, b.z, 0,  Math.PI/2,         0, b.d, WH);
-    if (!hasE(x1, z0, z1)) addWall(x1,  WH/2, b.z, 0, -Math.PI/2,         0, b.d, WH);
+  layout.rooms.forEach(r => {
+    const fl = new THREE.Mesh(new THREE.PlaneGeometry(r.w, r.d), fMat);
+    fl.rotation.x = -Math.PI/2; fl.position.set(r.x, 0, r.z); scene.add(fl);
+    const ce = new THREE.Mesh(new THREE.PlaneGeometry(r.w, r.d), cMat);
+    ce.rotation.x = Math.PI/2; ce.position.set(r.x, WH, r.z); scene.add(ce);
+    [[r.x, WH/2, r.z-r.d/2, 0,0,0, r.w,WH],
+     [r.x, WH/2, r.z+r.d/2, 0,Math.PI,0, r.w,WH],
+     [r.x-r.w/2, WH/2, r.z, 0,Math.PI/2,0, r.d,WH],
+     [r.x+r.w/2, WH/2, r.z, 0,-Math.PI/2,0, r.d,WH]
+    ].forEach(([px,py,pz,rx,ry,rz,gw,gh]) => {
+      const m = new THREE.Mesh(new THREE.PlaneGeometry(gw,gh), sMat);
+      m.position.set(px,py,pz); m.rotation.set(rx,ry,rz); scene.add(m);
+    });
   });
-
-  layout.pillars.forEach(([px, pz]) => {
-    const m = new THREE.Mesh(pGeo, pMat); m.position.set(px, 10, pz); scene.add(m);
+  layout.corridors.forEach(c => {
+    const f2 = new THREE.Mesh(new THREE.PlaneGeometry(c.w,c.d), fMat);
+    f2.rotation.x=-Math.PI/2; f2.position.set(c.x,0,c.z); scene.add(f2);
+    const c2 = new THREE.Mesh(new THREE.PlaneGeometry(c.w,c.d), cMat);
+    c2.rotation.x=Math.PI/2; c2.position.set(c.x,WH,c.z); scene.add(c2);
+  });
+  layout.pillars.forEach(([px,pz]) => {
+    const m = new THREE.Mesh(pGeo, pMat); m.position.set(px,10,pz); scene.add(m);
   });
 }
 renderDungeon(DEFAULT_DUNGEON);
 
-// Corridor lights — one point light per corridor center; boss approach uses warm red
-DEFAULT_DUNGEON.corridors.forEach((c, i) => {
-  const color = (i === 5) ? 0xff5500 : 0xffaa44; // index 5 = boss approach connector
-  const light = new THREE.PointLight(color, 1.0, 20);
-  light.position.set(c.x, 6, c.z);
-  scene.add(light);
-});
-
-// === PROPS ===
-// All props use Three.js r128 primitives; no new CDN imports.
-// Materials use same style conventions as dungeon (MeshStandardMaterial, seededRand, makeCanvasTex).
-
-// --- Torch sconce factory ---
-// Group: iron bracket (Box) + wood stick (Cylinder) + flame cone + child PointLight
-function makeTorch(wx, wy, wz) {
-  const g = new THREE.Group();
-  const ironMat  = new THREE.MeshStandardMaterial({ color: 0x1e1e1e, roughness: 0.6, metalness: 0.8 });
-  const woodMat  = new THREE.MeshStandardMaterial({ color: 0x4a2808, roughness: 0.95 });
-  const flameMat = new THREE.MeshStandardMaterial({ color: 0xff5500, emissive: 0xff3300, emissiveIntensity: 3.0 });
-  g.add(new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.3, 0.8), ironMat));
-  const stick = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.14, 1.8, 6), woodMat);
-  stick.position.y = 0.9; g.add(stick);
-  const flame = new THREE.Mesh(new THREE.ConeGeometry(0.25, 0.7, 6), flameMat);
-  flame.position.y = 2.05; g.add(flame);
-  const pl = new THREE.PointLight(0xff9944, 0.9, 14);
-  pl.position.y = 2.2; g.add(pl);
-  g.position.set(wx, wy, wz);
-  scene.add(g);
-  return g;
-}
-// Main room (80×60, center 0,0)
-makeTorch(-30, 10, -29.5); makeTorch( 30, 10, -29.5); // south wall
-makeTorch(-30, 10,  29.5); makeTorch( 30, 10,  29.5); // north wall
-// East room (50×40, center 80,0): east wall x=105
-makeTorch(104.5, 10,  12); makeTorch(104.5, 10, -12);
-// West room (50×40, center -80,0): west wall x=-105
-makeTorch(-104.5, 10,  12); makeTorch(-104.5, 10, -12);
-// South room (60×50, center 0,-80)
-makeTorch(-22, 10, -55.5); makeTorch( 22, 10, -55.5);   // north wall
-makeTorch(-22, 10, -104.5); makeTorch( 22, 10, -104.5); // south wall
-// Boss chamber (110×90, center 0,-200)
-makeTorch(-40, 10, -155.5); makeTorch( 40, 10, -155.5); // north wall
-makeTorch(-40, 10, -244.5); makeTorch( 40, 10, -244.5); // south wall
-makeTorch(-54.5, 10, -185); makeTorch( 54.5, 10, -185); // side walls
-
-// Boss chamber dedicated point lights (brazier glow — no sconce mesh needed)
-[[-32, 3, -200], [32, 3, -200]].forEach(([lx, ly, lz]) => {
-  const bl = new THREE.PointLight(0xff3300, 1.2, 35);
-  bl.position.set(lx, ly, lz); scene.add(bl);
-});
-
-// --- Treasure chests (south room, two on a shared raised dais) ---
-const chests = [];
-function makeChest(cx, cz) {
-  const g      = new THREE.Group();
-  const woodMat = new THREE.MeshStandardMaterial({ color: 0x3d1f0a, roughness: 0.9 });
-  const bandMat = new THREE.MeshStandardMaterial({ color: 0x7a6020, roughness: 0.5, metalness: 0.6 });
-  const daisMat = new THREE.MeshStandardMaterial({ color: 0x1e1c2e, roughness: 0.9 });
-  const dais = new THREE.Mesh(new THREE.BoxGeometry(4.2, 0.4, 3.0), daisMat);
-  dais.position.y = 0.2; g.add(dais);
-  const base = new THREE.Mesh(new THREE.BoxGeometry(3, 1.5, 2), woodMat);
-  base.position.y = 1.15; g.add(base);
-  const band = new THREE.Mesh(new THREE.BoxGeometry(3.1, 0.22, 2.08), bandMat);
-  band.position.y = 1.45; g.add(band);
-  // Lid group — pivot at back edge so it swings open correctly
-  const lidGroup = new THREE.Group();
-  lidGroup.position.set(0, 1.9, -1.0);
-  const lid = new THREE.Mesh(new THREE.BoxGeometry(3, 0.8, 2), woodMat);
-  lid.position.set(0, 0.4, 1.0); lidGroup.add(lid);
-  const lock = new THREE.Mesh(new THREE.SphereGeometry(0.18, 8, 8), bandMat);
-  lock.position.set(0, 0.25, -1.02); lidGroup.add(lock);
-  g.add(lidGroup);
-  g.position.set(cx, 0, cz);
-  scene.add(g);
-  chests.push({ group: g, lidGroup, open: false, openT: 0 });
-}
-makeChest(-8, -80);
-makeChest( 8, -80);
-
-// --- Bone piles (deterministic per-position seeding) ---
-function makeBonePile(bx, bz) {
-  const g       = new THREE.Group();
-  const boneMat = new THREE.MeshStandardMaterial({ color: 0xd4c9a8, roughness: 0.8 });
-  const rand    = seededRand(((bx * 73 + bz * 31) & 0xffffffff) >>> 0);
-  for (let i = 0; i < 3; i++) {
-    const bone = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.12, 1.2 + rand() * 0.6, 5), boneMat);
-    bone.position.set(rand() * 1.4 - 0.7, 0.2, rand() * 1.4 - 0.7);
-    bone.rotation.set(rand() * 0.6 - 0.3, rand() * Math.PI * 2, rand() * 0.8 - 0.4);
-    g.add(bone);
-  }
-  const skull = new THREE.Mesh(new THREE.SphereGeometry(0.35, 7, 7), boneMat);
-  skull.position.set(rand() * 0.6 - 0.3, 0.35, rand() * 0.6 - 0.3);
-  skull.scale.set(1.0, 0.8, 1.1); g.add(skull);
-  for (let i = 0; i < 3; i++) {
-    const joint = new THREE.Mesh(new THREE.SphereGeometry(0.11, 5, 5), boneMat);
-    joint.position.set(rand() * 1.5 - 0.75, 0.12, rand() * 1.5 - 0.75);
-    g.add(joint);
-  }
-  g.position.set(bx, 0, bz);
-  scene.add(g);
-}
-makeBonePile( 100,  17);  // east room SE
-makeBonePile(-100,  17);  // west room SW
-makeBonePile( -26, -98);  // south room SW
-makeBonePile(  26, -98);  // south room SE
-makeBonePile( -48, -237); // boss chamber SW
-makeBonePile(  48, -237); // boss chamber SE
-makeBonePile( -48, -163); // boss chamber NW
-makeBonePile(  48, -163); // boss chamber NE
-
-// --- Magic rune floor overlays (rotate slowly in game loop) ---
-const rotatingRunes = [];
-function placeRune(rx, rz, size, emissiveHex, canvasColor) {
-  const tex = makeCanvasTex(256, 256, ctx => {
-    ctx.clearRect(0, 0, 256, 256);
-    ctx.strokeStyle = canvasColor; ctx.lineWidth = 3;
-    ctx.shadowColor = canvasColor; ctx.shadowBlur = 14;
-    // Concentric circles
-    for (let r = 25; r <= 115; r += 22) {
-      ctx.beginPath(); ctx.arc(128, 128, r, 0, Math.PI * 2); ctx.stroke();
-    }
-    // Star lines (8-pointed)
-    for (let i = 0; i < 8; i++) {
-      const a = i * Math.PI / 4;
-      ctx.beginPath();
-      ctx.moveTo(128 + Math.cos(a) * 28, 128 + Math.sin(a) * 28);
-      ctx.lineTo(128 + Math.cos(a) * 115, 128 + Math.sin(a) * 115);
-      ctx.stroke();
-    }
-    // Inner rune marks
-    ctx.lineWidth = 1.5;
-    for (let i = 0; i < 6; i++) {
-      const a = i * Math.PI / 3;
-      ctx.beginPath();
-      ctx.moveTo(128 + Math.cos(a) * 50, 128 + Math.sin(a) * 50);
-      ctx.lineTo(128 + Math.cos(a + 0.4) * 80, 128 + Math.sin(a + 0.4) * 80);
-      ctx.stroke();
-    }
-  });
-  tex.wrapS = tex.wrapT = THREE.ClampToEdgeWrapping;
-  const mat = new THREE.MeshStandardMaterial({
-    map: tex, emissiveMap: tex, transparent: true, side: THREE.DoubleSide,
-    emissive: new THREE.Color(emissiveHex), emissiveIntensity: 1.2, roughness: 1.0,
-  });
-  const mesh = new THREE.Mesh(new THREE.PlaneGeometry(size, size), mat);
-  mesh.rotation.x = -Math.PI / 2;
-  mesh.position.set(rx, 0.02, rz);
-  scene.add(mesh);
-  rotatingRunes.push(mesh);
-}
-placeRune(0, -80, 12, 0x7722bb, '#aa44ff'); // south room — purple
-
-// Ritual circle (boss chamber — large pentagram, emissive red)
-(function() {
-  const tex = makeCanvasTex(512, 512, ctx => {
-    ctx.clearRect(0, 0, 512, 512);
-    ctx.strokeStyle = '#cc2200'; ctx.shadowColor = '#ff0000'; ctx.shadowBlur = 22;
-    ctx.lineWidth = 5;
-    ctx.beginPath(); ctx.arc(256, 256, 245, 0, Math.PI * 2); ctx.stroke();
-    ctx.beginPath(); ctx.arc(256, 256, 145, 0, Math.PI * 2); ctx.stroke();
-    // Pentagram — connect every 2nd of 5 points on outer circle
-    ctx.lineWidth = 4;
-    const pts = Array.from({ length: 5 }, (_, i) => {
-      const a = i * 4 * Math.PI / 5 - Math.PI / 2;
-      return [256 + Math.cos(a) * 245, 256 + Math.sin(a) * 245];
-    });
-    ctx.beginPath(); ctx.moveTo(pts[0][0], pts[0][1]);
-    for (let i = 1; i < 5; i++) ctx.lineTo(pts[i][0], pts[i][1]);
-    ctx.closePath(); ctx.stroke();
-    ctx.lineWidth = 2;
-    for (let i = 0; i < 10; i++) {
-      const a = i * Math.PI / 5;
-      ctx.beginPath();
-      ctx.moveTo(256 + Math.cos(a) * 145, 256 + Math.sin(a) * 145);
-      ctx.lineTo(256 + Math.cos(a) * 245, 256 + Math.sin(a) * 245);
-      ctx.stroke();
-    }
-  });
-  tex.wrapS = tex.wrapT = THREE.ClampToEdgeWrapping;
-  const mesh = new THREE.Mesh(new THREE.PlaneGeometry(30, 30),
-    new THREE.MeshStandardMaterial({
-      map: tex, emissiveMap: tex, transparent: true, side: THREE.DoubleSide,
-      emissive: new THREE.Color(0xaa0000), emissiveIntensity: 1.8, roughness: 1.0,
-    }));
-  mesh.rotation.x = -Math.PI / 2;
-  mesh.position.set(0, 0.03, -200);
-  scene.add(mesh);
-  rotatingRunes.push(mesh);
-})();
-
-// --- Altar (south room, against north wall z≈-55) ---
-(function() {
-  const stoneMat   = new THREE.MeshStandardMaterial({ color: 0x242035, roughness: 0.9 });
-  const crystalMat = new THREE.MeshStandardMaterial({ color: 0x8844cc, emissive: 0x441188, emissiveIntensity: 2.0, roughness: 0.3, metalness: 0.4 });
-  const goldMat    = new THREE.MeshStandardMaterial({ color: 0x5a4010, roughness: 0.5, metalness: 0.6 });
-  const g = new THREE.Group();
-  const base = new THREE.Mesh(new THREE.BoxGeometry(8, 2, 4), stoneMat);
-  base.position.y = 1.0; g.add(base);
-  const slab = new THREE.Mesh(new THREE.BoxGeometry(7, 0.5, 3.5), stoneMat);
-  slab.position.y = 2.25; g.add(slab);
-  // Torus ring lying flat atop the slab
-  const ring = new THREE.Mesh(new THREE.TorusGeometry(2.0, 0.22, 8, 24), goldMat);
-  ring.rotation.x = Math.PI / 2; ring.position.y = 2.6; g.add(ring);
-  // OctahedronGeometry = two pyramids base-to-base — serves as arcane crystal
-  const crystal = new THREE.Mesh(new THREE.OctahedronGeometry(0.85, 0), crystalMat);
-  crystal.position.y = 3.85; g.add(crystal);
-  g.position.set(0, 0, -57);
-  scene.add(g);
-})();
-
-// --- Spike traps (trap corridor: center 80,-45, width 12, depth 30) ---
-// 3 pressure plates with 3×3 spike grid each; spikes start below floor
-const spikeTraps = [];
-function makeSpikeTrap(tx, tz) {
-  const plateMat = new THREE.MeshStandardMaterial({ color: 0x222222, roughness: 0.7, metalness: 0.5 });
-  const spikeMat = new THREE.MeshStandardMaterial({ color: 0x999999, roughness: 0.3, metalness: 0.8 });
-  const g = new THREE.Group();
-  const plate = new THREE.Mesh(new THREE.PlaneGeometry(4.5, 4.5), plateMat);
-  plate.rotation.x = -Math.PI / 2; plate.position.y = 0.01; g.add(plate);
-  const spikeMeshes = [];
-  for (let sx = -1; sx <= 1; sx++) {
-    for (let sz = -1; sz <= 1; sz++) {
-      const spike = new THREE.Mesh(new THREE.ConeGeometry(0.18, 2.0, 5), spikeMat);
-      spike.position.set(sx * 1.4, -2.0, sz * 1.4); // retracted below floor
-      g.add(spike); spikeMeshes.push(spike);
-    }
-  }
-  g.position.set(tx, 0, tz);
-  scene.add(g);
-  spikeTraps.push({ group: g, spikeMeshes, state: 'idle', activeT: 0 });
-}
-makeSpikeTrap(80, -34);
-makeSpikeTrap(80, -45);
-makeSpikeTrap(80, -56);
-
-// === PORTAL SYSTEM ===
 // Portal helpers
 function makeLabelCanvas(text) {
   const c = document.createElement('canvas'); c.width=256; c.height=64;
@@ -640,195 +187,46 @@ function makeLabelCanvas(text) {
 }
 function createPortal(color, position, label) {
   const g = new THREE.Group();
-  g.position.copy(position);
-  // Outer ring — MeshStandardMaterial with emissive gives glow without post-processing
-  const ring = new THREE.Mesh(
-    new THREE.TorusGeometry(PORTAL_RING_RADIUS, PORTAL_RING_TUBE, 16, 64),
-    new THREE.MeshStandardMaterial({ color, emissive: color, emissiveIntensity: PORTAL_EMISSIVE_INTENSITY })
-  );
-  g.add(ring);
-  g._ring = ring;
-  // Inner void — CircleGeometry radius snug inside torus inner edge, no corner clipping ever
-  const _voidR = PORTAL_RING_RADIUS - PORTAL_RING_TUBE - 0.15;
-  const voidMesh = new THREE.Mesh(
-    new THREE.CircleGeometry(_voidR, 64),
-    new THREE.MeshStandardMaterial({
-      color: 0x001a00, emissive: color, emissiveIntensity: PORTAL_VOID_EMISSIVE,
-      transparent: true, opacity: 0.93, side: THREE.DoubleSide, depthWrite: false,
-    })
-  );
-  g.add(voidMesh);
-  g._void = voidMesh;
-  // Glow halo — wider tube torus, additive blending = soft bloom without post-processing
-  const glowRing = new THREE.Mesh(
-    new THREE.TorusGeometry(PORTAL_RING_RADIUS, PORTAL_RING_TUBE * 3.0, 8, 64),
-    new THREE.MeshBasicMaterial({
-      color, transparent: true, opacity: 0.13,
-      blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide,
-    })
-  );
-  g.add(glowRing);
-  g._glowRing = glowRing;
-  // Particle ring — 72 bright points orbiting the torus equator
-  const _PC = 72;
-  const _pPos = new Float32Array(_PC * 3);
-  const _pPhase = new Float32Array(_PC);
-  for (let i = 0; i < _PC; i++) {
-    _pPhase[i] = (i / _PC) * Math.PI * 2;
-    _pPos[i*3]   = Math.cos(_pPhase[i]) * PORTAL_RING_RADIUS;
-    _pPos[i*3+1] = Math.sin(_pPhase[i]) * PORTAL_RING_RADIUS;
-    _pPos[i*3+2] = 0;
-  }
-  const _pGeo = new THREE.BufferGeometry();
-  _pGeo.setAttribute('position', new THREE.BufferAttribute(_pPos, 3));
-  const particles = new THREE.Points(_pGeo, new THREE.PointsMaterial({
-    color, size: 0.20, transparent: true, opacity: 0.95,
-    blending: THREE.AdditiveBlending, depthWrite: false,
-  }));
-  particles.userData.phases = _pPhase;
-  g.add(particles);
-  g._particles = particles;
+  g.position.copy(position); g.rotation.x = 0.35;
+  g.add(new THREE.Mesh(new THREE.TorusGeometry(15,2,16,100),
+    new THREE.MeshPhongMaterial({ color, emissive:color, emissiveIntensity:0.6, transparent:true, opacity:0.85 })));
+  g.add(new THREE.Mesh(new THREE.CircleGeometry(13,32),
+    new THREE.MeshBasicMaterial({ color, transparent:true, opacity:0.35, side:THREE.DoubleSide })));
   if (label) {
-    const lm = new THREE.Mesh(new THREE.PlaneGeometry(8, 1.8),
-      new THREE.MeshBasicMaterial({ map: new THREE.CanvasTexture(makeLabelCanvas(label)), transparent: true, side: THREE.DoubleSide }));
-    lm.position.set(0, PORTAL_RING_RADIUS + 1.5, 0); g.add(lm);
+    const lm = new THREE.Mesh(new THREE.PlaneGeometry(30,7),
+      new THREE.MeshBasicMaterial({ map:new THREE.CanvasTexture(makeLabelCanvas(label)), transparent:true, side:THREE.DoubleSide }));
+    lm.position.set(0,20,0); g.add(lm);
   }
-  const portalLight = new THREE.PointLight(color, PORTAL_LIGHT_INTENSITY, PORTAL_LIGHT_DIST);
-  g.add(portalLight);
-  g._light = portalLight;
+  g.add(new THREE.PointLight(color, 1.5, 40));
   scene.add(g); return g;
 }
 
-// Exit portal inside west wing — faces east so player approaching from spawn (0,0,0) sees the ring face-on
-const exitPortalGroup = createPortal(0x00ff00, new THREE.Vector3(-30, PLAYER_HEIGHT, 0), 'VIBE JAM 2026');
-exitPortalGroup.rotation.y = Math.PI / 2; // faces east toward spawn at (0,0,0)
+// Exit portal inside west wing (reachable without wall clipping)
+const exitPortalGroup = createPortal(0x00ff00, new THREE.Vector3(-55, PLAYER_HEIGHT, 0), 'VIBE JAM 2026');
 let startPortalGroup = null, startPortalReady = false;
 if (incomingPortal && safeRef) {
   startPortalGroup = createPortal(0xff0000, new THREE.Vector3(0, PLAYER_HEIGHT, 25), null);
   setTimeout(() => { startPortalReady = true; }, START_PORTAL_DELAY);
 }
 
-// Shared toon cel-shading gradient (3 bands: shadow / mid / highlight)
-const _toonGradientMap = (() => {
-  const data = new Uint8Array([90, 160, 255]);
-  const tex = new THREE.DataTexture(data, 3, 1, THREE.LuminanceFormat);
-  // NearestFilter keeps toon bands crisp — linear filtering blurs the step edges
-  tex.minFilter = THREE.NearestFilter;
-  tex.magFilter = THREE.NearestFilter;
-  tex.needsUpdate = true;
-  return tex;
-})();
+// Toon shading gradient map (dark / mid / light bands) - shared across all remote players
+const _toonGradientData = new Uint8Array([90, 160, 255]);
+const _toonGradientMap  = new THREE.DataTexture(_toonGradientData, 3, 1, THREE.LuminanceFormat);
+_toonGradientMap.needsUpdate = true;
 
-// === VOXEL ASSETS ===
-// Shared voxel dragon asset used in-world and in /assets viewer page.
-const VOXEL_DRAGON_PALETTE = {
-  body:     0x0f2134,
-  shadow:   0x08131f,
-  cyan:     0x1b9bb3,
-  horn:     0xbe9d83,
-  claw:     0xead8bc,
-  eye:      0x0a0a0a,
-};
-function buildVoxelDragonVoxels() {
-  const v = [];
-  const add = (x, y, z, c) => v.push([x, y, z, c]);
-
-  // Torso core
-  for (let x = -3; x <= 3; x++) {
-    for (let y = 3; y <= 6; y++) {
-      for (let z = -2; z <= 2; z++) {
-        if (Math.abs(x) + Math.abs(z) <= 6) add(x, y, z, 'body');
-      }
-    }
-  }
-  // Belly cyan striping
-  for (let x = -2; x <= 2; x++) for (let z = -1; z <= 1; z++) add(x, 3, z, 'cyan');
-
-  // Neck + head
-  for (let i = 0; i < 4; i++) {
-    for (let y = 5; y <= 6; y++) for (let z = -1; z <= 1; z++) add(4 + i, y, z, 'body');
-  }
-  for (let y = 5; y <= 7; y++) for (let z = -2; z <= 2; z++) add(8, y, z, 'body');
-  for (let z = -1; z <= 1; z++) { add(9, 6, z, 'body'); add(10, 6, z, 'body'); }
-  add(9, 5, 0, 'cyan'); add(10, 5, 0, 'cyan');
-  add(10, 7, -1, 'eye'); add(10, 7, 1, 'eye');
-
-  // Horns
-  for (let i = 0; i < 5; i++) {
-    add(7 + i, 8 + Math.floor(i / 2), -2 - i, 'horn');
-    add(7 + i, 8 + Math.floor(i / 2),  2 + i, 'horn');
-  }
-
-  // Wings (voxel arcs)
-  for (let side of [-1, 1]) {
-    for (let i = 0; i < 8; i++) {
-      add(-1 - i, 7 + Math.floor(i / 3), side * (4 + i), 'horn');
-      add(-1 - i, 6, side * (3 + i), 'shadow');
-      if (i > 1 && i < 7) add(-2 - i, 5, side * (3 + i), 'cyan');
-    }
-  }
-
-  // Legs
-  const legs = [[-2, -1], [-2, 1], [2, -1], [2, 1]];
-  for (const [x0, z0] of legs) {
-    for (let y = 0; y <= 2; y++) {
-      add(x0, y, z0, 'shadow');
-      add(x0 + (x0 > 0 ? 1 : -1), y, z0, 'body');
-    }
-    add(x0, -1, z0, 'claw');
-    add(x0 + (x0 > 0 ? 1 : -1), -1, z0, 'claw');
-  }
-
-  // Tail
-  for (let i = 0; i < 9; i++) {
-    const x = -4 - i;
-    const y = 4 + Math.floor(i / 3);
-    add(x, y, 0, 'body');
-    if (i % 2 === 0) add(x, y - 1, 0, 'cyan');
-  }
-  add(-13, 7, -1, 'claw'); add(-13, 7, 1, 'claw');
-  return v;
-}
-function createVoxelAsset(voxels, { cubeSize = 0.55, gradientMap = null } = {}) {
-  const grouped = new Map();
-  for (const [x, y, z, key] of voxels) {
-    if (!grouped.has(key)) grouped.set(key, []);
-    grouped.get(key).push([x, y, z]);
-  }
-  const geo = new THREE.BoxGeometry(cubeSize, cubeSize, cubeSize);
-  const root = new THREE.Group();
-  for (const [key, pos] of grouped) {
-    const mat = new THREE.MeshToonMaterial({ color: VOXEL_DRAGON_PALETTE[key], gradientMap });
-    const im = new THREE.InstancedMesh(geo, mat, pos.length);
-    const m = new THREE.Matrix4();
-    pos.forEach(([x, y, z], i) => { m.setPosition(x * cubeSize, y * cubeSize, z * cubeSize); im.setMatrixAt(i, m); });
-    im.instanceMatrix.needsUpdate = true;
-    root.add(im);
-  }
-  root.position.y = 0.55;
-  return root;
-}
-const DRAGON_VOXELS = buildVoxelDragonVoxels();
-const enemyDragon = {
-  group: createVoxelAsset(DRAGON_VOXELS, { cubeSize: 0.5, gradientMap: _toonGradientMap }),
-  baseY: PLAYER_HEIGHT - 2.6,
-};
-enemyDragon.group.position.set(12, enemyDragon.baseY, -22);
-enemyDragon.group.rotation.y = -0.35;
-scene.add(enemyDragon.group);
-
-// Per-player color derived from id string
-function hashColor(id) {
+// Deterministic hue from player ID string (0-359)
+function _hashHue(str) {
   let h = 0;
-  for (let i = 0; i < id.length; i++) h = (h * 31 + id.charCodeAt(i)) | 0;
-  const hue = Math.abs(h) % 360;
-  return {
-    body: new THREE.Color().setHSL(hue/360, 0.70, 0.50),
-    head: new THREE.Color().setHSL(hue/360, 0.60, 0.65),
-    legs: new THREE.Color().setHSL(hue/360, 0.70, 0.35),
-  };
+  for (let i = 0; i < str.length; i++) h = (Math.imul(31, h) + str.charCodeAt(i)) | 0;
+  return (h >>> 0) % 360;
 }
-// === PLAYER ===
+// HSL → 24-bit int for Three.js Color
+function _hslToInt(h, s, l) {
+  const a = s * Math.min(l, 1 - l);
+  const f = n => { const k = (n + h / 30) % 12; return l - a * Math.max(Math.min(k - 3, 9 - k, 1), -1); };
+  return (Math.round(f(0) * 255) << 16) | (Math.round(f(8) * 255) << 8) | Math.round(f(4) * 255);
+}
+
 // MmdPlayer - owns player state; camera follows local instance
 class MmdPlayer {
   constructor({ id, username, x, y, z, yaw=0, pitch=0, hp=HP_MAX, isLocal=false }) {
@@ -838,121 +236,45 @@ class MmdPlayer {
     this.cooldowns = Object.fromEntries(Object.keys(SPELL_DEFS).map(k=>[k,0]));
     if (!isLocal) {
       this.mesh = new THREE.Group();
-      this.mixer = null;
-      if (_charGltf) {
-        // Clone GLTF model — SkeletonUtils preserves independent bone hierarchies per player
-        const model = THREE.SkeletonUtils.clone(_charGltf.scene);
-        // Normalize to 8 units tall via mesh-only bounds (avoids armature bone float)
-        model.updateMatrixWorld(true);
-        const meshBox = new THREE.Box3();
-        model.traverse(c => {
-          if (c.isMesh && c.geometry) {
-            c.geometry.computeBoundingBox();
-            meshBox.union(c.geometry.boundingBox.clone().applyMatrix4(c.matrixWorld));
-          }
-        });
-        if (!meshBox.isEmpty()) {
-          const scale = 8.0 / meshBox.getSize(new THREE.Vector3()).y;
-          model.scale.setScalar(scale);
-          model.updateMatrixWorld(true);
-          // Recompute after scale to pin feet to y=0
-          const groundBox = new THREE.Box3();
-          model.traverse(c => {
-            if (c.isMesh && c.geometry)
-              groundBox.union(c.geometry.boundingBox.clone().applyMatrix4(c.matrixWorld));
-          });
-          model.position.y = -groundBox.min.y;
-        }
-        // Tint each mesh with the player's hash color — clone material to keep instances independent
-        const colors = hashColor(id);
-        model.traverse(c => {
-          if (c.isMesh) { c.material = c.material.clone(); c.material.color.set(colors.body); }
-        });
-        this.mesh.add(model);
-        // AnimationMixer — animation clips come from the cached GLTF, mixer drives the clone
-        if (_charGltf.animations && _charGltf.animations.length > 0) {
-          this.mixer = new THREE.AnimationMixer(model);
-          this.mixer.clipAction(_charGltf.animations[0]).play();
-        }
-      } else {
-        // Box-geometry chibi wizard fallback (used if GLTF hasn't loaded yet)
-        let _h = 0;
-        for (let i = 0; i < id.length; i++) _h = (_h * 31 + id.charCodeAt(i)) | 0;
-        // Hat varies per-player in the dark purple/midnight blue range for variety
-        const hatColor = new THREE.Color().setHSL(((Math.abs(_h) % 40) + 250) / 360, 0.85, 0.22);
-        const robeColor = new THREE.Color(0x6B21A8); // royal purple
-        const faceColor = new THREE.Color(0xE8D5F5); // light lavender
-        const toonMat = c => new THREE.MeshToonMaterial({ color:c, gradientMap:_toonGradientMap });
-        const addWithOutline = (group, mesh) => {
-          group.add(mesh);
-          const ol = mesh.clone();
-          ol.material = new THREE.MeshBasicMaterial({ color:0x000000, side:THREE.BackSide });
-          ol.scale.setScalar(1.06);
-          group.add(ol);
-        };
-        const flatBox = (w, ht, d) => {
-          const g = new THREE.BoxGeometry(w, ht, d).toNonIndexed();
-          g.computeVertexNormals(); return g;
-        };
-        // Chibi proportions — group grounded at y=0, total height ~9.5 units
-        // Robe/skirt: wide trapezoid silhouette at ground level
-        const skirt = new THREE.Mesh(flatBox(3.4, 2.0, 2.8), toonMat(robeColor));
-        skirt.position.y = 1.0; addWithOutline(this.mesh, skirt);
-        // Torso: short and wide
-        const torso = new THREE.Mesh(flatBox(2.4, 1.4, 2.0), toonMat(robeColor));
-        torso.position.y = 2.7; addWithOutline(this.mesh, torso);
-        // Arms: stubby, pivot at shoulder for natural swing
-        this.leftArm = new THREE.Group();
-        this.leftArm.position.set(-1.7, 3.2, 0); this.leftArm.rotation.z = 0.3;
-        const lArmMesh = new THREE.Mesh(flatBox(0.55, 1.1, 0.55), toonMat(faceColor));
-        lArmMesh.position.y = -0.55; addWithOutline(this.leftArm, lArmMesh);
-        this.mesh.add(this.leftArm);
-        this.rightArm = new THREE.Group();
-        this.rightArm.position.set( 1.7, 3.2, 0); this.rightArm.rotation.z = -0.3;
-        const rArmMesh = new THREE.Mesh(flatBox(0.55, 1.1, 0.55), toonMat(faceColor));
-        rArmMesh.position.y = -0.55; addWithOutline(this.rightArm, rArmMesh);
-        this.mesh.add(this.rightArm);
-        // Head: big chibi head, slightly wider than tall (~38% of total height)
-        this.headMesh = new THREE.Mesh(flatBox(3.2, 2.8, 2.8), toonMat(faceColor));
-        this.headMesh.position.y = 4.8; addWithOutline(this.mesh, this.headMesh);
-        // Expressive eyes: large dark spheres with white highlight for personality
-        const eyeMat = new THREE.MeshBasicMaterial({ color: 0x111122 });
-        const eyeGeo = new THREE.SphereGeometry(0.3, 8, 8);
-        const lEye = new THREE.Mesh(eyeGeo, eyeMat);
-        lEye.position.set(-0.72, 4.95, -1.41); lEye.scale.set(1.0, 1.2, 0.8);
-        const rEye = new THREE.Mesh(eyeGeo, eyeMat);
-        rEye.position.set( 0.72, 4.95, -1.41); rEye.scale.set(1.0, 1.2, 0.8);
-        this.mesh.add(lEye); this.mesh.add(rEye);
-        const hlMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
-        const hlGeo = new THREE.SphereGeometry(0.11, 6, 6);
-        const lHl = new THREE.Mesh(hlGeo, hlMat); lHl.position.set(-0.57, 5.06, -1.42);
-        const rHl = new THREE.Mesh(hlGeo, hlMat); rHl.position.set( 0.87, 5.06, -1.42);
-        this.mesh.add(lHl); this.mesh.add(rHl);
-        // Hat brim: tapered cylinder disc
-        const brim = new THREE.Mesh(new THREE.CylinderGeometry(1.7, 2.0, 0.22, 16), toonMat(hatColor));
-        brim.position.y = 6.3; addWithOutline(this.mesh, brim);
-        // Hat cone: tall and dramatic
-        this.hatMesh = new THREE.Mesh(new THREE.ConeGeometry(1.2, 3.2, 8), toonMat(hatColor));
-        this.hatMesh.position.y = 7.9; addWithOutline(this.mesh, this.hatMesh);
-        // Gold star at hat tip for extra charm
-        const starMat = new THREE.MeshBasicMaterial({ color: 0xF5C518 });
-        const star = new THREE.Mesh(new THREE.SphereGeometry(0.18, 6, 6), starMat);
-        star.position.y = 9.5; this.mesh.add(star);
-      }
+
+      // Per-player color palette seeded from ID so same player = same colors
+      const hue      = _hashHue(id);
+      const bodyColor = _hslToInt(hue, 0.65, 0.45);
+      const headColor = _hslToInt(hue, 0.60, 0.62);
+      const legColor  = _hslToInt(hue, 0.65, 0.30);
+
+      const outlineMat = new THREE.MeshBasicMaterial({ color: 0x000000, side: THREE.BackSide });
+      const makeToon = c => new THREE.MeshToonMaterial({ color: c, gradientMap: _toonGradientMap, flatShading: true });
+
+      // Add a toon-shaded body part with a BackSide outline child
+      const addPart = (geo, color, px, py, pz, rz) => {
+        const m = new THREE.Mesh(geo, makeToon(color));
+        m.position.set(px, py, pz);
+        if (rz !== undefined) m.rotation.z = rz;
+        const outline = new THREE.Mesh(geo, outlineMat);
+        outline.scale.setScalar(1.05);
+        m.add(outline);
+        this.mesh.add(m);
+      };
+
+      addPart(new THREE.CylinderGeometry(0.9, 0.8, 2.5, 8), legColor,   0,     1.25, 0);
+      addPart(new THREE.CylinderGeometry(1.0, 0.9, 3.0, 8), bodyColor,  0,     3.25, 0);
+      addPart(new THREE.CylinderGeometry(0.35, 0.3, 2.8, 6), bodyColor, -1.35, 3.5,  0,  0.4);
+      addPart(new THREE.CylinderGeometry(0.35, 0.3, 2.8, 6), bodyColor,  1.35, 3.5,  0, -0.4);
+      addPart(new THREE.SphereGeometry(1.15, 10, 10),         headColor,  0,    5.8,  0);
+
+      // Floating canvas name label
       const nc=document.createElement('canvas'); nc.width=256; nc.height=48;
       const ctx=nc.getContext('2d');
       ctx.font='bold 20px monospace'; ctx.fillStyle='#fff'; ctx.textAlign='center';
       ctx.fillText(username.slice(0,18), 128, 32);
-      this.nameLabel=new THREE.Mesh(new THREE.PlaneGeometry(8,1.5),
+      const nm=new THREE.Mesh(new THREE.PlaneGeometry(8,1.5),
         new THREE.MeshBasicMaterial({ map:new THREE.CanvasTexture(nc), transparent:true, side:THREE.DoubleSide }));
-      this.nameLabel.position.y=10.8; this.mesh.add(this.nameLabel);
-      this.namePlateMesh=this.nameLabel;
+      nm.position.y=9.5; this.mesh.add(nm);
+      this._labelMesh = nm;
+
       this.mesh.position.copy(this.position); scene.add(this.mesh);
       this.targetPos=this.position.clone(); this.targetYaw=yaw;
-      this.lastTargetPos=this.position.clone(); this.isMoving=false;
-      // Per-player phase offset so characters don't bob/sway in sync
-      let _ph=0; for(let i=0;i<id.length;i++) _ph=(_ph*31+id.charCodeAt(i))|0;
-      this.phaseOffset=(Math.abs(_ph)%628)/100;
     }
   }
   updateLocal(dt, keys, yaw, pitch) {
@@ -961,7 +283,6 @@ class MmdPlayer {
     if(keys['KeyS']||keys['ArrowDown'])  dir.z+=1;
     if(keys['KeyA']||keys['ArrowLeft'])  dir.x-=1;
     if(keys['KeyD']||keys['ArrowRight']) dir.x+=1;
-    dir.x+=touchMoveX; dir.z+=touchMoveZ; // virtual joystick (mobile)
     if(dir.lengthSq()>0) {
       dir.normalize().multiplyScalar(PLAYER_SPEED*dt);
       dir.applyEuler(new THREE.Euler(0,yaw,0));
@@ -973,135 +294,39 @@ class MmdPlayer {
     camera.position.copy(this.position);
     camera.rotation.set(pitch,yaw,0,'YXZ');
   }
-  updateUsername(username) {
-    this.username=username;
-    if(!this.namePlateMesh) return;
-    const nc=document.createElement('canvas'); nc.width=256; nc.height=48;
-    const ctx=nc.getContext('2d');
-    ctx.font='bold 20px monospace'; ctx.fillStyle='#fff'; ctx.textAlign='center';
-    ctx.fillText(username.slice(0,18),128,32);
-    this.namePlateMesh.material.map.dispose();
-    this.namePlateMesh.material.map=new THREE.CanvasTexture(nc);
-    this.namePlateMesh.material.needsUpdate=true;
-  }
   applyServerUpdate({ x,y,z,yaw }) { this.targetPos.set(x,y,z); this.targetYaw=yaw; }
   interpolate(dt) {
-    if (this.mixer) this.mixer.update(dt);
-    // Clamp alpha to 1.0 — prevents lerp overshoot when dt spikes at low frame rates
-    const a=Math.min(dt*12, 1.0);
+    const a=Math.min(1,dt*12);
     this.position.lerp(this.targetPos,a);
     this.yaw+=(this.targetYaw-this.yaw)*a;
-    // Movement detection: server target changed since last frame means player is walking
-    this.isMoving=this.targetPos.distanceToSquared(this.lastTargetPos)>0.0001;
-    this.lastTargetPos.copy(this.targetPos);
-    const t=elapsedSecs; const ph=this.phaseOffset;
-    // Idle bob — grounded at y=0, logical position.y is eye/camera height not floor height
-    this.mesh.position.copy(this.position);
-    this.mesh.position.y=Math.sin(t*2.2+ph)*0.08;
-    this.mesh.rotation.y=this.yaw;
-    if(this.namePlateMesh) this.namePlateMesh.lookAt(camera.position);
-    // Hat sway
-    if(this.hatMesh) this.hatMesh.rotation.z=Math.sin(t*1.5+ph)*0.06;
-    // Arm swing: walk cycle when moving, spring to rest when idle
-    if(this.leftArm&&this.rightArm) {
-      if(this.isMoving) {
-        this.leftArm.rotation.x  = Math.sin(t*7+ph)*0.45;
-        this.rightArm.rotation.x = -Math.sin(t*7+ph)*0.45;
-      } else {
-        // Spring back — also returns right arm from spell cast flash
-        this.leftArm.rotation.x  +=(0-this.leftArm.rotation.x)*0.15;
-        this.rightArm.rotation.x +=(0-this.rightArm.rotation.x)*0.15;
-      }
-    }
+    this.mesh.position.copy(this.position); this.mesh.rotation.y=this.yaw;
+    if(this._labelMesh) this._labelMesh.lookAt(camera.position);
   }
-  destroy() {
-    if (!this.mesh) return;
-    if (this.mixer) { this.mixer.stopAllAction(); this.mixer = null; }
-    scene.remove(this.mesh);
-    // Dispose every child mesh's geometry and material to prevent GPU memory leaks.
-    // The name-plate canvas texture also needs explicit disposal.
-    this.mesh.traverse(child => {
-      if (child.isMesh) {
-        child.geometry.dispose();
-        if (child.material.map) child.material.map.dispose();
-        child.material.dispose();
-      }
-    });
-  }
+  destroy() { if(this.mesh) scene.remove(this.mesh); }
 }
 
-// === SPELL TRAIL / RAYCASTER ===
-// Module-level reuse — no per-frame alloc
-const _spellRay = new THREE.Raycaster();
-const impactLights = [];
-function spawnImpactFlash(point, color) {
-  const light = new THREE.PointLight(color, 3.0, 12);
-  light.position.copy(point);
-  light._decayIntensity = 3.0; // track separately — THREE r128 uses .intensity directly
-  scene.add(light);
-  impactLights.push(light);
-}
-
-// === SPELLS ===
 // MmdSpell - delta-time based, pooled geo/mat
-const TRAIL_LENGTH = 12;
 class MmdSpell {
   constructor(type, position, direction, ownerId=null) {
     const def=SPELL_DEFS[type];
     if(!def){this.alive=false;return;}
-    this.type=type; this.def=def; this.ownerId=ownerId; this.alive=true;
+    this.type=type; this.ownerId=ownerId; this.alive=true;
     this.lifeMs=0; this.maxLifeMs=def.maxLifeMs; this.speed=def.speed;
-    this.distTraveled=0; this.maxDist=def.maxDist;
     this.mesh=new THREE.Mesh(getSpellGeo(def.size), getSpellMat(def.color));
     this.mesh.position.copy(position);
     this.direction=direction.clone().normalize();
     scene.add(this.mesh);
     this.mesh.add(new THREE.PointLight(def.color, 1.5, 20));
-    // Trail: 12-point ring buffer, all initialized at spawn position
-    const tp = new Float32Array(TRAIL_LENGTH * 3);
-    for (let i = 0; i < TRAIL_LENGTH; i++) {
-      tp[i*3]=position.x; tp[i*3+1]=position.y; tp[i*3+2]=position.z;
-    }
-    const tGeo = new THREE.BufferGeometry();
-    tGeo.setAttribute('position', new THREE.BufferAttribute(tp, 3));
-    this._trail = new THREE.Line(tGeo, new THREE.LineBasicMaterial({ color: def.color, transparent: true, opacity: 0.5, linewidth: 1 }));
-    this._trailPositions = tp;
-    scene.add(this._trail);
   }
   update(dt) {
     this.mesh.position.addScaledVector(this.direction, this.speed*dt);
-    this.distTraveled += this.speed * dt;
-    this.lifeMs += dt * 1000;
-    // Distance cap is primary; maxLifeMs is safety fallback only
-    if (this.distTraveled > this.maxDist || this.lifeMs > this.maxLifeMs) { this.destroy(); return; }
-    if (Math.abs(this.mesh.position.x) > 150 || Math.abs(this.mesh.position.z) > 265) { this.destroy(); return; }
-    // Wall collision — raycast ahead one step
-    _spellRay.set(this.mesh.position, this.direction);
-    _spellRay.far = this.speed * dt * 2 + this.def.size;
-    const hits = _spellRay.intersectObjects(wallMeshes, false);
-    if (hits.length > 0) { spawnImpactFlash(hits[0].point, this.def.color); this.destroy(); return; }
-    // Shift trail ring buffer back, write current position at slot 0
-    const p = this._trailPositions;
-    for (let i = TRAIL_LENGTH - 1; i > 0; i--) {
-      p[i*3]=p[(i-1)*3]; p[i*3+1]=p[(i-1)*3+1]; p[i*3+2]=p[(i-1)*3+2];
-    }
-    p[0]=this.mesh.position.x; p[1]=this.mesh.position.y; p[2]=this.mesh.position.z;
-    this._trail.geometry.attributes.position.needsUpdate = true;
+    this.lifeMs+=dt*1000;
+    if(this.lifeMs>this.maxLifeMs){this.destroy();return;}
+    if(Math.abs(this.mesh.position.x)>115||Math.abs(this.mesh.position.z)>115) this.destroy();
   }
-  destroy() {
-    if(!this.alive)return; this.alive=false;
-    // Remove child PointLight before removing mesh so it doesn't linger in the scene graph
-    while(this.mesh.children.length) this.mesh.remove(this.mesh.children[0]);
-    scene.remove(this.mesh);
-    // Trail cleanup — not pooled, must dispose
-    scene.remove(this._trail);
-    this._trail.geometry.dispose();
-    this._trail.material.dispose();
-    // Geometry and material are pooled (_geoCache/_matCache) — do NOT dispose them here
-  }
+  destroy() { if(!this.alive)return; this.alive=false; scene.remove(this.mesh); }
 }
 
-// === NETWORKING ===
 // MmdNetworkClient - WebSocket with offline fallback
 class MmdNetworkClient {
   constructor(url) {
@@ -1119,12 +344,11 @@ class MmdNetworkClient {
     this.ws.onerror=()=>{ console.warn('[Net] error'); };
   }
   _handle(msg) {
-    if(msg.type==='welcome')            this._onWelcome(msg);
-    else if(msg.type==='player_join')   this._onJoin(msg);
-    else if(msg.type==='player_leave')  this._onLeave(msg);
-    else if(msg.type==='player_move')   this._onMove(msg);
-    else if(msg.type==='spell_cast')    this._onSpell(msg);
-    else if(msg.type==='player_rename') this._onRename(msg);
+    if(msg.type==='welcome')      this._onWelcome(msg);
+    else if(msg.type==='player_join')  this._onJoin(msg);
+    else if(msg.type==='player_leave') this._onLeave(msg);
+    else if(msg.type==='player_move')  this._onMove(msg);
+    else if(msg.type==='spell_cast')   this._onSpell(msg);
   }
   _onWelcome(msg) {
     const sp=msg.spawnPoint||DEFAULT_DUNGEON.spawnPoints[0];
@@ -1149,26 +373,12 @@ class MmdNetworkClient {
   _onSpell(msg) {
     if(!SPELL_DEFS[msg.spellType]) return;
     spellProjectiles.push(new MmdSpell(msg.spellType,new THREE.Vector3(msg.x,msg.y,msg.z),new THREE.Vector3(msg.dirX,msg.dirY,msg.dirZ),msg.playerId));
-    // Cast flash: punch right arm forward, springs back in interpolate
-    const rp=remotePlayers.get(msg.playerId);
-    if(rp&&rp.rightArm) rp.rightArm.rotation.x=-1.2;
-  }
-  _onRename(msg) {
-    const rp=remotePlayers.get(msg.playerId);
-    if(rp) rp.updateUsername(msg.username);
-  }
-  requestRename(newName) {
-    const trimmed=newName.trim().slice(0,24);
-    if(!trimmed) return;
-    this._username=trimmed;
-    if(localPlayer) localPlayer.username=trimmed;
-    this.send({type:'rename',username:trimmed});
   }
   send(obj) { if(this.ws?.readyState===WebSocket.OPEN) this.ws.send(JSON.stringify(obj)); }
   disconnect() { clearInterval(this._moveInterval); this.ws?.close(); }
 }
 
-// === GAME STATE ===
+// Game state
 let localPlayer        = null;
 const remotePlayers    = new Map();
 const spellProjectiles = [];
@@ -1179,13 +389,11 @@ function _createOfflinePlayer(username) {
   localPlayer=new MmdPlayer({id:'offline-'+Date.now(),username,x:0,y:PLAYER_HEIGHT,z:0,hp:incomingHp,isLocal:true});
 }
 function _updatePlayerCount() {
-  // 1 = local player always present; remotePlayers.size is decremented by player_leave before this runs
-  const n=Math.max(1, 1+remotePlayers.size);
+  const n=1+remotePlayers.size;
   const el=document.getElementById('player-count');
   if(el) el.textContent=n+(n===1?' player in dungeon':' players in dungeon');
 }
 
-// === INPUT & ACTIONS ===
 // Spell casting
 function castSpell(type) {
   if(!localPlayer||!gameStarted) return;
@@ -1201,21 +409,9 @@ function castSpell(type) {
 // Input (single unified handler)
 const keys={};
 let yaw=0, pitch=0, isLocked=false;
-// Virtual joystick direction (mobile) — read by updateLocal each frame
-let touchMoveX=0, touchMoveZ=0;
-function doInteract() {
-  if (!localPlayer) return;
-  const pp = localPlayer.position;
-  if (dist2D(pp, { x: 0, z: -57 }) < 8) {
-    // Altar examine — show flavour text briefly
-    interactHintEl.textContent = '✦ The altar hums with ancient magic…';
-    setTimeout(() => { if (interactHintEl.textContent.startsWith('✦')) interactHintEl.textContent = '[F] Examine Altar'; }, 2500);
-  }
-}
 document.addEventListener('keydown',e=>{
   keys[e.code]=true;
   if(e.code==='KeyE'&&isLocked) castSpell('telekinesis');
-  if(e.code==='KeyF') doInteract();
 });
 document.addEventListener('keyup',e=>{ keys[e.code]=false; });
 document.addEventListener('mousemove',e=>{
@@ -1230,100 +426,11 @@ document.addEventListener('mousedown',e=>{
   e.preventDefault();
 });
 document.addEventListener('contextmenu',e=>e.preventDefault());
-canvas.addEventListener('click',()=>{ if(gameStarted){ const p=canvas.requestPointerLock(); if(p&&p.catch) p.catch(()=>{}); } });
+canvas.addEventListener('click',()=>{ if(gameStarted) canvas.requestPointerLock(); });
 document.addEventListener('pointerlockchange',()=>{ isLocked=document.pointerLockElement===canvas; });
-document.addEventListener('mozpointerlockchange',()=>{ isLocked=(document.mozPointerLockElement||document.pointerLockElement)===canvas; });
 
-// === MOBILE TOUCH CONTROLS ===
-// Activated only on touch-capable devices; desktop keyboard/mouse unchanged
-if ('ontouchstart' in window) {
-  document.getElementById('joystick-outer').style.display = 'block';
-  document.getElementById('mobile-spells').style.display = 'flex';
-  document.getElementById('spells').style.display = 'none';
-
-  // Spell buttons
-  [['mbtn-fireball','fireball'],['mbtn-frostbolt','frostbolt'],['mbtn-telekinesis','telekinesis']].forEach(([id,type])=>{
-    document.getElementById(id).addEventListener('touchstart',e=>{ e.preventDefault(); castSpell(type); },{passive:false});
-  });
-
-  // Virtual joystick (bottom-left)
-  const jOuter=document.getElementById('joystick-outer');
-  const jKnob=document.getElementById('joystick-knob');
-  const J_RADIUS=100; // outer radius in px (200px diameter / 2)
-  let jTouchId=null, jCx=0, jCy=0;
-
-  jOuter.addEventListener('touchstart',e=>{
-    e.preventDefault();
-    if(jTouchId!==null) return;
-    const t=e.changedTouches[0];
-    jTouchId=t.identifier;
-    const r=jOuter.getBoundingClientRect();
-    jCx=r.left+r.width/2; jCy=r.top+r.height/2;
-  },{passive:false});
-
-  // Camera drag: touches starting on the right half of the canvas
-  let camTouchId=null, camPrevX=0, camPrevY=0;
-  canvas.addEventListener('touchstart',e=>{
-    e.preventDefault();
-    for(const t of e.changedTouches){
-      if(t.clientX>window.innerWidth/2 && camTouchId===null){
-        camTouchId=t.identifier; camPrevX=t.clientX; camPrevY=t.clientY;
-      }
-    }
-  },{passive:false});
-
-  document.addEventListener('touchmove',e=>{
-    e.preventDefault();
-    for(const t of e.changedTouches){
-      if(t.identifier===jTouchId){
-        const dx=t.clientX-jCx, dy=t.clientY-jCy;
-        const d=Math.sqrt(dx*dx+dy*dy);
-        const cx=d>J_RADIUS?(dx/d)*J_RADIUS:dx;
-        const cy=d>J_RADIUS?(dy/d)*J_RADIUS:dy;
-        jKnob.style.transform=`translate(calc(-50% + ${cx}px),calc(-50% + ${cy}px))`;
-        touchMoveX=cx/J_RADIUS; touchMoveZ=cy/J_RADIUS; // screen Y+ = world Z+ = backward
-      }
-      if(t.identifier===camTouchId){
-        yaw-=(t.clientX-camPrevX)*0.005;
-        pitch-=(t.clientY-camPrevY)*0.005;
-        pitch=Math.max(-Math.PI/3,Math.min(Math.PI/3,pitch));
-        camPrevX=t.clientX; camPrevY=t.clientY;
-      }
-    }
-  },{passive:false});
-
-  const _resetJoystick=()=>{ jTouchId=null; touchMoveX=touchMoveZ=0; jKnob.style.transform='translate(-50%,-50%)'; };
-  document.addEventListener('touchend',e=>{
-    for(const t of e.changedTouches){
-      if(t.identifier===jTouchId) _resetJoystick();
-      if(t.identifier===camTouchId) camTouchId=null;
-    }
-  });
-  document.addEventListener('touchcancel',e=>{
-    for(const t of e.changedTouches){
-      if(t.identifier===jTouchId) _resetJoystick();
-      if(t.identifier===camTouchId) camTouchId=null;
-    }
-  });
-}
-
-// === PORTAL CHECKS ===
 // Portal checks (travel guard + 2D distance - fixes Y gap bug)
 const portalHintEl=document.getElementById('portal-hint');
-const minimapEl=document.getElementById('minimap');
-const interactHintEl=document.getElementById('interact-hint');
-interactHintEl.addEventListener('touchstart', e=>{ e.preventDefault(); doInteract(); }, {passive:false});
-let _minimapFrame=0;
-
-// Portrait-mode warning (mobile only)
-const rotatePromptEl = document.getElementById('rotate-prompt');
-function _updateRotatePrompt() {
-  const portrait = window.innerHeight > window.innerWidth && 'ontouchstart' in window;
-  rotatePromptEl.style.display = portrait ? 'flex' : 'none';
-}
-window.addEventListener('resize', _updateRotatePrompt);
-window.addEventListener('orientationchange', _updateRotatePrompt);
-_updateRotatePrompt();
 let portalPreloaded=false, traveling=false;
 function dist2D(a,b){const dx=a.x-b.x,dz=a.z-b.z;return Math.sqrt(dx*dx+dz*dz);}
 function checkPortals() {
@@ -1339,10 +446,7 @@ function checkPortals() {
   }
   if(dExit<PORTAL_ENTER_DIST) {
     traveling=true; net.disconnect();
-    // Use window.location.host (hostname:port, no protocol) so safeRef's REF_PATTERN can validate it.
-    // window.location.origin includes the protocol (https://...) which REF_PATTERN rejects, causing
-    // the return portal to never appear for visitors who came from this dungeon.
-    const p=new URLSearchParams({portal:'true',ref:window.location.host,username:localPlayer.username,color:'white',speed:PLAYER_SPEED.toFixed(2),hp:Math.round(localPlayer.hp)});
+    const p=new URLSearchParams({portal:'true',ref:window.location.origin,username:localPlayer.username,color:'white',speed:PLAYER_SPEED.toFixed(2),hp:Math.round(localPlayer.hp)});
     window.location.href=PORTAL_EXIT_URL+'?'+p; return;
   }
   if(startPortalGroup&&startPortalReady) {
@@ -1356,7 +460,7 @@ function checkPortals() {
   }
 }
 
-// === HUD ===
+// HUD
 function updateHud() {
   if(!localPlayer) return;
   document.getElementById('health-bar').style.width=localPlayer.hp+'%';
@@ -1368,68 +472,30 @@ function updateHud() {
   });
 }
 
-// === INIT ===
-// Auto-start: use portal username if arriving via portal, otherwise generate a guest name
-const defaultName = incomingUser || ('Guest'+Math.floor(Math.random()*10000).toString().padStart(4,'0'));
-let gameStarted=true;
-if(safeRef){
-  const el=document.getElementById('arrived-from');
-  el.style.display='block'; el.textContent='Arrived from: '+safeRef;
-  setTimeout(()=>{el.style.display='none';},6000);
+// Game start
+let gameStarted=false;
+function startGame(name) {
+  const username=(name||'Wizard').trim()||'Wizard';
+  gameStarted=true;
+  document.getElementById('name-screen').style.display='none';
+  canvas.requestPointerLock();
+  if(safeRef){
+    const el=document.getElementById('arrived-from');
+    el.style.display='block'; el.textContent='Arrived from: '+safeRef;
+    setTimeout(()=>{el.style.display='none';},6000);
+  }
+  net.connect(username);
 }
-// Preload character model — cloned per remote player via SkeletonUtils once loaded
-new THREE.GLTFLoader().load('/models/Character_Male_1.gltf',
-  gltf => { _charGltf = gltf; },
-  undefined,
-  err => console.warn('[GLTF] character model unavailable, using box fallback:', err)
-);
-net.connect(defaultName);
+document.getElementById('name-btn').addEventListener('click',()=>startGame(document.getElementById('name-input').value));
+document.getElementById('name-input').addEventListener('keydown',e=>{ if(e.key==='Enter') startGame(document.getElementById('name-input').value); });
+if(incomingPortal) startGame(incomingUser);
 
-// Settings gear toggle
-const _settingsPanel = document.getElementById('settings-panel');
-document.getElementById('settings-gear').addEventListener('click',()=>{
-  _settingsPanel.classList.toggle('open');
-  if(_settingsPanel.classList.contains('open')) document.getElementById('rename-input').focus();
-});
-
-// Rename panel (inside settings)
-function _submitRename(){
-  const v=document.getElementById('rename-input').value.trim();
-  if(v){ net.requestRename(v); _settingsPanel.classList.remove('open'); }
-}
-document.getElementById('rename-btn').addEventListener('click', _submitRename);
-document.getElementById('rename-input').addEventListener('keydown',e=>{
-  // Prevent WASD/movement keys from firing while user is typing in the rename field
-  e.stopPropagation();
-  if(e.key==='Enter') _submitRename();
-});
-
-// === GAME LOOP ===
 // Window resize
 window.addEventListener('resize',()=>{
   camera.aspect=window.innerWidth/window.innerHeight;
   camera.updateProjectionMatrix();
   renderer.setSize(window.innerWidth,window.innerHeight);
 });
-
-// Portal particle animator — animates in group-local XY space; group.rotation handles world orientation
-function _animPortalParticles(group, t, speed) {
-  const pts = group._particles;
-  if (!pts) return;
-  const pos    = pts.geometry.attributes.position.array;
-  const phases = pts.userData.phases;
-  const n      = phases.length;
-  for (let i = 0; i < n; i++) {
-    const angle = phases[i] + t * speed;
-    // Slight radial pulse per-particle gives a living, breathing feel
-    const r = PORTAL_RING_RADIUS + Math.sin(t * 2.7 + phases[i] * 3.1) * 0.28;
-    pos[i*3]   = Math.cos(angle) * r;
-    pos[i*3+1] = Math.sin(angle) * r;
-    // Small Z wobble pops particles in and out of the torus tube for depth
-    pos[i*3+2] = Math.sin(t * 1.9 + phases[i] * 2.4) * 0.22;
-  }
-  pts.geometry.attributes.position.needsUpdate = true;
-}
 
 // Game loop (delta-time throughout - framerate independent)
 let elapsedSecs=0;
@@ -1444,123 +510,11 @@ function gameLoop() {
     spellProjectiles[i].update(dt);
     if(!spellProjectiles[i].alive) spellProjectiles.splice(i,1);
   }
-  // Impact flash decay — 0.35s fade from intensity 3.0 to 0
-  for(let i=impactLights.length-1;i>=0;i--){
-    impactLights[i]._decayIntensity -= 3.0 * dt / 0.35;
-    impactLights[i].intensity = Math.max(0, impactLights[i]._decayIntensity);
-    if(impactLights[i]._decayIntensity<=0){ scene.remove(impactLights[i]); impactLights.splice(i,1); }
-  }
-  torch1.intensity=TORCH1_BASE_INTENSITY+Math.sin(elapsedSecs*TORCH1_FLICKER_FREQ)*TORCH1_FLICKER_AMP;
-  torch2.intensity=TORCH2_BASE_INTENSITY+Math.sin(elapsedSecs*TORCH2_FLICKER_FREQ+1)*TORCH2_FLICKER_AMP;
-  // Portal animation: ring rotates, void counter-rotates, group pulses, halo + particles orbit
-  exitPortalGroup._ring.rotation.z = elapsedSecs * PORTAL_RING_SPIN;
-  exitPortalGroup._void.rotation.z = -elapsedSecs * PORTAL_VOID_SPIN;
-  exitPortalGroup.scale.setScalar(1.0 + PORTAL_PULSE_AMP * Math.sin(elapsedSecs * PORTAL_PULSE_FREQ));
-  if (exitPortalGroup._glowRing) exitPortalGroup._glowRing.rotation.z = elapsedSecs * PORTAL_RING_SPIN * 0.6;
-  if (exitPortalGroup._light) exitPortalGroup._light.intensity = PORTAL_LIGHT_INTENSITY * (1.0 + 0.30 * Math.sin(elapsedSecs * 2.3));
-  _animPortalParticles(exitPortalGroup, elapsedSecs, 1.4);
-  if(startPortalGroup) {
-    startPortalGroup._ring.rotation.z = -elapsedSecs * PORTAL_RING_SPIN;
-    startPortalGroup._void.rotation.z = elapsedSecs * PORTAL_VOID_SPIN;
-    startPortalGroup.scale.setScalar(1.0 + PORTAL_PULSE_AMP * Math.sin(elapsedSecs * PORTAL_PULSE_FREQ + Math.PI));
-    if (startPortalGroup._glowRing) startPortalGroup._glowRing.rotation.z = -elapsedSecs * PORTAL_RING_SPIN * 0.6;
-    if (startPortalGroup._light) startPortalGroup._light.intensity = PORTAL_LIGHT_INTENSITY * (1.0 + 0.30 * Math.sin(elapsedSecs * 2.3 + Math.PI));
-    _animPortalParticles(startPortalGroup, elapsedSecs, -1.4);
-  }
-  // Voxel enemy idle animation
-  enemyDragon.group.position.y = enemyDragon.baseY + Math.sin(elapsedSecs * 2.4) * 0.28;
-  enemyDragon.group.rotation.y = -0.35 + Math.sin(elapsedSecs * 1.35) * 0.12;
+  torch1.intensity=1.3+Math.sin(elapsedSecs*7)*0.2;
+  torch2.intensity=0.9+Math.sin(elapsedSecs*5+1)*0.15;
+  exitPortalGroup.rotation.z=elapsedSecs*0.3;
+  if(startPortalGroup) startPortalGroup.rotation.z=-elapsedSecs*0.3;
   checkPortals(); updateHud();
-
-  // Rotate floor runes (purple rune + boss ritual circle)
-  for (const r of rotatingRunes) r.rotation.z += dt * 0.12;
-
-  // Chest proximity auto-open + ease-out cubic lid animation
-  let _interactNear = null;
-  if (localPlayer) {
-    const pp = localPlayer.position;
-    for (const ch of chests) {
-      if (!ch.open && dist2D(pp, ch.group.position) < 6) { ch.open = true; _interactNear = 'chest'; }
-      if (ch.open && ch.openT < 1.0) {
-        ch.openT = Math.min(1.0, ch.openT + dt / 0.5);
-        ch.lidGroup.rotation.x = -Math.PI * 0.7 * (1 - Math.pow(1 - ch.openT, 3));
-      }
-    }
-
-    // Spike traps: idle → rising (0.3s) → hold (2s, deal 15 HP/s) → retracting (0.3s) → idle
-    for (const trap of spikeTraps) {
-      const d = dist2D(pp, trap.group.position);
-      if (trap.state === 'idle' && d < 8) { trap.state = 'rising'; trap.activeT = 0; }
-      if (trap.state === 'rising') {
-        trap.activeT += dt;
-        const t = Math.min(trap.activeT / 0.3, 1.0);
-        for (const sp of trap.spikeMeshes) sp.position.y = -2.0 + 3.5 * t;
-        if (trap.activeT >= 0.3) { trap.state = 'hold'; trap.activeT = 0; }
-      }
-      if (trap.state === 'hold') {
-        trap.activeT += dt;
-        if (d < 8) localPlayer.hp = Math.max(0, localPlayer.hp - 15 * dt);
-        if (trap.activeT >= 2.0) { trap.state = 'retracting'; trap.activeT = 0; }
-      }
-      if (trap.state === 'retracting') {
-        trap.activeT += dt;
-        const t = Math.min(trap.activeT / 0.3, 1.0);
-        for (const sp of trap.spikeMeshes) sp.position.y = -2.0 + 3.5 * (1 - t);
-        if (trap.activeT >= 0.3) { trap.state = 'idle'; trap.activeT = 0; }
-      }
-    }
-
-    // Altar proximity hint
-    if (dist2D(pp, { x: 0, z: -57 }) < 8) _interactNear = 'altar';
-  }
-
-  // Interact hint display
-  if (_interactNear === 'altar')       { interactHintEl.style.display='block'; interactHintEl.textContent='[F] Examine Altar'; }
-  else if (_interactNear === 'chest')  { interactHintEl.style.display='block'; interactHintEl.textContent='Treasure awaits\u2026'; }
-  else                                   interactHintEl.style.display='none';
-
-  // Minimap — redraw every 3rd frame
-  if (minimapEl && ++_minimapFrame % 3 === 0) {
-    const mCtx = minimapEl.getContext('2d');
-    const MW = 180, MH = 180;
-    const wx2m = wx => (wx + 140) / 280 * MW;
-    const wz2m = wz => (wz + 260) / 300 * MH;
-    mCtx.clearRect(0, 0, MW, MH);
-    // Rooms — dark filled rect with lighter border
-    mCtx.fillStyle = 'rgba(55,44,75,0.92)';
-    mCtx.strokeStyle = 'rgba(110,90,150,0.85)';
-    mCtx.lineWidth = 1;
-    for (const r of DEFAULT_DUNGEON.rooms) {
-      const rx=wx2m(r.x-r.w/2), ry=wz2m(r.z-r.d/2), rw=r.w/280*MW, rh=r.d/300*MH;
-      mCtx.fillRect(rx,ry,rw,rh); mCtx.strokeRect(rx,ry,rw,rh);
-    }
-    // Corridors — slightly lighter fill
-    mCtx.fillStyle = 'rgba(68,56,92,0.92)';
-    for (const c of DEFAULT_DUNGEON.corridors) {
-      const cx2=wx2m(c.x-c.w/2), cy2=wz2m(c.z-c.d/2), cw2=c.w/280*MW, ch2=c.d/300*MH;
-      mCtx.fillRect(cx2,cy2,cw2,ch2); mCtx.strokeRect(cx2,cy2,cw2,ch2);
-    }
-    // Exit portal marker
-    mCtx.fillStyle = '#00ff44';
-    mCtx.beginPath(); mCtx.arc(wx2m(exitPortalGroup.position.x), wz2m(exitPortalGroup.position.z), 4, 0, Math.PI*2); mCtx.fill();
-    // Remote players — grey dots
-    mCtx.fillStyle = '#888';
-    for (const rp of remotePlayers.values()) {
-      mCtx.beginPath(); mCtx.arc(wx2m(rp.position.x), wz2m(rp.position.z), 3, 0, Math.PI*2); mCtx.fill();
-    }
-    // Local player — green dot + short direction line based on yaw
-    if (localPlayer) {
-      const lpx=wx2m(localPlayer.position.x), lpy=wz2m(localPlayer.position.z);
-      mCtx.fillStyle = '#00ff88';
-      mCtx.beginPath(); mCtx.arc(lpx, lpy, 4, 0, Math.PI*2); mCtx.fill();
-      mCtx.strokeStyle = '#00ff88'; mCtx.lineWidth = 1.5;
-      mCtx.beginPath(); mCtx.moveTo(lpx, lpy);
-      // yaw=0 looks in -Z which is upward on map (lower wz = lower ry)
-      mCtx.lineTo(lpx - Math.sin(yaw) * 8, lpy - Math.cos(yaw) * 8);
-      mCtx.stroke();
-    }
-  }
-
   renderer.render(scene,camera);
 }
 gameLoop();
@@ -1573,48 +527,6 @@ window.game={
   get spells(){return spellProjectiles;},
   net,
 };
-
-// === TEST SEAM ===
-// Exposes stable, JSON-serializable state for Playwright tests.
-// Commands let tests drive game logic that requires closure-scope access.
-// Zero production overhead — the ready interval clears itself after first spawn.
-window.__TEST__ = {
-  ready: false,
-  state: () => ({
-    localPlayer: localPlayer ? {
-      id:        localPlayer.id,
-      username:  localPlayer.username,
-      x:         localPlayer.position.x,
-      y:         localPlayer.position.y,
-      z:         localPlayer.position.z,
-      hp:        localPlayer.hp,
-      cooldowns: { ...localPlayer.cooldowns },
-    } : null,
-    remotePlayers:     [...remotePlayers.keys()],
-    remotePlayerCount: remotePlayers.size,
-    spells: spellProjectiles.map(s => ({
-      type:  s.type,
-      alive: s.alive,
-      x:     s.mesh.position.x,
-      y:     s.mesh.position.y,
-      z:     s.mesh.position.z,
-    })),
-    playerCountText: document.getElementById('player-count')?.textContent ?? '',
-    isLocked,
-    gameStarted,
-    traveling,
-  }),
-  commands: {
-    enableSpells: () => { isLocked = true; },           // bypass pointer-lock gate for spell tests
-    castSpell:    (type) => castSpell(type),             // cast directly from closure scope
-    teleport:     (x, z) => { if (localPlayer) localPlayer.position.set(x, localPlayer.position.y, z); },
-    setUsername:  (name) => { if (localPlayer) localPlayer.username = name.trim().slice(0, 24); },
-  },
-};
-// Flip ready once localPlayer exists; interval clears itself immediately after
-const _testReadyInterval = setInterval(() => {
-  if (localPlayer) { window.__TEST__.ready = true; clearInterval(_testReadyInterval); }
-}, 50);
 </script>
 </body>
 </html>
