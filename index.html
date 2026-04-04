@@ -205,7 +205,9 @@ function createPortal(color, position, label) {
 }
 
 // Exit portal inside west wing (reachable without wall clipping)
-const exitPortalGroup = createPortal(0x00ff00, new THREE.Vector3(-55, PLAYER_HEIGHT, 0), 'VIBE JAM 2026');
+const exitPortalGroup = createPortal(0x00ff00, new THREE.Vector3(-30, PLAYER_HEIGHT, 0), 'VIBE JAM 2026');
+// Face the ring along the X axis so player sees it head-on when walking west
+exitPortalGroup.rotation.y = Math.PI / 2;
 let startPortalGroup = null, startPortalReady = false;
 if (incomingPortal && safeRef) {
   startPortalGroup = createPortal(0xff0000, new THREE.Vector3(0, PLAYER_HEIGHT, 25), null);
