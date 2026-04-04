@@ -324,7 +324,19 @@ class MmdPlayer {
     this.mesh.position.copy(this.position); this.mesh.rotation.y=this.yaw;
     if(this.namePlateMesh) this.namePlateMesh.lookAt(camera.position);
   }
-  destroy() { if(this.mesh) scene.remove(this.mesh); }
+  destroy() {
+    if (!this.mesh) return;
+    scene.remove(this.mesh);
+    // Dispose every child mesh's geometry and material to prevent GPU memory leaks.
+    // The name-plate canvas texture also needs explicit disposal.
+    this.mesh.traverse(child => {
+      if (child.isMesh) {
+        child.geometry.dispose();
+        if (child.material.map) child.material.map.dispose();
+        child.material.dispose();
+      }
+    });
+  }
 }
 
 // MmdSpell - delta-time based, pooled geo/mat
@@ -429,7 +441,8 @@ function _createOfflinePlayer(username) {
   localPlayer=new MmdPlayer({id:'offline-'+Date.now(),username,x:0,y:PLAYER_HEIGHT,z:0,hp:incomingHp,isLocal:true});
 }
 function _updatePlayerCount() {
-  const n=1+remotePlayers.size;
+  // 1 = local player always present; remotePlayers.size is decremented by player_leave before this runs
+  const n=Math.max(1, 1+remotePlayers.size);
   const el=document.getElementById('player-count');
   if(el) el.textContent=n+(n===1?' player in dungeon':' players in dungeon');
 }
