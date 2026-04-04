@@ -1,116 +1,82 @@
-# CLAUDE.md — MultiMagicDungeonWeb Agent Onboarding
+# MultiMagicDungeonWeb — Agent Onboarding
 
-Welcome. This guide lets you cold-start the project without any other context. Read this first, then check the files listed below.
+## What this project is
 
-## What Is This Project?
+A browser-based multiplayer magic dungeon game built in vanilla Three.js. Players build dungeons, raid each other's dungeons, and duel with composable spell primitives. Part of Vibe Jam 2026.
 
-**MultiMagicDungeon Web** is a browser-based multiplayer dungeon game built with Three.js. Players roam an overworld, find other players' dungeons, raid them, and duel with composable spell primitives. It is a web port of the [MultiMagicDungeon UE5 project](https://github.com/dschonholtz/MultiMagicDungeon), participating in **Vibe Jam 2026** via the portal webring system.
+Sister project: [MultiMagicDungeon (UE5)](https://github.com/dschonholtz/MultiMagicDungeon)
 
-No install required — open `index.html` in a browser and play.
+## How to pick up current work
 
-## How to Pick Up Current Work
+1. Read `docs/PROGRESS.md` — shows active task and current state
+2. Open the active task file in `docs/tasks/`
+3. Read `docs/design/ROADMAP.md` for phase context
+4. Open `index.html` in browser — verify portal system works before touching code
 
-1. Read `docs/PROGRESS.md` — find the active task
-2. Open that task file in `docs/tasks/` — read Goal + Acceptance Criteria
-3. Check `docs/design/ROADMAP.md` for upstream context
-4. Write code, run locally (`npx vite` or just open `index.html`), verify acceptance criteria
-5. Update `docs/PROGRESS.md` before opening a PR
-
-## Repo Structure
+## Repo structure
 
 ```
-MultiMagicDungeonWeb/
-├── index.html              # Complete game (currently single-file, Phase 1 will split)
-├── CLAUDE.md               # This file
-├── README.md               # Project overview + play link
-├── LICENSE                 # MIT
-├── docs/
-│   ├── PROGRESS.md         # Active work tracking
-│   ├── design/
-│   │   ├── VISION.md       # What we're building and why
-│   │   ├── ROADMAP.md      # Phased task list
-│   │   └── ARCHITECTURE.md # System design + file structure plan
-│   └── tasks/
-│       ├── TASK-001-threejs-scene.md
-│       ├── TASK-002-portal-system.md
-│       ├── TASK-003-spell-primitives.md
-│       └── TASK-004-dungeon-geometry.md
-└── src/                    # Phase 1: split index.html into modules
-    ├── systems/            # MmdGame, MmdPlayer, MmdDungeon
-    ├── spells/             # MmdFireball, MmdFrostbolt, MmdTelekinesis
-    ├── portals/            # MmdPortal
-    └── ui/                 # HUD, start screen
+index.html              # Entire game (single file for Vibe Jam simplicity)
+CLAUDE.md               # This file
+README.md
+LICENSE
+docs/
+  PROGRESS.md           # Current active tasks + state
+  design/
+    VISION.md           # Core vision and design pillars
+    ROADMAP.md          # Phased task list (TASK-001+)
+    ARCHITECTURE.md     # System design and file structure plan
+  tasks/
+    TASK-001-*.md       # Individual task specs
+    TASK-002-*.md
+    ...
 ```
 
-## Tech Stack
+## Tech stack
 
-| Layer | Tech |
-|---|---|
-| Rendering | Three.js (CDN import, no bundler needed for Phase 0) |
-| Dev server | `npx vite` (no config needed, just run in repo root) |
-| Deployment | GitHub Pages or Vercel (static, no server needed for Phase 0) |
-| Multiplayer (Phase 2) | Node.js WebSocket server |
-| Persistence (Phase 3) | Supabase |
+- **Runtime**: Vanilla JS ES modules, Three.js r128 (CDN)
+- **Dev server**: `npx vite` (no install needed)
+- **Deploy**: GitHub Pages or Vercel (static, no server needed for Phase 0)
+- **Phase 2**: Node.js WebSocket server for multiplayer
 
-## Running Locally
+## Code conventions
 
-```bash
-# Option 1: No install
-open index.html  # works in any modern browser
+- No frameworks. Vanilla JS only.
+- All game classes prefixed with `Mmd`: `MmdPlayer`, `MmdSpell`, `MmdDungeon`, `MmdPortal`
+- Each game system is a self-contained class
+- Spells follow the primitive interface: `{ cast(player, scene), update(dt), onHit(target) }`
+- No global state except `game` object on window (for debugging only)
+- Comments explain WHY, not WHAT
 
-# Option 2: Vite dev server (recommended — enables ES module hot reload)
-npx vite
-# then open http://localhost:5173
-```
-
-## Custom Commands
+## Custom commands
 
 ### /review
-Before merging, verify:
-- No console errors in browser
-- Portal system: `?portal=true` skips start screen; exit portal redirects correctly
-- Spells fire and projectiles render
-- Docs updated (PROGRESS.md reflects current state)
-- Code follows naming conventions below
+Before any commit: read the diff, check for single-responsibility violations, unclear variable names, missing comments on non-obvious logic.
 
 ### /simplify
-When a function exceeds ~50 lines or a class exceeds ~200 lines, break it into smaller single-responsibility units. Each spell must remain a self-contained class.
+After /review: identify anything that can be deleted or collapsed without losing behavior. Prefer fewer lines.
 
-### /pre-commit
-Checklist before every commit:
-- [ ] No `console.error` or uncaught exceptions in browser devtools
-- [ ] Portal works: `?portal=true&ref=example.com` creates red start portal
-- [ ] Exit portal redirects to `jam.pieter.com/portal/2026` with correct params
-- [ ] `docs/PROGRESS.md` updated
-- [ ] New systems have a corresponding task file in `docs/tasks/`
+### /pre-commit checklist
+- [ ] `index.html` opens in browser with no console errors
+- [ ] Portal system works: `?portal=true` skips name screen
+- [ ] Exit portal redirects correctly to `https://jam.pieter.com/portal/2026`
+- [ ] Docs updated if behavior changed
+- [ ] No `console.log` left in production paths
 
-## Code Conventions
+## Naming conventions
 
-### Naming
-- All game classes use `Mmd` prefix: `MmdPlayer`, `MmdSpell`, `MmdDungeon`, `MmdPortal`
-- Files match class names: `MmdPlayer.js`, `MmdFireball.js`
-- Constants: `UPPER_SNAKE_CASE`
-- Private methods/properties: `_leadingUnderscore`
+| Thing | Convention | Example |
+|---|---|---|
+| Game classes | MmdPascalCase | MmdPlayer, MmdSpell |
+| Files (future) | kebab-case | mmd-player.js |
+| Constants | SCREAMING_SNAKE | PORTAL_RADIUS |
+| Methods | camelCase | castFireball() |
 
-### Module structure (Phase 1 target)
-Each game system is a class in its own ES module file under `src/`. No frameworks. Vanilla JS only.
+## Multiplayer plan (Phase 2)
 
-### Spell interface (must be followed by all spells)
-```js
-class MmdSpell {
-  cast(camera, scene) { ... }   // return false if on cooldown
-  update(dt, scene) { ... }     // move projectiles, check hits
-  onHit(target) { ... }         // Phase 2: apply effect to target
-}
-```
+WebSocket server (Node.js) will handle:
+- Player position/rotation sync (20hz)
+- Spell projectile spawn events
+- Dungeon session join/leave
 
-### Portal params (must be preserved)
-Incoming: `portal`, `ref`, `username`, `color`, `speed`, `hp`, `rotation_y`
-Outgoing (exit portal): `portal=true`, `ref=<hostname>`, `username`, `color`, `speed`, `hp`
-
-## Pre-commit Gate
-A commit is ready when:
-1. Lints clean (no syntax errors, `npx eslint src/` when src/ exists)
-2. No console errors in Chrome devtools with game open
-3. Portal works end-to-end
-4. Docs updated
+Client does local prediction for movement, reconciles on server update.
