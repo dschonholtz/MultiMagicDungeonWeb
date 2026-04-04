@@ -1,63 +1,49 @@
-# ROADMAP.md — MultiMagicDungeonWeb
+# MultiMagicDungeonWeb — Roadmap
 
-## Phase 0 — Vibe Jam Skeleton
+## Phase 0 — Vibe Jam Skeleton (current)
 
-Goal: Working browser game that can enter and exit the Vibe Jam 2026 portal webring. Single player only. No server required.
+Goal: a playable single-player demo with the full portal system, basic dungeon geometry, and spell stubs. Deployable as a static `index.html` with no build step.
 
-| Task | Title | Status |
-|---|---|---|
-| TASK-001 | Three.js scene setup + player movement (WASD + mouse look) | DONE |
-| TASK-002 | Vibe Jam portal system (start + exit portals, URL params) | DONE |
-| TASK-003 | Spell primitives — Fireball, Frostbolt, Telekinesis | DONE |
-| TASK-004 | Dungeon room geometry (corridors + chambers + torches) | DONE |
+- **TASK-001**: Three.js scene setup + FPS player movement ✅ IN PROGRESS
+- **TASK-002**: Vibe Jam portal system (start + exit portals) ✅ IN PROGRESS
+- **TASK-003**: Spell primitives (Fireball, Frostbolt, Telekinesis — single player) PLANNED
+- **TASK-004**: Dungeon room geometry (corridors + chambers) PLANNED
+
+Milestone: submit to Vibe Jam 2026 with working portal and at least one castable spell.
 
 ---
 
 ## Phase 1 — Multiplayer Foundation
 
-Goal: Real-time multiplayer. 2–8 players can be in the same dungeon session. Requires a WebSocket server.
+Goal: 2–4 players can join the same dungeon session and see each other move. Spells are synced.
 
-| Task | Title | Status |
-|---|---|---|
-| TASK-005 | WebSocket server (Node.js, ws library) | PLANNED |
-| TASK-006 | Player position + rotation sync | PLANNED |
-| TASK-007 | Spell projectile sync (server-authoritative) | PLANNED |
-| TASK-008 | Session join/leave + player roster UI | PLANNED |
+- **TASK-005**: WebSocket server (Node.js, hosted on Railway or Fly.io)
+- **TASK-006**: Player position/rotation sync (20hz broadcast)
+- **TASK-007**: Spell projectile spawn events (server-authoritative hit detection)
+- **TASK-008**: Session join/leave (lobby + in-dungeon roster)
 
-**Multiplayer model:** Authoritative server, client-side prediction for local movement, server reconciliation. See `docs/design/ARCHITECTURE.md`.
+Milestone: two browser tabs can duel in the same dungeon.
 
 ---
 
 ## Phase 2 — Dungeon Builder
 
-Goal: Players build their own dungeons using a tile-based editor. Dungeons are shareable via URL/export.
+Goal: players can design and save their own dungeon, share it via permalink.
 
-| Task | Title | Status |
-|---|---|---|
-| TASK-009 | Tile-based dungeon editor (place floor/wall/trap tiles) | PLANNED |
-| TASK-010 | Dungeon save/load (JSON + localStorage) | PLANNED |
-| TASK-011 | Dungeon sharing (permalink / JSON export) | PLANNED |
-| TASK-012 | Dungeon traps (spike trap, pressure plate — simple triggers) | PLANNED |
+- **TASK-009**: Tile-based dungeon editor (click to place/remove room tiles)
+- **TASK-010**: Dungeon save/load (JSON serialisation + localStorage)
+- **TASK-011**: Dungeon sharing (permalink → server stores dungeon JSON, returns ID)
 
----
-
-## Phase 3 — Persistence & Discovery
-
-Goal: Persistent player data, dungeon registry, and discovery. Players can browse and raid each other's dungeons.
-
-| Task | Title | Status |
-|---|---|---|
-| TASK-013 | Supabase backend (player auth, dungeon table) | PLANNED |
-| TASK-014 | Dungeon discovery (browse/raid other players' dungeons) | PLANNED |
-| TASK-015 | Leaderboards (most raids, highest defense streak) | PLANNED |
-| TASK-016 | Overworld map (dungeons appear as map markers) | PLANNED |
+Milestone: a player can build a dungeon and share the URL with a friend to raid it.
 
 ---
 
-## Future Considerations
+## Phase 3 — Persistence & Meta
 
-- Mobile touch controls
-- Custom spell combinations (Phase 4)
-- Dungeon guardian AI (enemies that defend the dungeon)
-- Voice/text chat in dungeon sessions
-- Seasonal events / limited-time dungeon themes
+Goal: persistent accounts, dungeon discovery, leaderboards.
+
+- **TASK-012**: Supabase backend (auth + dungeon storage + raid history)
+- **TASK-013**: Dungeon discovery overworld (browse and raid other players' dungeons)
+- **TASK-014**: Leaderboards (raids completed, dungeons defended, spells cast)
+
+Milestone: the game is a living world where dungeons persist and evolve.
