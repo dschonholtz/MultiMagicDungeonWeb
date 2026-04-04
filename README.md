@@ -4,7 +4,6 @@ Browser-based multiplayer magic dungeon game built with Three.js. Build dungeons
 
 **Play**: [Coming soon — will be deployed to GitHub Pages]
 
-**Original UE5 version**: [dschonholtz/MultiMagicDungeon](https://github.com/dschonholtz/MultiMagicDungeon)
 
 ## How to run locally
 
