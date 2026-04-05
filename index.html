@@ -205,7 +205,7 @@ function createPortal(color, position, label) {
   if (label) {
     const lm = new THREE.Mesh(new THREE.PlaneGeometry(8, 1.8),
       new THREE.MeshBasicMaterial({ map: new THREE.CanvasTexture(makeLabelCanvas(label)), transparent: true, side: THREE.DoubleSide }));
-    lm.position.set(0, 3.2, 0); g.add(lm);
+    lm.position.set(0, 5.0, 0); g.add(lm); // above ring top (radius 3.5 + label half-height)
   }
   g.add(new THREE.PointLight(color, 1.5, 40));
   scene.add(g); return g;
