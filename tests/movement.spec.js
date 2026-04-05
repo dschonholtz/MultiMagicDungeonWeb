@@ -3,7 +3,7 @@
 // but the canvas must have focus so events aren't swallowed by the rename input.
 
 import { test, expect } from '@playwright/test';
-import { waitForGame, gameState } from './helpers.js';
+import { waitForGame, gameState, teleport } from './helpers.js';
 
 // Focus canvas without triggering a spell cast (mousedown fires spells, click does not)
 async function focusCanvas(page) {
@@ -13,6 +13,7 @@ async function focusCanvas(page) {
 test('W key moves player in the negative-Z direction', async ({ page }) => {
   await page.goto('/');
   await waitForGame(page);
+  await teleport(page, 50, 50); // safe distance from portals
   await focusCanvas(page);
 
   const before = await gameState(page);
@@ -28,6 +29,7 @@ test('W key moves player in the negative-Z direction', async ({ page }) => {
 test('S key moves player in the positive-Z direction', async ({ page }) => {
   await page.goto('/');
   await waitForGame(page);
+  await teleport(page, 50, 50);
   await focusCanvas(page);
 
   const before = await gameState(page);
@@ -42,6 +44,7 @@ test('S key moves player in the positive-Z direction', async ({ page }) => {
 test('D key moves player in the positive-X direction', async ({ page }) => {
   await page.goto('/');
   await waitForGame(page);
+  await teleport(page, 50, 50);
   await focusCanvas(page);
 
   const before = await gameState(page);
@@ -56,6 +59,7 @@ test('D key moves player in the positive-X direction', async ({ page }) => {
 test('A key moves player in the negative-X direction', async ({ page }) => {
   await page.goto('/');
   await waitForGame(page);
+  await teleport(page, 50, 50);
   await focusCanvas(page);
 
   const before = await gameState(page);
@@ -70,6 +74,7 @@ test('A key moves player in the negative-X direction', async ({ page }) => {
 test('camera position tracks localPlayer position', async ({ page }) => {
   await page.goto('/');
   await waitForGame(page);
+  await teleport(page, 50, 50);
   await focusCanvas(page);
 
   await page.keyboard.down('KeyW');
@@ -90,6 +95,7 @@ test('WASD keys do not move player when rename input is focused', async ({ page 
   await page.goto('/');
   await waitForGame(page);
 
+  await page.locator('#settings-gear').click();
   await page.locator('#rename-input').focus();
   const before = await gameState(page);
 

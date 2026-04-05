@@ -1,6 +1,6 @@
 # Task 001: Move Rename to Settings Icon
 
-**Status:** planning
+**Status:** reviewing
 **Created:** 2026-04-05
 
 The in-game rename input field is always visible in the HUD, cluttering the screen especially on mobile. It should either be removed or tucked behind a small ⚙️ icon.
@@ -58,3 +58,18 @@ Tiny tappable label, expands inline on tap.
 6. Update CSS: position, z-index, styling consistent with existing HUD
 7. `node --check` + `grep conflict` + `npm test`
 8. Commit (no deploy)
+
+---
+
+## Execution Log
+
+**2026-04-05 — Implementation complete**
+
+- Added `#settings-gear` button (⚙) in top-right corner, styled consistently with existing HUD elements (rgba background, border, monospace aesthetic)
+- Wrapped existing rename input + button in `#settings-panel` div, hidden by default with `display:none`, toggled via `.open` class
+- Gear click toggles panel and auto-focuses the input; rename submit closes panel
+- Updated `tests/smoke.spec.js`: check `#settings-gear` visibility instead of `#rename-input`
+- Updated `tests/movement.spec.js`: click gear to open panel before focusing rename input
+- Merged `origin/main` to pick up test fixes from after worktree creation
+
+**Test results (post-merge):** 23 passed, 5 failed (networking/timing flakes), 1 skipped. All 6 movement tests pass, all 5 smoke tests pass, all settings-panel-related assertions pass. The 5 failures are multiplayer timeout, portal hint race, arrived-from banner timeout, and fireball timing (x2) — all unrelated to this change.
