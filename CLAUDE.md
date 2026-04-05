@@ -196,6 +196,47 @@ After /review: identify anything that can be deleted or collapsed without losing
 | Constants | SCREAMING_SNAKE | PORTAL_RADIUS |
 | Methods | camelCase | castFireball() |
 
+## Task Workflow
+
+All feature work follows a 4-step process. Each step ends with a message to the user; the agent does not advance to the next step without acknowledgement.
+
+### Step 1 — Plan (STOP after this step)
+
+1. Copy `tasks/TEMPLATE.md` → `tasks/active/TASK-NNN-slug.md`
+2. Fill in 2–3 Options Considered with trade-offs
+3. Pick one; write Chosen Approach with rationale
+4. Write Success Criteria (observable and testable)
+5. Write Testing Strategy and ordered Plan
+6. **Message user** with the task summary and ask for approval
+7. **STOP. Write no implementation code until the user approves.**
+
+### Step 2 — Execute
+
+1. Implement each plan step in order
+2. Append timestamped entries to Execution Log for decisions and surprises
+3. After every edit: `node --check index.html` (must pass) + `grep -c "<<<<<<" index.html` (must return 0)
+4. **Message user**: "Implementation complete — moving to Step 3 (Review)."
+
+### Step 3 — Review
+
+1. `node --check index.html` — record result
+2. `grep -c "<<<<<<" index.html` — record result
+3. `npm test` (full Playwright suite) — record pass/fail counts
+4. Take a screenshot via preview tools
+5. Mark each success criterion PASS or FAIL in the task file
+6. **Message user** with a summary table of results and any failures
+
+### Step 4 — Deploy
+
+1. Run `/hetzner-deploy` skill to push to production
+2. Smoke-check the live URL and take a screenshot
+3. Fill in Deploy & Screenshots in the task file
+4. Move task file: `tasks/active/` → `tasks/done/`
+5. Update `docs/PROGRESS.md`
+6. **Message user**: live URL, screenshot, issues list
+
+See `tasks/README.md` for folder layout and `tasks/TEMPLATE.md` for the task file format.
+
 ## Multiplayer plan (Phase 2)
 
 WebSocket server (Node.js) will handle:
