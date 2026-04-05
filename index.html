@@ -159,63 +159,217 @@ renderer.setPixelRatio(window.devicePixelRatio);
 renderer.shadowMap.enabled = true;
 renderer.setSize(window.innerWidth, window.innerHeight);
 const scene  = new THREE.Scene();
-scene.background = new THREE.Color(0x0a0608);
-scene.fog = new THREE.Fog(0x0a0608, 30, 200);
+scene.background = new THREE.Color(0x08030d);
+scene.fog = new THREE.Fog(0x08030d, 15, 70);
 const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 500);
 camera.position.set(0, PLAYER_HEIGHT, 0); // prevent camera-inside-floor black view before player spawns
 const clock  = new THREE.Clock();
 
 // Lighting
-// Darkened ambient creates depth pools between torches instead of flat even lighting
-const ambient = new THREE.AmbientLight(0x221122, 0.35);
+// Low ambient for dark dungeon depth — torches are the primary light source
+const ambient = new THREE.AmbientLight(0x110a1a, 0.25);
 scene.add(ambient);
-// Central room point light — warm glow anchor so the dungeon reads as inhabited
-const centerLight = new THREE.PointLight(0xffaa44, 0.8, 60);
-centerLight.position.set(0, 8, 0); scene.add(centerLight);
-const torch1  = new THREE.PointLight(0xff6600, 1.5, 60);
-torch1.position.set(20, 10, 20); scene.add(torch1);
-const torch2  = new THREE.PointLight(0x4444ff, 1.0, 60);
-torch2.position.set(-30, 10, -20); scene.add(torch2);
-const dirLight = new THREE.DirectionalLight(0xffeedd, 0.4);
-dirLight.position.set(0, 40, 0); scene.add(dirLight);
-// Fill light from opposite side — cool blue to contrast warm key
-const fillLight = new THREE.DirectionalLight(0x8888ff, 0.3);
-fillLight.position.set(0, -10, 0); scene.add(fillLight);
-// Rim light from behind — warm orange separates players from background
-const rimLight = new THREE.DirectionalLight(0xff8844, 0.6);
-rimLight.position.set(0, 20, -40); scene.add(rimLight);
+// Torch cluster: warm orange/yellow point lights simulate wall sconces
+const _torchPositions = [
+  [0,   7,  0],   // center
+  [30,  7,  20],  // east wing
+  [-30, 7,  20],  // west wing
+  [0,   7, -35],  // south corridor
+  [70,  7,   0],  // east room
+  [-70, 7,   0],  // west room
+  [0,   7, -80],  // south room
+];
+const _torchLights = _torchPositions.map(([x,y,z]) => {
+  const t = new THREE.PointLight(0xffaa33, 1.5, 22);
+  t.position.set(x, y, z); scene.add(t); return t;
+});
+// Keep torch1/torch2 references for the game loop flicker animation
+const torch1 = _torchLights[0];
+const torch2 = _torchLights[1];
+// Cool rim from above — gives ceiling a slightly different cast
+const rimLight = new THREE.DirectionalLight(0x6655aa, 0.2);
+rimLight.position.set(0, 30, 0); scene.add(rimLight);
+
+// === PROCEDURAL TEXTURES ===
+// Canvas-generated textures — no CORS, no external deps, reliable across all browsers
+function makeCanvasTex(w, h, drawFn) {
+  const canvas = document.createElement('canvas');
+  canvas.width = w; canvas.height = h;
+  drawFn(canvas.getContext('2d'));
+  const tex = new THREE.CanvasTexture(canvas);
+  tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
+  return tex;
+}
+
+// Seeded pseudo-random for deterministic brick variation
+function seededRand(seed) {
+  let s = seed;
+  return () => { s = (s * 1664525 + 1013904223) & 0xffffffff; return (s >>> 0) / 0xffffffff; };
+}
+
+// Stone brick wall — staggered rows, mortar joints, per-brick hue/lightness variation
+const _wallTex = makeCanvasTex(512, 512, ctx => {
+  const rand = seededRand(42);
+  const COLS = 8, ROWS = 4;
+  const bw = 512 / COLS, bh = 512 / ROWS;
+  const mortar = 6; // pixels
+  // Mortar background
+  ctx.fillStyle = 'hsl(0,0%,13%)';
+  ctx.fillRect(0, 0, 512, 512);
+  for (let row = 0; row < ROWS; row++) {
+    const offset = (row % 2) * (bw / 2);
+    for (let col = -1; col <= COLS; col++) {
+      const x = col * bw + offset + mortar / 2;
+      const y = row * bh + mortar / 2;
+      const w = bw - mortar;
+      const h = bh - mortar;
+      const hue   = 20 + rand() * 12;
+      const sat   = 18 + rand() * 22;
+      const light = 24 + rand() * 18;
+      ctx.fillStyle = `hsl(${hue},${sat}%,${light}%)`;
+      ctx.fillRect(x, y, w, h);
+      // Subtle face variation — darker top edge (shadow), lighter bottom
+      const grad = ctx.createLinearGradient(x, y, x, y + h);
+      grad.addColorStop(0,   `hsla(0,0%,0%,0.18)`);
+      grad.addColorStop(0.5, `hsla(0,0%,0%,0.0)`);
+      grad.addColorStop(1,   `hsla(0,0%,100%,0.06)`);
+      ctx.fillStyle = grad;
+      ctx.fillRect(x, y, w, h);
+      // Per-pixel noise simulation via tiny rects
+      for (let n = 0; n < 8; n++) {
+        const nx = x + rand() * w;
+        const ny = y + rand() * h;
+        const alpha = rand() * 0.08;
+        ctx.fillStyle = `rgba(0,0,0,${alpha})`;
+        ctx.fillRect(nx, ny, 2, 2);
+      }
+    }
+  }
+});
+_wallTex.repeat.set(4, 2);
+
+// Stone floor — large square tiles with grout lines and slight color variation
+const _floorTex = makeCanvasTex(512, 512, ctx => {
+  const rand = seededRand(99);
+  const TILES = 4;
+  const tw = 512 / TILES;
+  const grout = 5;
+  ctx.fillStyle = 'hsl(0,0%,10%)';
+  ctx.fillRect(0, 0, 512, 512);
+  for (let row = 0; row < TILES; row++) {
+    for (let col = 0; col < TILES; col++) {
+      const x = col * tw + grout / 2;
+      const y = row * tw + grout / 2;
+      const s = tw - grout;
+      const hue   = 210 + rand() * 20;
+      const sat   = 5  + rand() * 8;
+      const light = 18 + rand() * 10;
+      ctx.fillStyle = `hsl(${hue},${sat}%,${light}%)`;
+      ctx.fillRect(x, y, s, s);
+      // Subtle beveled highlight top-left
+      const hi = ctx.createLinearGradient(x, y, x + s, y + s);
+      hi.addColorStop(0,   `hsla(0,0%,100%,0.07)`);
+      hi.addColorStop(0.5, `hsla(0,0%,0%,0.0)`);
+      hi.addColorStop(1,   `hsla(0,0%,0%,0.1)`);
+      ctx.fillStyle = hi;
+      ctx.fillRect(x, y, s, s);
+    }
+  }
+});
+_floorTex.repeat.set(8, 8);
+
+// Dark ceiling — similar to wall but much darker, minimal detail reads at distance
+const _ceilTex = makeCanvasTex(256, 256, ctx => {
+  const rand = seededRand(7);
+  ctx.fillStyle = 'hsl(270,8%,7%)';
+  ctx.fillRect(0, 0, 256, 256);
+  const COLS = 4, ROWS = 4;
+  const bw = 256 / COLS, bh = 256 / ROWS;
+  const mortar = 4;
+  for (let row = 0; row < ROWS; row++) {
+    const offset = (row % 2) * (bw / 2);
+    for (let col = -1; col <= COLS; col++) {
+      const x = col * bw + offset + mortar / 2;
+      const y = row * bh + mortar / 2;
+      const hue = 260 + rand() * 20;
+      const light = 7 + rand() * 6;
+      ctx.fillStyle = `hsl(${hue},10%,${light}%)`;
+      ctx.fillRect(x, y, bw - mortar, bh - mortar);
+    }
+  }
+});
+_ceilTex.repeat.set(4, 4);
+
+// Shared MeshStandardMaterial instances — lighting interacts with roughness
+function makeWallMat() {
+  return new THREE.MeshStandardMaterial({ map: _wallTex, roughness: 0.9, metalness: 0.03 });
+}
+function makeFloorMat() {
+  return new THREE.MeshStandardMaterial({ map: _floorTex, roughness: 0.85, metalness: 0.04 });
+}
+function makeCeilMat() {
+  return new THREE.MeshStandardMaterial({ map: _ceilTex, roughness: 1.0, metalness: 0.0 });
+}
 
 // === DUNGEON RENDERER ===
 // Dungeon renderer - builds geometry from layout data
 function renderDungeon(layout) {
-  const sMat = new THREE.MeshPhongMaterial({ color: 0x4a4055, shininess: 5 });
-  const fMat = new THREE.MeshPhongMaterial({ color: 0x2a2030, shininess: 2 });
-  const cMat = new THREE.MeshPhongMaterial({ color: 0x1a1020, shininess: 0 });
-  const pMat = new THREE.MeshPhongMaterial({ color: 0x3a3045 });
+  const pMat = new THREE.MeshStandardMaterial({ color: 0x3a2e50, roughness: 0.9, metalness: 0.05 });
   const pGeo = new THREE.CylinderGeometry(1.5, 2, 20, 8);
   const WH   = 20;
+
+  const addWall = (px, py, pz, rx, ry, rz, gw, gh) => {
+    // Wall UV repeat proportional to size so bricks stay roughly same scale
+    const tex = _wallTex.clone();
+    tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
+    tex.repeat.set(gw / 12, gh / 12);
+    const mat = new THREE.MeshStandardMaterial({ map: tex, roughness: 0.9, metalness: 0.03 });
+    const m = new THREE.Mesh(new THREE.PlaneGeometry(gw, gh), mat);
+    m.position.set(px, py, pz); m.rotation.set(rx, ry, rz); scene.add(m);
+  };
+
   layout.rooms.forEach(r => {
-    const fl = new THREE.Mesh(new THREE.PlaneGeometry(r.w, r.d), fMat);
+    // Floor
+    const flTex = _floorTex.clone();
+    flTex.wrapS = flTex.wrapT = THREE.RepeatWrapping;
+    flTex.repeat.set(r.w / 8, r.d / 8);
+    const flMat = new THREE.MeshStandardMaterial({ map: flTex, roughness: 0.85, metalness: 0.04 });
+    const fl = new THREE.Mesh(new THREE.PlaneGeometry(r.w, r.d), flMat);
     fl.rotation.x = -Math.PI/2; fl.position.set(r.x, 0, r.z); scene.add(fl);
-    const ce = new THREE.Mesh(new THREE.PlaneGeometry(r.w, r.d), cMat);
+
+    // Ceiling
+    const ceTex = _ceilTex.clone();
+    ceTex.wrapS = ceTex.wrapT = THREE.RepeatWrapping;
+    ceTex.repeat.set(r.w / 10, r.d / 10);
+    const ceMat = new THREE.MeshStandardMaterial({ map: ceTex, roughness: 1.0, metalness: 0.0 });
+    const ce = new THREE.Mesh(new THREE.PlaneGeometry(r.w, r.d), ceMat);
     ce.rotation.x = Math.PI/2; ce.position.set(r.x, WH, r.z); scene.add(ce);
-    [[r.x, WH/2, r.z-r.d/2, 0,0,0, r.w,WH],
-     [r.x, WH/2, r.z+r.d/2, 0,Math.PI,0, r.w,WH],
-     [r.x-r.w/2, WH/2, r.z, 0,Math.PI/2,0, r.d,WH],
-     [r.x+r.w/2, WH/2, r.z, 0,-Math.PI/2,0, r.d,WH]
-    ].forEach(([px,py,pz,rx,ry,rz,gw,gh]) => {
-      const m = new THREE.Mesh(new THREE.PlaneGeometry(gw,gh), sMat);
-      m.position.set(px,py,pz); m.rotation.set(rx,ry,rz); scene.add(m);
-    });
+
+    // Walls
+    addWall(r.x,        WH/2, r.z-r.d/2, 0,           0,          0, r.w, WH);
+    addWall(r.x,        WH/2, r.z+r.d/2, 0,   Math.PI,            0, r.w, WH);
+    addWall(r.x-r.w/2,  WH/2, r.z,       0,   Math.PI/2,          0, r.d, WH);
+    addWall(r.x+r.w/2,  WH/2, r.z,       0,  -Math.PI/2,          0, r.d, WH);
   });
+
   layout.corridors.forEach(c => {
-    const f2 = new THREE.Mesh(new THREE.PlaneGeometry(c.w,c.d), fMat);
-    f2.rotation.x=-Math.PI/2; f2.position.set(c.x,0,c.z); scene.add(f2);
-    const c2 = new THREE.Mesh(new THREE.PlaneGeometry(c.w,c.d), cMat);
-    c2.rotation.x=Math.PI/2; c2.position.set(c.x,WH,c.z); scene.add(c2);
+    const flTex = _floorTex.clone();
+    flTex.wrapS = flTex.wrapT = THREE.RepeatWrapping;
+    flTex.repeat.set(c.w / 8, c.d / 8);
+    const flMat = new THREE.MeshStandardMaterial({ map: flTex, roughness: 0.85, metalness: 0.04 });
+    const f2 = new THREE.Mesh(new THREE.PlaneGeometry(c.w, c.d), flMat);
+    f2.rotation.x = -Math.PI/2; f2.position.set(c.x, 0, c.z); scene.add(f2);
+
+    const ceTex = _ceilTex.clone();
+    ceTex.wrapS = ceTex.wrapT = THREE.RepeatWrapping;
+    ceTex.repeat.set(c.w / 10, c.d / 10);
+    const ceMat = new THREE.MeshStandardMaterial({ map: ceTex, roughness: 1.0, metalness: 0.0 });
+    const c2 = new THREE.Mesh(new THREE.PlaneGeometry(c.w, c.d), ceMat);
+    c2.rotation.x = Math.PI/2; c2.position.set(c.x, WH, c.z); scene.add(c2);
   });
-  layout.pillars.forEach(([px,pz]) => {
-    const m = new THREE.Mesh(pGeo, pMat); m.position.set(px,10,pz); scene.add(m);
+
+  layout.pillars.forEach(([px, pz]) => {
+    const m = new THREE.Mesh(pGeo, pMat); m.position.set(px, 10, pz); scene.add(m);
   });
 }
 renderDungeon(DEFAULT_DUNGEON);
