@@ -79,7 +79,7 @@ const HP_MAX              = 100;
 const SEND_MOVE_HZ        = 20;
 // Portal geometry
 const PORTAL_RING_RADIUS       = 4.0;   // torus major radius (units)
-const PORTAL_RING_TUBE         = 0.5;   // torus tube radius
+const PORTAL_RING_TUBE         = 0.25;  // torus tube radius — thin elegant ring
 const PORTAL_VOID_EMISSIVE     = 0.06;  // void circle emissive — faint inner colour hint
 const PORTAL_EMISSIVE_INTENSITY = 2.0;  // ring torus emissive — bright, this is the visible beacon
 const PORTAL_LIGHT_INTENSITY   = 1.5;  // point light — reduced to avoid green-washing the dungeon
@@ -384,6 +384,7 @@ function makeLabelCanvas(text) {
 function createPortal(color, position, label) {
   const g = new THREE.Group();
   g.position.copy(position);
+  g.rotation.x = -Math.PI / 2; // horizontal summoning circle lying flat on the floor
   // Outer ring — MeshStandardMaterial with emissive gives glow without post-processing
   const ring = new THREE.Mesh(
     new THREE.TorusGeometry(PORTAL_RING_RADIUS, PORTAL_RING_TUBE, 16, 64),
@@ -444,7 +445,7 @@ function createPortal(color, position, label) {
 
 // Exit portal inside west wing — faces east so player approaching from spawn (0,0,0) sees the ring face-on
 const exitPortalGroup = createPortal(0x00ff00, new THREE.Vector3(-30, PLAYER_HEIGHT, 0), 'VIBE JAM 2026');
-exitPortalGroup.rotation.y = Math.PI / 2;
+// exitPortalGroup.rotation.y was a hack to compensate for missing rotation.x — no longer needed
 let startPortalGroup = null, startPortalReady = false;
 if (incomingPortal && safeRef) {
   startPortalGroup = createPortal(0xff0000, new THREE.Vector3(0, PLAYER_HEIGHT, 25), null);
