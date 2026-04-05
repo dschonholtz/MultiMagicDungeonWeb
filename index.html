@@ -293,14 +293,24 @@ class MmdPlayer {
       const torso = new THREE.Mesh(new THREE.CylinderGeometry(1.0,0.9,3.0,8), toonMat(colors.body));
       torso.position.y=3.25; addWithOutline(this.mesh, torso);
 
-      const lArm = new THREE.Mesh(new THREE.CylinderGeometry(0.35,0.3,2.8,6), toonMat(colors.body));
-      lArm.position.set(-1.35,3.5,0); lArm.rotation.z=0.4; addWithOutline(this.mesh, lArm);
+      // Arm pivots at shoulder so rotation.x swings naturally at the joint
+      this.leftArm = new THREE.Group();
+      this.leftArm.position.set(-1.35,4.5,0); this.leftArm.rotation.z=0.4;
+      const lArmMesh = new THREE.Mesh(new THREE.CylinderGeometry(0.35,0.3,2.8,6), toonMat(colors.body));
+      lArmMesh.position.y=-1.4; addWithOutline(this.leftArm, lArmMesh); this.mesh.add(this.leftArm);
 
-      const rArm = new THREE.Mesh(new THREE.CylinderGeometry(0.35,0.3,2.8,6), toonMat(colors.body));
-      rArm.position.set(1.35,3.5,0); rArm.rotation.z=-0.4; addWithOutline(this.mesh, rArm);
+      this.rightArm = new THREE.Group();
+      this.rightArm.position.set(1.35,4.5,0); this.rightArm.rotation.z=-0.4;
+      const rArmMesh = new THREE.Mesh(new THREE.CylinderGeometry(0.35,0.3,2.8,6), toonMat(colors.body));
+      rArmMesh.position.y=-1.4; addWithOutline(this.rightArm, rArmMesh); this.mesh.add(this.rightArm);
 
       const head = new THREE.Mesh(new THREE.SphereGeometry(1.15,10,10), toonMat(colors.head));
       head.position.y=5.8; addWithOutline(this.mesh, head);
+
+      // Wizard hat
+      const hat = new THREE.Mesh(new THREE.ConeGeometry(0.8,2.5,8), toonMat(new THREE.Color(0x1a0033)));
+      hat.position.y=7.9; addWithOutline(this.mesh, hat);
+      this.hatMesh=hat;
       const nc=document.createElement('canvas'); nc.width=256; nc.height=48;
       const ctx=nc.getContext('2d');
       ctx.font='bold 20px monospace'; ctx.fillStyle='#fff'; ctx.textAlign='center';
@@ -311,6 +321,10 @@ class MmdPlayer {
       this.namePlateMesh=this.nameLabel;
       this.mesh.position.copy(this.position); scene.add(this.mesh);
       this.targetPos=this.position.clone(); this.targetYaw=yaw;
+      this.lastTargetPos=this.position.clone(); this.isMoving=false;
+      // Per-player phase offset so characters don't bob/sway in sync
+      let _ph=0; for(let i=0;i<id.length;i++) _ph=(_ph*31+id.charCodeAt(i))|0;
+      this.phaseOffset=(Math.abs(_ph)%628)/100;
     }
   }
   updateLocal(dt, keys, yaw, pitch) {
@@ -347,8 +361,28 @@ class MmdPlayer {
     const a=Math.min(dt*12, 1.0);
     this.position.lerp(this.targetPos,a);
     this.yaw+=(this.targetYaw-this.yaw)*a;
-    this.mesh.position.copy(this.position); this.mesh.rotation.y=this.yaw;
+    // Movement detection: server target changed since last frame means player is walking
+    this.isMoving=this.targetPos.distanceToSquared(this.lastTargetPos)>0.0001;
+    this.lastTargetPos.copy(this.targetPos);
+    const t=elapsedSecs; const ph=this.phaseOffset;
+    // Idle bob — mesh Y floats above logical position
+    this.mesh.position.copy(this.position);
+    this.mesh.position.y=this.position.y+Math.sin(t*2.2+ph)*0.07;
+    this.mesh.rotation.y=this.yaw;
     if(this.namePlateMesh) this.namePlateMesh.lookAt(camera.position);
+    // Hat sway
+    if(this.hatMesh) this.hatMesh.rotation.z=Math.sin(t*1.5+ph)*0.06;
+    // Arm swing: walk cycle when moving, spring to rest when idle
+    if(this.leftArm&&this.rightArm) {
+      if(this.isMoving) {
+        this.leftArm.rotation.x  = Math.sin(t*7+ph)*0.45;
+        this.rightArm.rotation.x = -Math.sin(t*7+ph)*0.45;
+      } else {
+        // Spring back — also returns right arm from spell cast flash
+        this.leftArm.rotation.x  +=(0-this.leftArm.rotation.x)*0.15;
+        this.rightArm.rotation.x +=(0-this.rightArm.rotation.x)*0.15;
+      }
+    }
   }
   destroy() {
     if (!this.mesh) return;
@@ -442,6 +476,9 @@ class MmdNetworkClient {
   _onSpell(msg) {
     if(!SPELL_DEFS[msg.spellType]) return;
     spellProjectiles.push(new MmdSpell(msg.spellType,new THREE.Vector3(msg.x,msg.y,msg.z),new THREE.Vector3(msg.dirX,msg.dirY,msg.dirZ),msg.playerId));
+    // Cast flash: punch right arm forward, springs back in interpolate
+    const rp=remotePlayers.get(msg.playerId);
+    if(rp&&rp.rightArm) rp.rightArm.rotation.x=-1.2;
   }
   _onRename(msg) {
     const rp=remotePlayers.get(msg.playerId);
