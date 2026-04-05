@@ -50,16 +50,82 @@ docs/
 
 ## Testing Requirements (MANDATORY — not optional)
 
-After EVERY edit to index.html:
+### Quick checks (run after EVERY edit)
+
 1. Syntax check: `node --check index.html 2>&1` — must pass with no errors
 2. Conflict check: `grep -c "<<<<<<" index.html` — must return 0
-3. Server check: confirm port 3000 is responding: `curl -s -o /dev/null -w "%{http_code}" http://localhost:3000/` — must return 200
-4. Browser check: navigate to http://localhost:3000/ and read_console_messages — must have NO exceptions
-5. Visual check: take a screenshot — game must be rendering (not black screen)
+3. Server check: `curl -s -o /dev/null -w "%{http_code}" http://localhost:3000/` — must return 200
 
-After multiplayer changes:
-6. Two-tab test: open two tabs to localhost:3000, verify both show other players
-7. Screenshot both tabs and confirm remote player model is visible
+### Playwright test suite (run after any meaningful change)
+
+The repo ships with a full Playwright suite in `tests/`. Run it before committing:
+
+```bash
+# First-time setup (only needed once)
+npm install
+npx playwright install chromium
+
+# Smoke tests only — fastest signal (~10s)
+npm run test:smoke
+
+# Full suite — all flows (~60s)
+npm test
+
+# Headed mode — watch the browser (useful when debugging a failing test)
+npm run test:headed
+
+# Interactive UI explorer
+npm run test:ui
+
+# Read the HTML report after a run
+npm run test:report
+```
+
+`playwright.config.js` starts `npx vite` automatically on port 3000 before tests run and reuses an already-running server if present.
+
+### What the tests cover
+
+| File | What it checks |
+|---|---|
+| `tests/smoke.spec.js` | Page loads, canvas visible, HUD present, localPlayer spawns with full HP and a Guest name |
+| `tests/movement.spec.js` | WASD keys move the player, camera tracks position, rename input blocks WASD |
+| `tests/spells.spec.js` | Fireball/frostbolt/telekinesis projectiles appear, travel, expire, cooldowns apply to HUD |
+| `tests/portal.spec.js` | Hint shows near portal, portal navigation fires, incoming URL params set username/HP |
+| `tests/multiplayer.spec.js` | Two browser contexts see each other, player count updates, disconnect reduces count |
+
+### How tests access game state
+
+`index.html` exposes `window.__TEST__` at the bottom of its script block:
+
+```js
+// Read any game state (JSON-safe, no live Three.js objects)
+const state = window.__TEST__.state();
+// state.localPlayer.{id, username, x, y, z, hp, cooldowns}
+// state.remotePlayers       — array of remote player IDs
+// state.remotePlayerCount   — number of remote players
+// state.spells              — array of live projectiles
+// state.playerCountText     — text content of #player-count HUD element
+
+// Commands for driving the game from tests
+window.__TEST__.commands.enableSpells();      // bypass pointer-lock gate
+window.__TEST__.commands.castSpell('fireball');
+window.__TEST__.commands.teleport(-30, 0);   // move player instantly
+window.__TEST__.commands.setUsername('Bob');
+```
+
+If you add new game state or commands that tests should cover, extend `window.__TEST__` in the same block at the bottom of `index.html`.
+
+### Multiplayer test notes
+
+- Tests hit the live server at `ws://5.161.208.234:8080`. If it's unreachable the game falls back to offline mode and multiplayer tests auto-skip (they check `localPlayer.id` for the `"offline-"` prefix).
+- For local multiplayer testing, switch `WS_URL` in `index.html` to `ws://localhost:8080` and run `cd server && npm run dev` first.
+
+### After multiplayer changes
+
+In addition to `npm test`, manually verify:
+- Open two tabs to `http://localhost:3000` (or `npm run test:headed` on `multiplayer.spec.js`)
+- Both tabs show the other player's model
+- Screenshot both tabs and confirm a remote wizard is visible
 
 **NEVER commit or push until ALL checks pass.**
 

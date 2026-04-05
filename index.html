@@ -80,8 +80,7 @@ const SEND_MOVE_HZ        = 20;
 // Portal geometry
 const PORTAL_RING_RADIUS       = 4.0;   // torus major radius (units)
 const PORTAL_RING_TUBE         = 0.5;   // torus tube radius
-const PORTAL_VOID_SIZE         = 8.0;   // inner void plane — fits inside 4.0-radius ring (8-unit diameter)
-const PORTAL_VOID_EMISSIVE     = 0.6;   // void plane emissive — subtle glow, not blinding
+const PORTAL_VOID_EMISSIVE     = 0.06;  // void circle emissive — faint inner colour hint
 const PORTAL_EMISSIVE_INTENSITY = 2.0;  // ring torus emissive — bright, this is the visible beacon
 const PORTAL_LIGHT_INTENSITY   = 1.5;  // point light — reduced to avoid green-washing the dungeon
 const PORTAL_LIGHT_DIST        = 40;    // point light falloff distance
@@ -392,19 +391,54 @@ function createPortal(color, position, label) {
   );
   g.add(ring);
   g._ring = ring;
-  // Inner void — translucent plane, counter-rotates for hypnotic effect
+  // Inner void — CircleGeometry radius snug inside torus inner edge, no corner clipping ever
+  const _voidR = PORTAL_RING_RADIUS - PORTAL_RING_TUBE - 0.15;
   const voidMesh = new THREE.Mesh(
-    new THREE.PlaneGeometry(PORTAL_VOID_SIZE, PORTAL_VOID_SIZE),
-    new THREE.MeshStandardMaterial({ color, emissive: color, emissiveIntensity: PORTAL_VOID_EMISSIVE, transparent: true, opacity: 0.4, side: THREE.DoubleSide })
+    new THREE.CircleGeometry(_voidR, 64),
+    new THREE.MeshStandardMaterial({
+      color: 0x001a00, emissive: color, emissiveIntensity: PORTAL_VOID_EMISSIVE,
+      transparent: true, opacity: 0.93, side: THREE.DoubleSide, depthWrite: false,
+    })
   );
   g.add(voidMesh);
   g._void = voidMesh;
+  // Glow halo — wider tube torus, additive blending = soft bloom without post-processing
+  const glowRing = new THREE.Mesh(
+    new THREE.TorusGeometry(PORTAL_RING_RADIUS, PORTAL_RING_TUBE * 3.0, 8, 64),
+    new THREE.MeshBasicMaterial({
+      color, transparent: true, opacity: 0.13,
+      blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide,
+    })
+  );
+  g.add(glowRing);
+  g._glowRing = glowRing;
+  // Particle ring — 72 bright points orbiting the torus equator
+  const _PC = 72;
+  const _pPos = new Float32Array(_PC * 3);
+  const _pPhase = new Float32Array(_PC);
+  for (let i = 0; i < _PC; i++) {
+    _pPhase[i] = (i / _PC) * Math.PI * 2;
+    _pPos[i*3]   = Math.cos(_pPhase[i]) * PORTAL_RING_RADIUS;
+    _pPos[i*3+1] = Math.sin(_pPhase[i]) * PORTAL_RING_RADIUS;
+    _pPos[i*3+2] = 0;
+  }
+  const _pGeo = new THREE.BufferGeometry();
+  _pGeo.setAttribute('position', new THREE.BufferAttribute(_pPos, 3));
+  const particles = new THREE.Points(_pGeo, new THREE.PointsMaterial({
+    color, size: 0.20, transparent: true, opacity: 0.95,
+    blending: THREE.AdditiveBlending, depthWrite: false,
+  }));
+  particles.userData.phases = _pPhase;
+  g.add(particles);
+  g._particles = particles;
   if (label) {
     const lm = new THREE.Mesh(new THREE.PlaneGeometry(8, 1.8),
       new THREE.MeshBasicMaterial({ map: new THREE.CanvasTexture(makeLabelCanvas(label)), transparent: true, side: THREE.DoubleSide }));
-    lm.position.set(0, 3.2, 0); g.add(lm);
+    lm.position.set(0, PORTAL_RING_RADIUS + 1.5, 0); g.add(lm);
   }
-  g.add(new THREE.PointLight(color, PORTAL_LIGHT_INTENSITY, PORTAL_LIGHT_DIST));
+  const portalLight = new THREE.PointLight(color, PORTAL_LIGHT_INTENSITY, PORTAL_LIGHT_DIST);
+  g.add(portalLight);
+  g._light = portalLight;
   scene.add(g); return g;
 }
 
@@ -949,6 +983,25 @@ window.addEventListener('resize',()=>{
   renderer.setSize(window.innerWidth,window.innerHeight);
 });
 
+// Portal particle animator — animates in group-local XY space; group.rotation handles world orientation
+function _animPortalParticles(group, t, speed) {
+  const pts = group._particles;
+  if (!pts) return;
+  const pos    = pts.geometry.attributes.position.array;
+  const phases = pts.userData.phases;
+  const n      = phases.length;
+  for (let i = 0; i < n; i++) {
+    const angle = phases[i] + t * speed;
+    // Slight radial pulse per-particle gives a living, breathing feel
+    const r = PORTAL_RING_RADIUS + Math.sin(t * 2.7 + phases[i] * 3.1) * 0.28;
+    pos[i*3]   = Math.cos(angle) * r;
+    pos[i*3+1] = Math.sin(angle) * r;
+    // Small Z wobble pops particles in and out of the torus tube for depth
+    pos[i*3+2] = Math.sin(t * 1.9 + phases[i] * 2.4) * 0.22;
+  }
+  pts.geometry.attributes.position.needsUpdate = true;
+}
+
 // Game loop (delta-time throughout - framerate independent)
 let elapsedSecs=0;
 function gameLoop() {
@@ -964,14 +1017,20 @@ function gameLoop() {
   }
   torch1.intensity=TORCH1_BASE_INTENSITY+Math.sin(elapsedSecs*TORCH1_FLICKER_FREQ)*TORCH1_FLICKER_AMP;
   torch2.intensity=TORCH2_BASE_INTENSITY+Math.sin(elapsedSecs*TORCH2_FLICKER_FREQ+1)*TORCH2_FLICKER_AMP;
-  // Portal animation: ring rotates, void counter-rotates, group pulses
+  // Portal animation: ring rotates, void counter-rotates, group pulses, halo + particles orbit
   exitPortalGroup._ring.rotation.z = elapsedSecs * PORTAL_RING_SPIN;
   exitPortalGroup._void.rotation.z = -elapsedSecs * PORTAL_VOID_SPIN;
   exitPortalGroup.scale.setScalar(1.0 + PORTAL_PULSE_AMP * Math.sin(elapsedSecs * PORTAL_PULSE_FREQ));
+  if (exitPortalGroup._glowRing) exitPortalGroup._glowRing.rotation.z = elapsedSecs * PORTAL_RING_SPIN * 0.6;
+  if (exitPortalGroup._light) exitPortalGroup._light.intensity = PORTAL_LIGHT_INTENSITY * (1.0 + 0.30 * Math.sin(elapsedSecs * 2.3));
+  _animPortalParticles(exitPortalGroup, elapsedSecs, 1.4);
   if(startPortalGroup) {
     startPortalGroup._ring.rotation.z = -elapsedSecs * PORTAL_RING_SPIN;
     startPortalGroup._void.rotation.z = elapsedSecs * PORTAL_VOID_SPIN;
     startPortalGroup.scale.setScalar(1.0 + PORTAL_PULSE_AMP * Math.sin(elapsedSecs * PORTAL_PULSE_FREQ + Math.PI));
+    if (startPortalGroup._glowRing) startPortalGroup._glowRing.rotation.z = -elapsedSecs * PORTAL_RING_SPIN * 0.6;
+    if (startPortalGroup._light) startPortalGroup._light.intensity = PORTAL_LIGHT_INTENSITY * (1.0 + 0.30 * Math.sin(elapsedSecs * 2.3 + Math.PI));
+    _animPortalParticles(startPortalGroup, elapsedSecs, -1.4);
   }
   checkPortals(); updateHud();
   renderer.render(scene,camera);
@@ -986,6 +1045,48 @@ window.game={
   get spells(){return spellProjectiles;},
   net,
 };
+
+// === TEST SEAM ===
+// Exposes stable, JSON-serializable state for Playwright tests.
+// Commands let tests drive game logic that requires closure-scope access.
+// Zero production overhead — the ready interval clears itself after first spawn.
+window.__TEST__ = {
+  ready: false,
+  state: () => ({
+    localPlayer: localPlayer ? {
+      id:        localPlayer.id,
+      username:  localPlayer.username,
+      x:         localPlayer.position.x,
+      y:         localPlayer.position.y,
+      z:         localPlayer.position.z,
+      hp:        localPlayer.hp,
+      cooldowns: { ...localPlayer.cooldowns },
+    } : null,
+    remotePlayers:     [...remotePlayers.keys()],
+    remotePlayerCount: remotePlayers.size,
+    spells: spellProjectiles.map(s => ({
+      type:  s.type,
+      alive: s.alive,
+      x:     s.mesh.position.x,
+      y:     s.mesh.position.y,
+      z:     s.mesh.position.z,
+    })),
+    playerCountText: document.getElementById('player-count')?.textContent ?? '',
+    isLocked,
+    gameStarted,
+    traveling,
+  }),
+  commands: {
+    enableSpells: () => { isLocked = true; },           // bypass pointer-lock gate for spell tests
+    castSpell:    (type) => castSpell(type),             // cast directly from closure scope
+    teleport:     (x, z) => { if (localPlayer) localPlayer.position.set(x, localPlayer.position.y, z); },
+    setUsername:  (name) => { if (localPlayer) localPlayer.username = name.trim().slice(0, 24); },
+  },
+};
+// Flip ready once localPlayer exists; interval clears itself immediately after
+const _testReadyInterval = setInterval(() => {
+  if (localPlayer) { window.__TEST__.ready = true; clearInterval(_testReadyInterval); }
+}, 50);
 </script>
 </body>
 </html>

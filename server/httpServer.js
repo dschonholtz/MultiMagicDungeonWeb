@@ -19,19 +19,31 @@ const MIMES = {
   '.png':  'image/png',
   '.jpg':  'image/jpeg',
   '.svg':  'image/svg+xml',
+  '.gltf': 'model/gltf+json',
+  '.glb':  'model/gltf-binary',
   '.md':   'text/plain',
 };
 
+// Resolve a URL pathname to a file path, checking ROOT then ROOT/public/ as fallback.
+// Mirrors Vite's convention: files in public/ are served at the root URL path.
+function resolveFile(pathname) {
+  const rel  = pathname === '/' ? 'index.html' : pathname;
+  const main = path.join(ROOT, rel);
+  if (!main.startsWith(ROOT)) return null; // path traversal guard
+  if (fs.existsSync(main)) return main;
+  const pub = path.join(ROOT, 'public', rel);
+  if (!pub.startsWith(ROOT)) return null;
+  if (fs.existsSync(pub)) return pub;
+  return null;
+}
+
 http.createServer((req, res) => {
   const pathname = parseUrl(req.url).pathname;
-  const file = path.join(ROOT, pathname === '/' ? 'index.html' : pathname);
-  // Prevent path traversal outside ROOT
-  if (!file.startsWith(ROOT)) {
-    res.writeHead(403); res.end('Forbidden'); return;
-  }
+  const file = resolveFile(pathname);
+  if (!file) { res.writeHead(404); res.end('Not found'); return; }
   fs.readFile(file, (err, data) => {
     if (err) { res.writeHead(404); res.end('Not found'); return; }
-    const ct = MIMES[path.extname(file)] || 'text/plain';
+    const ct = MIMES[path.extname(file)] || 'application/octet-stream';
     res.writeHead(200, { 'Content-Type': ct, 'Access-Control-Allow-Origin': '*' });
     res.end(data);
   });
