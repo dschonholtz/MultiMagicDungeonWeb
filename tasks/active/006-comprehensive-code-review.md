@@ -2,67 +2,64 @@
 
 **Status:** planning
 **Created:** 2026-04-05
+**Updated:** 2026-04-05 — expanded to cover all three options (A+B+C)
 
-A full review of `index.html` covering correctness, maintainability, and performance. The game is now ~30KB+ of single-file vanilla JS — this is the right time to find structural problems before the codebase grows further.
+A full review of `index.html` covering correctness, maintainability, and runtime performance. The game is now a ~30KB+ single-file vanilla JS app — the right time to find structural problems before the codebase grows further. This task produces a written report only; no code changes.
 
 ---
 
-## Options Considered
+## Approach: All Three Options
 
-### Option A — Manual review only
-Read through `index.html` section by section, annotate issues.
-**Pros:** Fast, zero tooling.
-**Cons:** Easy to miss performance issues that only appear at runtime.
+### Option A — Manual code review (section by section)
+Read `index.html` top to bottom. Annotate every system: spells, dungeon, wizard, minimap, portal, mobile HUD, WebSocket, Playwright seam. Flag issues by severity.
 
-### Option B — Manual review + runtime profiling
-Manual review + open game in Chrome DevTools, record a 30-second gameplay session, analyze flame graph for hot functions.
-**Pros:** Catches actual runtime bottlenecks (e.g. per-frame allocations, expensive draw calls).
-**Cons:** Requires Chrome DevTools access; some findings may need multiple iterations.
+### Option B — Runtime profiling via Chrome MCP
+Open the live game, check the browser console for runtime warnings/errors. Pull network requests to check for repeated texture fetches, uncached resources, or failing loads. Observe the animation loop for obvious frame-rate issues.
 
-### Option C — Static analysis only (ESLint / code metrics)
-Run automated linting tools, report issues.
-**Pros:** Exhaustive on syntax/style issues.
-**Cons:** Won't catch Three.js-specific perf issues like geometry reuse, draw call count, or per-frame object allocation.
+### Option C — Static analysis (ESLint / code metrics)
+Run ESLint with recommended + Three.js-relevant rules. Report unused variables, implicit globals, missing semicolons, and any patterns ESLint flags as problematic.
 
-**Chosen: Option B** — manual review (most important for Three.js correctness) plus a targeted runtime check using the Chrome MCP to pull console + network requests for obvious red flags. Full DevTools flame graph is a nice-to-have; the manual review is the core deliverable.
+**All three will run.** The manual review (A) is the core deliverable. Runtime checks (B) and static analysis (C) supplement it with things that can't be caught by reading alone.
 
 ---
 
 ## Review Areas
 
 ### Correctness
-- Memory leaks: are Three.js geometries/materials/textures disposed when players disconnect or spells expire?
-- Event listeners: any listeners added without corresponding removeEventListener?
-- WebSocket: does the reconnection logic handle edge cases (server restart mid-game)?
-- Spell system: do all projectile types clean up their trail lines and impact lights?
-- Portal: does the portal enter/exit logic handle the case where the jam site is unreachable?
+- Memory leaks: are Three.js geometries/materials/textures disposed when spells expire or players leave?
+- Event listeners: any `addEventListener` without a matching `removeEventListener`?
+- WebSocket: does reconnect logic handle server-restart mid-game?
+- Spell system: do all projectile types clean up trail lines and impact lights on death?
+- Portal: does enter/exit logic handle an unreachable jam site?
 
 ### Performance (Three.js specific)
-- **Draw calls**: every `new THREE.Mesh()` is a draw call. Are static dungeon meshes merged into a single BufferGeometry?
-- **Per-frame allocations**: any `new THREE.Vector3()` or `new THREE.Quaternion()` inside `update()` or the animation loop? These should be module-level constants reused with `.copy()` / `.set()`.
-- **Texture reuse**: are procedural canvas textures created once and cached, or recreated on each call?
-- **PointLight count**: how many active PointLights at once? Each one has shadow calculation cost even without shadow maps.
-- **Minimap redraws**: drawn every 3rd frame — is the canvas context `clearRect` properly scoped?
-- **AnimationMixer updates**: is `mixer.update(dt)` called for every remote player every frame, even offscreen ones?
+- **Draw calls**: every `new THREE.Mesh()` is a draw call. Are static dungeon meshes merged into a BufferGeometry?
+- **Per-frame allocations**: any `new THREE.Vector3()` / `new THREE.Quaternion()` inside the animation loop? Should be module-level, reused with `.copy()` / `.set()`
+- **Texture reuse**: procedural canvas textures created once and cached, or recreated per call?
+- **PointLight count**: how many active PointLights at once? Each has shadow calculation cost
+- **Minimap redraws**: drawn every 3rd frame — is `clearRect` properly scoped?
+- **AnimationMixer**: is `mixer.update(dt)` called for offscreen remote players every frame?
 
 ### Maintainability
-- Functions longer than ~80 lines should be broken up
-- Magic numbers should be named constants
-- Any dead code paths (old commented logic, unused variables)?
-- Naming: any misleading variable names or unclear abbreviations?
+- Functions longer than ~80 lines — should be broken up
+- Magic numbers — should be named constants
+- Dead code paths — old commented logic, unused vars
+- Misleading names or unclear abbreviations
 
 ### Mobile / Touch
-- Are touch event listeners passive where possible (scroll performance)?
-- Any `preventDefault()` calls that might block browser gestures?
+- Touch event listeners passive where possible?
+- Any `preventDefault()` calls blocking native browser gestures?
 
 ---
 
 ## Success Criteria
 
-1. Written report listing every issue found, categorized by severity: Critical / High / Medium / Low
-2. At least the Critical and High items have suggested fixes written out
-3. A recommended prioritized action list (what to fix first)
-4. No code changes made — this is review only
+1. Written report in `tasks/done/006-code-review-report.md` listing every issue by severity: Critical / High / Medium / Low
+2. Critical and High items each have a specific code location + suggested fix
+3. Static analysis (ESLint) output included — either as a summary or raw output appendix
+4. Runtime console warnings/errors from Chrome MCP documented
+5. Prioritized action list: what to fix first, ranked by impact vs. effort
+6. No changes to `index.html` — `git diff index.html` shows nothing
 
 ---
 
@@ -70,18 +67,43 @@ Run automated linting tools, report issues.
 
 | Criterion | How to verify |
 |-----------|---------------|
-| 1. Report completeness | Every major system in index.html has at least one review note |
-| 2. Fixes are actionable | Each Critical/High item has a specific code location + suggested change |
-| 3. Prioritized list | Items are ranked by impact vs. effort |
-| 4. No code changes | `git diff` on index.html shows no changes |
+| 1. Report completeness | Every major system has at least one review note |
+| 2. Fixes actionable | Each Critical/High has file location + suggested change |
+| 3. ESLint output | `npx eslint index.html --ext .html` run and results included |
+| 4. Runtime check | Chrome MCP screenshot of console with no hidden errors |
+| 5. Prioritized list | Items ranked by impact × effort matrix |
+| 6. No code changes | `git diff index.html` is empty |
 
 ---
 
 ## Plan
 
-1. Read `index.html` in full — top to bottom, system by system
-2. For each system, fill in the review areas checklist above
-3. Open the game in Chrome MCP, check console for runtime warnings
-4. Write the findings report as `tasks/done/006-code-review-report.md`
-5. Highlight top 3 Critical/High items the user should prioritize
-6. Commit the report (no code changes, no deploy)
+1. Read `index.html` in full — system by system (Option A)
+2. For each system, annotate issues against the review areas above
+3. Run `npx eslint index.html` (or install eslint-plugin-html if needed) — capture output (Option C)
+4. Open the game via Chrome MCP, check console for errors/warnings, pull network requests (Option B)
+5. Compile all findings into `tasks/done/006-code-review-report.md`:
+   - Severity table (Critical / High / Medium / Low)
+   - Per-issue: location, description, suggested fix
+   - ESLint output appendix
+   - Runtime observations
+   - Top 5 prioritized action items
+6. Commit the report only (no code changes, no deploy)
+
+---
+
+## Execution Log
+
+*(empty — not yet started)*
+
+---
+
+## Code Review & Test Results
+
+*(This task IS the review — output is the report file)*
+
+---
+
+## Deploy & Screenshots
+
+*(No deploy — report commit only)*
