@@ -278,46 +278,70 @@ class MmdPlayer {
     if (!isLocal) {
       this.mesh = new THREE.Group();
       const colors = hashColor(id);
+      // Derive hat color: darker, more saturated shade of the player's hue
+      let _h = 0;
+      for (let i = 0; i < id.length; i++) _h = (_h * 31 + id.charCodeAt(i)) | 0;
+      const hatColor = new THREE.Color().setHSL((Math.abs(_h) % 360) / 360, 0.75, 0.22);
       const toonMat = c => new THREE.MeshToonMaterial({ color:c, gradientMap:_toonGradientMap });
       const addWithOutline = (group, mesh) => {
         group.add(mesh);
         const ol = mesh.clone();
         ol.material = new THREE.MeshBasicMaterial({ color:0x000000, side:THREE.BackSide });
-        ol.scale.setScalar(1.05);
+        ol.scale.setScalar(1.08);
         group.add(ol);
       };
+      // flatBox: toNonIndexed + computeVertexNormals gives crisp toon bands on flat faces
+      const flatBox = (w, ht, d) => {
+        const g = new THREE.BoxGeometry(w, ht, d).toNonIndexed();
+        g.computeVertexNormals(); return g;
+      };
 
-      const legs = new THREE.Mesh(new THREE.CylinderGeometry(0.9,0.8,2.5,8), toonMat(colors.legs));
-      legs.position.y=1.25; addWithOutline(this.mesh, legs);
+      // Robe skirt — wide at base, reads instantly as wizard robes
+      const skirt = new THREE.Mesh(flatBox(2.6, 2.0, 2.2), toonMat(colors.legs));
+      skirt.position.y = 1.0; addWithOutline(this.mesh, skirt);
 
-      const torso = new THREE.Mesh(new THREE.CylinderGeometry(1.0,0.9,3.0,8), toonMat(colors.body));
-      torso.position.y=3.25; addWithOutline(this.mesh, torso);
+      // Torso — narrower upper robe (hourglass silhouette when combined with skirt)
+      const torso = new THREE.Mesh(flatBox(2.0, 1.8, 1.8), toonMat(colors.body));
+      torso.position.y = 2.9; addWithOutline(this.mesh, torso);
 
-      // Arm pivots at shoulder so rotation.x swings naturally at the joint
+      // Arms — pivot groups at shoulder so rotation.z swings naturally for casting animation
       this.leftArm = new THREE.Group();
-      this.leftArm.position.set(-1.35,4.5,0); this.leftArm.rotation.z=0.4;
-      const lArmMesh = new THREE.Mesh(new THREE.CylinderGeometry(0.35,0.3,2.8,6), toonMat(colors.body));
-      lArmMesh.position.y=-1.4; addWithOutline(this.leftArm, lArmMesh); this.mesh.add(this.leftArm);
+      this.leftArm.position.set(-1.4, 3.6, 0); this.leftArm.rotation.z = 0.5;
+      const lArmMesh = new THREE.Mesh(flatBox(0.5, 1.4, 0.5), toonMat(colors.body));
+      lArmMesh.position.y = -0.7; addWithOutline(this.leftArm, lArmMesh);
+      this.mesh.add(this.leftArm);
 
       this.rightArm = new THREE.Group();
-      this.rightArm.position.set(1.35,4.5,0); this.rightArm.rotation.z=-0.4;
-      const rArmMesh = new THREE.Mesh(new THREE.CylinderGeometry(0.35,0.3,2.8,6), toonMat(colors.body));
-      rArmMesh.position.y=-1.4; addWithOutline(this.rightArm, rArmMesh); this.mesh.add(this.rightArm);
+      this.rightArm.position.set( 1.4, 3.6, 0); this.rightArm.rotation.z = -0.5;
+      const rArmMesh = new THREE.Mesh(flatBox(0.5, 1.4, 0.5), toonMat(colors.body));
+      rArmMesh.position.y = -0.7; addWithOutline(this.rightArm, rArmMesh);
+      this.mesh.add(this.rightArm);
 
-      const head = new THREE.Mesh(new THREE.SphereGeometry(1.15,10,10), toonMat(colors.head));
-      head.position.y=5.8; addWithOutline(this.mesh, head);
+      // Head — big chibi head (~42% of body height), instantly readable at distance
+      this.headMesh = new THREE.Mesh(flatBox(2.2, 2.4, 2.0), toonMat(colors.head));
+      this.headMesh.position.y = 5.0; addWithOutline(this.mesh, this.headMesh);
 
-      // Wizard hat
-      const hat = new THREE.Mesh(new THREE.ConeGeometry(0.8,2.5,8), toonMat(new THREE.Color(0x1a0033)));
-      hat.position.y=7.9; addWithOutline(this.mesh, hat);
-      this.hatMesh=hat;
+      // Eyes — two dark spheres on the front face
+      const eyeMat = new THREE.MeshBasicMaterial({ color: 0x111111 });
+      const eyeGeo = new THREE.SphereGeometry(0.2, 6, 6);
+      const lEye = new THREE.Mesh(eyeGeo, eyeMat); lEye.position.set(-0.52, 5.15, -1.01);
+      const rEye = new THREE.Mesh(eyeGeo, eyeMat); rEye.position.set( 0.52, 5.15, -1.01);
+      this.mesh.add(lEye); this.mesh.add(rEye);
+
+      // Wizard hat brim — wide flat box gives that classic sorcerer silhouette
+      const brim = new THREE.Mesh(flatBox(2.9, 0.18, 2.7), toonMat(hatColor));
+      brim.position.y = 6.29; addWithOutline(this.mesh, brim);
+
+      // Wizard hat cone — pointy top, iconic from across the dungeon
+      this.hatMesh = new THREE.Mesh(new THREE.ConeGeometry(1.1, 2.0, 8), toonMat(hatColor));
+      this.hatMesh.position.y = 7.38; addWithOutline(this.mesh, this.hatMesh);
       const nc=document.createElement('canvas'); nc.width=256; nc.height=48;
       const ctx=nc.getContext('2d');
       ctx.font='bold 20px monospace'; ctx.fillStyle='#fff'; ctx.textAlign='center';
       ctx.fillText(username.slice(0,18), 128, 32);
       this.nameLabel=new THREE.Mesh(new THREE.PlaneGeometry(8,1.5),
         new THREE.MeshBasicMaterial({ map:new THREE.CanvasTexture(nc), transparent:true, side:THREE.DoubleSide }));
-      this.nameLabel.position.y=8.5; this.mesh.add(this.nameLabel);
+      this.nameLabel.position.y=9.8; this.mesh.add(this.nameLabel);
       this.namePlateMesh=this.nameLabel;
       this.mesh.position.copy(this.position); scene.add(this.mesh);
       this.targetPos=this.position.clone(); this.targetYaw=yaw;
