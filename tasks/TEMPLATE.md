@@ -99,6 +99,11 @@ npm test output here
 
 **All criteria pass: YES / NO**
 
+### Process Friction Notes
+_What made this task harder than it needed to be? Be specific — these feed the DX improvement backlog._
+
+- [Friction point] — [Suggested fix or task to create]
+
 ---
 
 ## Step 4: Deploy & Screenshots
