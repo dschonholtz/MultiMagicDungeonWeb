@@ -90,6 +90,7 @@ test('WASD keys do not move player when rename input is focused', async ({ page 
   await page.goto('/');
   await waitForGame(page);
 
+  await page.locator('#settings-gear').click();
   await page.locator('#rename-input').focus();
   const before = await gameState(page);
 

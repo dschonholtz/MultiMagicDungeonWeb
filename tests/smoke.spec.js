@@ -35,7 +35,7 @@ test('HUD elements are present', async ({ page }) => {
   await expect(page.locator('#spell-0')).toBeVisible();   // Fireball slot
   await expect(page.locator('#spell-1')).toBeVisible();   // Frostbolt slot
   await expect(page.locator('#spell-2')).toBeVisible();   // Telekinesis slot
-  await expect(page.locator('#rename-input')).toBeVisible();
+  await expect(page.locator('#settings-gear')).toBeVisible();
 });
 
 test('localPlayer spawns with full HP and a Guest name', async ({ page }) => {
