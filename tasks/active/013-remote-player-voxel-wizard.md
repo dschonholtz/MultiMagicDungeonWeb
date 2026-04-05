@@ -12,89 +12,89 @@ Three related issues with remote player representations:
 
 ## Diagnosis: Why the Death Loop Happens
 
-Remote players are managed by `MmdPlayer` which wraps `GLTFLoader` + `AnimationMixer`. When another browser tab (also running the game) connects and then goes idle/background, the browser throttles it and the WebSocket drops.
+Remote players are managed by `MmdPlayer` which wraps `GLTFLoader` + `AnimationMixer`. When another browser tab (also running the game) connects and then goes idle/background, the browser throttles it and the WebSocket drops. Without reconnection (Task 011, H-4 finding), the server sees the player leave.
 
 The suspected flow:
 1. Remote player joins → `MmdPlayer` spawned, idle animation plays
 2. Player disconnects (tab backgrounded, closed, or network drop)
-3. Server broadcasts `leave` message → client calls `player.destroy()`
-4. No reconnection (Task 011, H-4 finding) → player leaves and rejoins repeatedly
-5. **Alternate theory**: AnimationMixer is playing a `death` clip incorrectly
+3. Server broadcasts `leave` message → client calls `player.destroy()` or similar
+4. No reconnection on the remote side → player leaves and rejoins repeatedly if tab is alive but unstable
+5. **Alternate theory**: `AnimationMixer` has a `death` clip in `Character_Male_1.gltf` that's being incorrectly triggered — every player might be running the wrong clip
 
 ### What to investigate
-- Does `Character_Male_1.gltf` have a "death" clip? Which clips are available?
-- What clip name is passed to AnimationMixer for remote players?
-- Does the loop stop if you're the only player?
+- Does `Character_Male_1.gltf` have a "death" clip? Which clip names are available?
+- What animation name is passed to `AnimationMixer` for remote players?
+- Is the death loop happening for ALL remote players, or only ones that recently connected/disconnected?
+- Does the loop stop if you're the only player (no other tabs)?
 
 ---
 
 ## Options Considered
 
-### Option A — Fix the animation clip selection only
-If wrong clip name is used (death instead of idle), fix the string.
-**Pros:** Minimal, preserves GLTF look. **Cons:** Doesn't add wizard style.
+### Option A — Fix the animation clip selection
+If the wrong clip is being played (e.g. death instead of idle/walk), find and fix the clip name string.
+**Pros:** Minimal change. If this is the cause, one-line fix.
+**Cons:** Doesn't address the look.
 
-### Option B — Add voxel wizard alongside GLTF (CHOSEN)
-Build `createVoxelWizard(color)` using `createVoxelAsset()`. Wire it up as the remote player
-representation. **Keep the GLTF code intact** — don't delete `MmdPlayer` or the GLTF loader.
-Comment it out / gate it with a `USE_VOXEL_PLAYERS` flag so it can be toggled back easily.
-**Pros:** Wizard look, no AnimationMixer death loop, each player gets hashed color, GLTF preserved.
-**Cons:** Two code paths to maintain (acceptable short-term).
+### Option B — Replace GLTF remote players with voxel wizard
+Build a voxel wizard character (same construction as the dragon — `createVoxelAsset()` with `InstancedMesh` per color) and use it for remote players instead of the GLTF model. Animate with simple bob/walk math, no AnimationMixer.
+**Pros:** Consistent visual style with the dragon. Removes GLTF animation clip issues entirely. Each player gets a distinct toon color (already hashed from their ID). No AnimationMixer dependency.
+**Cons:** More work. Requires designing the wizard voxel shape.
 
-### Option C — Keep GLTF, fix reconnect instead
-**Cons:** Doesn't make them look like wizards. WS reconnect is Task 011.
+### Option C — Keep GLTF but fix reconnect to stop the death loop
+Implement Task 011 (WebSocket reconnection) so remote players don't repeatedly die/rejoin.
+**Pros:** Keeps the existing model quality.
+**Cons:** Doesn't make them look like wizards. Reconnect alone may not fix the animation bug.
+
+**Chosen: Option B** — replace GLTF remote players with a voxel wizard character. This fixes the animation issue by removing AnimationMixer entirely, makes visuals consistent with the dragon, and gives each player a colored wizard that matches the game's aesthetic.
 
 ---
 
-## Important: Preserve the GLTF Player
+## Voxel Wizard Design
 
-**Do NOT delete `MmdPlayer` or the GLTF loading code.**
-The GLTF humanoid may be useful again (e.g. for NPCs, cutscenes, or if voxel wizard is reverted).
-Gate with a flag at the top of the remote-player section:
+Reuse `createVoxelAsset()` from the dragon PR. Design a wizard character ~80 cubes:
 
-```js
-const USE_VOXEL_PLAYERS = true; // set false to revert to GLTF MmdPlayer
+```
+Hat:      tall pointed cone shape — 4 stacked layers decreasing x,z
+Head:     3×3×2 block with dot eyes
+Robe:     3×5×2 torso, slightly flared at bottom
+Arms:     4 cubes each, angled down
+Staff:    6 cube vertical line extending from one hand
+Feet:     flat 2×1 pads
 ```
 
-When `USE_VOXEL_PLAYERS` is true, spawn `createVoxelWizard(hashColor(id))`.
-When false, fall through to the existing `new MmdPlayer(...)` path.
+Colors: use existing `hashColor(playerId)` for the robe hue. Hat = darker shade of same. Eyes = black. Staff = brown.
+
+Animation: bob up/down + gentle y-rotation (no AnimationMixer needed).
 
 ---
 
-## Voxel Wizard Design (~80 cubes)
+## Asset Page Entry
 
-- Hat: tall pointed shape, 4 stacked layers decreasing in size
-- Head: 3×3×2 block with dot eyes
-- Robe: 3×5×2 torso, slightly flared at bottom
-- Arms: 4 cubes each
-- Staff: 6 cube vertical line from one hand
-- Colors: `hashColor(playerId)` for robe hue, darker shade for hat, black eyes
-
-Animation: bob + gentle y-rotation using frame time math. No AnimationMixer.
+Add `'voxel-wizard'` entry to `assetDefs` in `assets/index.html` alongside the dragon. Show the default purple wizard.
 
 ---
 
 ## Success Criteria
 
-1. Remote players show as voxel wizards when `USE_VOXEL_PLAYERS = true`
-2. No death loop — remote players idle-bob smoothly
-3. Each remote player has their hashed color on the robe
-4. Voxel wizard entry in `/assets` viewer
-5. GLTF `MmdPlayer` code preserved and reachable via flag
-6. All 28 Playwright tests pass
+1. Remote players show as voxel wizards, not GLTF humanoids
+2. No death loop animation — remote players idle-bob smoothly
+3. Each remote player has their hashed color applied to the robe
+4. Voxel wizard entry appears in `/assets` viewer
+5. All 28 Playwright tests pass
 
 ---
 
 ## Plan
 
-1. Investigate `Character_Male_1.gltf` animation clips — find root cause of death loop
-2. Design `WIZARD_VOXELS` array (~80 cubes)
-3. Write `createVoxelWizard(color)` using `createVoxelAsset()`
-4. Add `USE_VOXEL_PLAYERS` flag; gate spawn logic
-5. Preserve existing `MmdPlayer` path under the flag (comment, don't delete)
-6. Wire remote player bob/rotate update each frame
-7. Add `'voxel-wizard'` entry to `assets/index.html`
-8. `npm test` — 28/28
+1. Investigate `Character_Male_1.gltf` — list animation clip names, find what's being played for remote players
+2. If it's an animation clip bug, note it; then proceed with voxel replacement regardless
+3. Design `WIZARD_VOXELS` array using `createVoxelAsset()` pattern
+4. Write `createVoxelWizard(color)` → calls `createVoxelAsset` with wizard palette, robe tinted by `color`
+5. Replace `new MmdPlayer(...)` calls with `createVoxelWizard(hashColor(id))`
+6. Wire remote player update to bob/rotate the group each frame
+7. Add `'voxel-wizard'` to `assets/index.html` asset list
+8. `npm test` — 28/28 pass
 9. Commit
 
 ---

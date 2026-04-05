@@ -6,6 +6,10 @@ A browser-based multiplayer magic dungeon game built in vanilla Three.js. Player
 
 Sister project: [MultiMagicDungeon (UE5)](https://github.com/dschonholtz/MultiMagicDungeon)
 
+## Setup
+
+Run `npm run setup-worktrees` once after cloning. New worktrees will auto-install node_modules via the post-checkout git hook.
+
 ## How to pick up current work
 
 1. Check `tasks/active/` — the current in-flight task file has the full context
