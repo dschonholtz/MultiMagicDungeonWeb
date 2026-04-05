@@ -126,80 +126,15 @@ function hashColor(id) {
 
 ## Common gotchas
 - **Delta time**: always use `dt` from `clock.getDelta()`, never frame counts
-- **Memory leaks**: dispose geometry and material when removing meshes
+- **Memory leaks**: dispose geometry and material when removing meshes (shared geo/mat in caches must NOT be disposed per-instance)
 - **Script type**: `<script type="module">` — top-level `await` is fine
 - **No build step**: CDN imports only (Three.js r128 via importmap at top of script)
 - **`keys` Set**: holds `e.code` values (e.g., `'KeyW'`, `'Space'`, `'Digit1'`), not `e.key`
-
-## Mandatory Pre-Commit Checklist
-
-Run ALL of these before every commit. Do not skip any step.
-
-- [ ] `node --check index.html` passes (no syntax errors)
-- [ ] `grep -c "<<<<<<" index.html` returns 0 (no merge conflict markers)
-- [ ] HTTP server returns 200: `curl -s -o /dev/null -w "%{http_code}" http://localhost:3000/`
-- [ ] Browser console shows no EXCEPTION messages after reload (use `read_console_messages`)
-- [ ] Screenshot confirms scene is visible (not black screen)
-- [ ] If multiplayer change: second tab shows correct remote player model (screenshot both tabs)
-
-### Why these checks exist
-A prior session committed `<<<<<<` merge markers to main — the session checked its own worktree (clean) instead of the file the HTTP server was actually serving. The game broke for everyone with a SyntaxError. Another session claimed "pushed and working" without loading the page. These checks are non-negotiable.
-
-## Portal gotchas
-
-### TorusGeometry orientation
-`TorusGeometry` faces the **Z axis** by default — the hole of the ring is aligned with Z. If the portal is placed on the west wall (player approaches from the east walking west along the X axis), the player will see the torus edge-on (a thin line) instead of the ring face. Fix:
-```javascript
-portalGroup.rotation.y = Math.PI / 2; // rotate so ring faces along X axis
-```
-Always check which axis the player approaches from and rotate accordingly.
-
-### Portal ring x-tilt (DO NOT add rotation.x to portal groups)
-Adding `group.rotation.x` to a wall portal makes the ring face partly toward the floor — it shows as a squashed ellipse instead of a full circle. For wall portals, leave `rotation.x = 0`. Only apply x-tilt for portals meant to lie flat on the floor.
-
-### Portal ring sizing — scale with dungeon dimensions
-A `TorusGeometry(2.0, ...)` ring (4-unit diameter) is nearly invisible across an 80×60-unit dungeon room. Use at least **radius 3.5** (7-unit diameter) so players can spot the portal from spawn. The inner void plane should be `≥ diameter` of the ring (e.g., `PlaneGeometry(7, 7)` for a radius-3.5 ring).
-
-### Portal placement inside dungeon walls
-The dungeon main room spans roughly x=[-40, 40]. Placing a portal at x=-55 puts it outside the west wall — unreachable. Keep portals at least 10 units inside the nearest wall (e.g., x=-30 for a west-wall portal in this dungeon).
-
-### Gradient map filter requirement
-The toon shading `DataTexture` used as `gradientMap` **must** have `NearestFilter` on both min and mag filters, or Three.js will blur the step edges and the cel-shading bands look washed out:
-```javascript
-tex.minFilter = THREE.NearestFilter;
-tex.magFilter = THREE.NearestFilter;
-tex.needsUpdate = true;
-```
-Without this, `MeshToonMaterial` silently degrades to smooth shading.
-
-### 3-light rig for readable characters
-A single directional key light leaves remote players flat. Add:
-```javascript
-// Fill: cool blue from opposite direction
-const fillLight = new THREE.DirectionalLight(0x8888ff, 0.3);
-// Rim: warm orange from behind to separate players from background
-const rimLight = new THREE.DirectionalLight(0xff8844, 0.6);
-rimLight.position.set(0, 20, -40);
-```
-This creates visible depth separation without post-processing.
-
-## Target Module Architecture
-
-The current monolith (index.html ~1000+ lines) is technical debt. Target structure (no build step needed — native ES modules):
-
-```
-src/
-  constants.js   — all SCREAMING_SNAKE constants
-  dungeon.js     — DEFAULT_DUNGEON, renderDungeon()
-  spells.js      — SPELL_DEFS, MmdSpell
-  player.js      — MmdPlayer
-  network.js     — MmdNetworkClient
-  portals.js     — createPortal(), portal animation
-  ui.js          — HUD, rename panel, player count
-  game.js        — scene, camera, renderer, animate loop
-index.html       — loads src/game.js as <script type="module">
-```
-
-Use `import { THREE } from` via importmap for CDN Three.js. No webpack/vite needed.
-
-**Do not split until the game is playable end-to-end.** Current monolith is acceptable for Vibe Jam sprint.
+- **toon gradientMap**: must set both `minFilter` AND `magFilter` to `THREE.NearestFilter` or bands blur into smooth gradient
+- **WASD focus steal**: any `<input>` that accepts keydown must call `e.stopPropagation()` to block movement keys from firing while typing
+- **Portal scale**: dungeon units are large (PLAYER_HEIGHT=5); a TorusGeometry radius of 2 is invisible at gameplay distance — use ≥4
+- **Portal orientation**: `rotation.x` on the group tilts the whole portal; set `rotation.y = Math.PI/2` separately to face it along an axis
+- **WebSocket idle drops**: proxies kill silent connections after ~60s; send a `{type:'ping'}` every 30s to keep the socket alive
+- **Lerp clamp**: interpolation alpha must be `Math.min(dt * speed, 1.0)` — unclamped values >1 overshoot and oscillate
+- **Lighting ratio**: ambient > 0.5 flattens toon shading bands; keep ambient ≤ 0.4 and boost directional to ≥ 0.6 for visible cel steps
+- **3-light rig**: fill light position `(0, -10, 0)` (below scene) gives cool under-fill; rim at `(0, 20, -40)` separates players from background
