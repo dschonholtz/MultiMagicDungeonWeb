@@ -26,10 +26,22 @@
   #rename-btn { padding: 4px 10px; background: #555; border: none; color: #fff; font-size: 12px; font-family: monospace; border-radius: 3px; cursor: pointer; }
   #rename-btn:hover { background: #777; }
   #crosshair { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: rgba(255,255,255,0.7); font-size: 18px; user-select: none; }
+  #game-canvas { touch-action: none; }
+  #joystick-outer { display: none; position: fixed; bottom: 30px; left: 30px; width: 200px; height: 200px; border-radius: 50%; background: rgba(255,255,255,0.07); border: 2px solid rgba(255,255,255,0.22); touch-action: none; z-index: 100; }
+  #joystick-knob { position: absolute; width: 80px; height: 80px; border-radius: 50%; background: rgba(255,255,255,0.30); border: 2px solid rgba(255,255,255,0.45); top: 50%; left: 50%; transform: translate(-50%,-50%); pointer-events: none; }
+  #mobile-spells { display: none; position: fixed; bottom: 30px; right: 20px; flex-direction: column; gap: 10px; z-index: 100; }
+  .mbtn { width: 70px; height: 70px; border-radius: 10px; background: rgba(0,0,0,0.72); border: 2px solid #888; color: #fff; font-size: 26px; display: flex; align-items: center; justify-content: center; touch-action: none; user-select: none; cursor: pointer; }
+  .mbtn.cooling { opacity: 0.4; border-color: #444; }
 </style>
 </head>
 <body>
 <canvas id="game-canvas"></canvas>
+<div id="joystick-outer"><div id="joystick-knob"></div></div>
+<div id="mobile-spells">
+  <div class="mbtn" id="mbtn-fireball">&#x1F525;</div>
+  <div class="mbtn" id="mbtn-frostbolt">&#x2744;&#xFE0F;</div>
+  <div class="mbtn" id="mbtn-telekinesis">&#x1F300;</div>
+</div>
 <div id="hud">
   <div id="health-bar-wrap">
     <div id="health-label">HP</div>
@@ -385,6 +397,7 @@ class MmdPlayer {
     if(keys['KeyS']||keys['ArrowDown'])  dir.z+=1;
     if(keys['KeyA']||keys['ArrowLeft'])  dir.x-=1;
     if(keys['KeyD']||keys['ArrowRight']) dir.x+=1;
+    dir.x+=touchMoveX; dir.z+=touchMoveZ; // virtual joystick (mobile)
     if(dir.lengthSq()>0) {
       dir.normalize().multiplyScalar(PLAYER_SPEED*dt);
       dir.applyEuler(new THREE.Euler(0,yaw,0));
@@ -582,6 +595,8 @@ function castSpell(type) {
 // Input (single unified handler)
 const keys={};
 let yaw=0, pitch=0, isLocked=false;
+// Virtual joystick direction (mobile) — read by updateLocal each frame
+let touchMoveX=0, touchMoveZ=0;
 document.addEventListener('keydown',e=>{
   keys[e.code]=true;
   if(e.code==='KeyE'&&isLocked) castSpell('telekinesis');
@@ -599,8 +614,82 @@ document.addEventListener('mousedown',e=>{
   e.preventDefault();
 });
 document.addEventListener('contextmenu',e=>e.preventDefault());
-canvas.addEventListener('click',()=>{ if(gameStarted) canvas.requestPointerLock(); });
+canvas.addEventListener('click',()=>{ if(gameStarted){ const p=canvas.requestPointerLock(); if(p&&p.catch) p.catch(()=>{}); } });
 document.addEventListener('pointerlockchange',()=>{ isLocked=document.pointerLockElement===canvas; });
+document.addEventListener('mozpointerlockchange',()=>{ isLocked=(document.mozPointerLockElement||document.pointerLockElement)===canvas; });
+
+// === MOBILE TOUCH CONTROLS ===
+// Activated only on touch-capable devices; desktop keyboard/mouse unchanged
+if ('ontouchstart' in window) {
+  document.getElementById('joystick-outer').style.display = 'block';
+  document.getElementById('mobile-spells').style.display = 'flex';
+  document.getElementById('spells').style.display = 'none';
+
+  // Spell buttons
+  [['mbtn-fireball','fireball'],['mbtn-frostbolt','frostbolt'],['mbtn-telekinesis','telekinesis']].forEach(([id,type])=>{
+    document.getElementById(id).addEventListener('touchstart',e=>{ e.preventDefault(); castSpell(type); },{passive:false});
+  });
+
+  // Virtual joystick (bottom-left)
+  const jOuter=document.getElementById('joystick-outer');
+  const jKnob=document.getElementById('joystick-knob');
+  const J_RADIUS=100; // outer radius in px (200px diameter / 2)
+  let jTouchId=null, jCx=0, jCy=0;
+
+  jOuter.addEventListener('touchstart',e=>{
+    e.preventDefault();
+    if(jTouchId!==null) return;
+    const t=e.changedTouches[0];
+    jTouchId=t.identifier;
+    const r=jOuter.getBoundingClientRect();
+    jCx=r.left+r.width/2; jCy=r.top+r.height/2;
+  },{passive:false});
+
+  // Camera drag: touches starting on the right half of the canvas
+  let camTouchId=null, camPrevX=0, camPrevY=0;
+  canvas.addEventListener('touchstart',e=>{
+    e.preventDefault();
+    for(const t of e.changedTouches){
+      if(t.clientX>window.innerWidth/2 && camTouchId===null){
+        camTouchId=t.identifier; camPrevX=t.clientX; camPrevY=t.clientY;
+      }
+    }
+  },{passive:false});
+
+  document.addEventListener('touchmove',e=>{
+    e.preventDefault();
+    for(const t of e.changedTouches){
+      if(t.identifier===jTouchId){
+        const dx=t.clientX-jCx, dy=t.clientY-jCy;
+        const d=Math.sqrt(dx*dx+dy*dy);
+        const cx=d>J_RADIUS?(dx/d)*J_RADIUS:dx;
+        const cy=d>J_RADIUS?(dy/d)*J_RADIUS:dy;
+        jKnob.style.transform=`translate(calc(-50% + ${cx}px),calc(-50% + ${cy}px))`;
+        touchMoveX=cx/J_RADIUS; touchMoveZ=cy/J_RADIUS; // screen Y+ = world Z+ = backward
+      }
+      if(t.identifier===camTouchId){
+        yaw-=(t.clientX-camPrevX)*0.005;
+        pitch-=(t.clientY-camPrevY)*0.005;
+        pitch=Math.max(-Math.PI/3,Math.min(Math.PI/3,pitch));
+        camPrevX=t.clientX; camPrevY=t.clientY;
+      }
+    }
+  },{passive:false});
+
+  const _resetJoystick=()=>{ jTouchId=null; touchMoveX=touchMoveZ=0; jKnob.style.transform='translate(-50%,-50%)'; };
+  document.addEventListener('touchend',e=>{
+    for(const t of e.changedTouches){
+      if(t.identifier===jTouchId) _resetJoystick();
+      if(t.identifier===camTouchId) camTouchId=null;
+    }
+  });
+  document.addEventListener('touchcancel',e=>{
+    for(const t of e.changedTouches){
+      if(t.identifier===jTouchId) _resetJoystick();
+      if(t.identifier===camTouchId) camTouchId=null;
+    }
+  });
+}
 
 // === PORTAL CHECKS ===
 // Portal checks (travel guard + 2D distance - fixes Y gap bug)
