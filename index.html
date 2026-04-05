@@ -128,13 +128,15 @@ const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerH
 const clock  = new THREE.Clock();
 
 // Lighting
-const ambient = new THREE.AmbientLight(0x221122, 0.6);
+// Ambient kept low so torches and directional light carve real shadows
+const ambient = new THREE.AmbientLight(0x221122, 0.35);
 scene.add(ambient);
-const torch1  = new THREE.PointLight(0xff6600, 1.5, 60);
+const torch1  = new THREE.PointLight(0xff6600, 1.8, 70);
 torch1.position.set(20, 10, 20); scene.add(torch1);
-const torch2  = new THREE.PointLight(0x4444ff, 1.0, 60);
+const torch2  = new THREE.PointLight(0x4444ff, 1.2, 70);
 torch2.position.set(-30, 10, -20); scene.add(torch2);
-const dirLight = new THREE.DirectionalLight(0xffeedd, 0.4);
+// Boosted key light for sharper toon-shading contrast on player geometry
+const dirLight = new THREE.DirectionalLight(0xffeedd, 0.7);
 dirLight.position.set(0, 40, 0); scene.add(dirLight);
 // Fill light from opposite side — cool blue to contrast warm key
 const fillLight = new THREE.DirectionalLight(0x8888ff, 0.3);
