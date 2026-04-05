@@ -631,6 +631,27 @@ makeSpikeTrap(80, -45);
 makeSpikeTrap(80, -56);
 
 // === PORTAL SYSTEM ===
+// VIBEVERSE PORTAL SPEC (by @levelsio)
+// Make an exit portal players can walk into (label: "Vibe Jam Portal").
+// On entry, redirect to: https://jam.pieter.com/portal/2026
+// Pass GET query params:
+//   ?username= (player name)
+//   ?color=    (player color in hex)
+//   ?speed=    (meters per second)
+//   ?ref=      (URL of this game, so they can portal back)
+// Optional: avatar_url, team, hp, speed_x/y/z, rotation_x/y/z
+//
+// The portal redirector adds ?portal=true to all URLs it forwards to.
+//
+// START PORTAL: when this game receives ?portal=true AND ?ref=,
+// spawn a portal at the player's starting position that goes BACK
+// to the ref URL. Pass all original params back when returning.
+//
+// IMPORTANT: No loading screens, no input screens — instant load
+// when arriving from a portal (?portal=true).
+//
+// Sample code: https://gist.github.com/levelsio/ffdbfe356b421b97a31664ded4bc961d
+
 // Portal helpers
 function makeLabelCanvas(text) {
   const c = document.createElement('canvas'); c.width=256; c.height=64;
@@ -704,7 +725,7 @@ const exitPortalGroup = createPortal(0x00ff00, new THREE.Vector3(-30, PLAYER_HEI
 exitPortalGroup.rotation.y = Math.PI / 2; // faces east toward spawn at (0,0,0)
 let startPortalGroup = null, startPortalReady = false;
 if (incomingPortal && safeRef) {
-  startPortalGroup = createPortal(0xff0000, new THREE.Vector3(0, PLAYER_HEIGHT, 25), null);
+  startPortalGroup = createPortal(0xff0000, new THREE.Vector3(0, PLAYER_HEIGHT, 25), 'RETURN PORTAL');
   setTimeout(() => { startPortalReady = true; }, START_PORTAL_DELAY);
 }
 
@@ -1334,7 +1355,7 @@ function checkPortals() {
   if(dExit<PORTAL_PRELOAD_DIST&&!portalPreloaded) {
     portalPreloaded=true;
     const ifr=document.createElement('iframe');
-    ifr.src=PORTAL_EXIT_URL; ifr.style.cssText='display:none;position:absolute';
+    ifr.src=PORTAL_EXIT_URL; ifr.sandbox=''; ifr.style.cssText='display:none;position:absolute';
     document.body.appendChild(ifr);
   }
   if(dExit<PORTAL_ENTER_DIST) {
@@ -1342,7 +1363,7 @@ function checkPortals() {
     // Use window.location.host (hostname:port, no protocol) so safeRef's REF_PATTERN can validate it.
     // window.location.origin includes the protocol (https://...) which REF_PATTERN rejects, causing
     // the return portal to never appear for visitors who came from this dungeon.
-    const p=new URLSearchParams({portal:'true',ref:window.location.host,username:localPlayer.username,color:'white',speed:PLAYER_SPEED.toFixed(2),hp:Math.round(localPlayer.hp)});
+    const p=new URLSearchParams({portal:'true',ref:window.location.host,username:localPlayer.username,color:'#8844cc',speed:PLAYER_SPEED.toFixed(2),hp:Math.round(localPlayer.hp)});
     window.location.href=PORTAL_EXIT_URL+'?'+p; return;
   }
   if(startPortalGroup&&startPortalReady) {
@@ -1350,7 +1371,7 @@ function checkPortals() {
     if(dStart<PORTAL_ENTER_DIST) {
       traveling=true; net.disconnect();
       const scheme=safeRef.startsWith('localhost')?'http':'https';
-      const p=new URLSearchParams({portal:'true',username:localPlayer.username,color:incomingColor,speed:PLAYER_SPEED.toFixed(2),hp:Math.round(localPlayer.hp)});
+      const p=new URLSearchParams({portal:'true',username:localPlayer.username,color:incomingColor,speed:PLAYER_SPEED.toFixed(2),hp:Math.round(localPlayer.hp),ref:window.location.host});
       window.location.href=scheme+'://'+safeRef+'/?'+p;
     }
   }
@@ -1377,6 +1398,8 @@ if(safeRef){
   el.style.display='block'; el.textContent='Arrived from: '+safeRef;
   setTimeout(()=>{el.style.display='none';},6000);
 }
+// Portal arrivals: hide rename panel for instant load (spec: no input screens)
+if(incomingPortal){ document.getElementById('rename-panel').style.display='none'; }
 // Preload character model — cloned per remote player via SkeletonUtils once loaded
 new THREE.GLTFLoader().load('/models/Character_Male_1.gltf',
   gltf => { _charGltf = gltf; },
