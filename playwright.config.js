@@ -19,7 +19,15 @@ export default defineConfig({
   },
 
   projects: [
-    { name: 'chromium', use: { ...devices['Desktop Chrome'] } },
+    {
+      name: 'chromium',
+      use: {
+        ...devices['Desktop Chrome'],
+        launchOptions: {
+          args: ['--no-sandbox', '--disable-dev-shm-usage', '--disable-extensions'],
+        },
+      },
+    },
   ],
 
   // Starts vite automatically before tests run; reuses if already running.
@@ -27,7 +35,7 @@ export default defineConfig({
   webServer: {
     command: 'npx vite --port 3000 --strictPort',
     port: 3000,
-    reuseExistingServer: true,
+    reuseExistingServer: false,
     timeout: 15_000,
   },
 });

@@ -36,7 +36,7 @@ test('portal hint text mentions VIBE JAM 2026', async ({ page }) => {
   await page.goto('/');
   await waitForGame(page);
 
-  // Teleport 25 units away: inside hint range (<75) but outside enter range (>18)
+  // Stay outside PORTAL_ENTER_DIST (18) but inside hint range (~75)
   await teleport(page, PORTAL_X + 25, PORTAL_Z);
   await page.waitForTimeout(150);
 

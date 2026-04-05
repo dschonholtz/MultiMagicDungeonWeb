@@ -6,12 +6,10 @@ import { test, expect } from '@playwright/test';
 import { waitForGame, gameState, enableSpells, castSpell } from './helpers.js';
 
 // SPELL_DEFS from the game (duplicated here for assertion constants)
-// maxLifeMs is a safety fallback (6000ms); spells expire primarily by maxDist.
-// effectiveLifeMs = maxDist / speed (approximate time to reach distance cap).
 const SPELL = {
-  fireball:    { maxLifeMs: 6000, maxDist: 80,  speed: 22, cooldownMs:  666 },
-  frostbolt:   { maxLifeMs: 6000, maxDist: 60,  speed: 14, cooldownMs: 1000 },
-  telekinesis: { maxLifeMs: 6000, maxDist: 90,  speed: 18, cooldownMs: 1500 },
+  fireball:    { maxLifeMs: 6000, maxDist: 80, speed: 22, cooldownMs:  666 },
+  frostbolt:   { maxLifeMs: 6000, maxDist: 60, speed: 14, cooldownMs: 1000 },
+  telekinesis: { maxLifeMs: 6000, maxDist: 90, speed: 18, cooldownMs: 1500 },
 };
 
 test('fireball projectile is created on cast', async ({ page }) => {
@@ -41,11 +39,11 @@ test('fireball disappears within its maxLifeMs', async ({ page }) => {
   await enableSpells(page);
   await castSpell(page, 'fireball');
 
-  // Spells expire primarily by distance (maxDist/speed ≈ 3.6s for fireball).
-  // Use waitForFunction instead of a fixed timeout to avoid flakes.
+  // Fireball expires by distance (maxDist=80 at speed=22 ≈ 3.6s) or maxLifeMs (6s).
+  // Poll until no live fireballs remain rather than using a fixed timeout.
   await page.waitForFunction(
     () => window.__TEST__.state().spells.filter(s => s.type === 'fireball' && s.alive).length === 0,
-    { timeout: 8_000 }
+    { timeout: SPELL.fireball.maxLifeMs + 2000 }
   );
 
   const state = await gameState(page);
@@ -119,10 +117,10 @@ test('fireball cooldown clears after cooldownMs elapses', async ({ page }) => {
   await enableSpells(page);
   await castSpell(page, 'fireball');
 
-  // Wait for cooldown to clear (game loop timing can be imprecise)
+  // Poll until the game loop ticks the cooldown down to 0
   await page.waitForFunction(
     () => (window.__TEST__.state().localPlayer?.cooldowns?.fireball ?? 1) === 0,
-    { timeout: 5_000 }
+    { timeout: SPELL.fireball.cooldownMs + 2000 }
   );
 
   const state = await gameState(page);
