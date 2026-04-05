@@ -61,91 +61,105 @@
 - **Location:** Line 112
 - **Description:** `incomingSpeed` is parsed from URL params with min/max clamping but never applied to `PLAYER_SPEED` or any game logic. Dead code.
 - **ESLint:** `warning: 'incomingSpeed' is assigned a value but never used (no-unused-vars)`
-- **Suggested fix:** Either apply it or remove the line.
+- **Suggested fix:** Either apply it (`const effectiveSpeed = incomingSpeed;` and use in `updateLocal`) or remove the line.
 
 #### M-2: Three unused material factory functions
 - **Location:** Lines 317-325 (`makeWallMat`, `makeFloorMat`, `makeCeilMat`)
 - **Description:** These were likely intended to be shared material constructors but the dungeon renderer creates materials inline instead. Dead code.
+- **ESLint:** `warning: 'makeWallMat'/'makeFloorMat'/'makeCeilMat' is defined but never used (no-unused-vars)`
 - **Suggested fix:** Remove the functions, or refactor `renderDungeon` to use them (which would also fix H-2).
 
 #### M-3: Empty catch block in WebSocket message handler
 - **Location:** Line 1015
-- **Description:** Silently swallows all errors including legitimate bugs in message handling code.
-- **Suggested fix:** `catch(err) { console.warn('[Net] message error:', err); }`
+- **Description:** `this.ws.onmessage = (e) => { try { this._handle(JSON.parse(e.data)); } catch(err) {} }` — silently swallows all errors including legitimate bugs in message handling code. Makes debugging multiplayer issues extremely difficult.
+- **ESLint:** `warning: Empty block statement (no-empty)`
+- **Suggested fix:** At minimum log the error: `catch(err) { console.warn('[Net] message error:', err); }`
 
 #### M-4: `dist2D` called every frame for multiple objects without caching
 - **Location:** Lines 1226, 1228-1254, 1369-1401
-- **Description:** 7+ `sqrt` calls per frame for proximity checks. Use squared distance for threshold comparisons.
-- **Suggested fix:** Use `distSq2D` comparisons; only compute actual distance when squared check passes.
+- **Description:** `dist2D` is called for exit portal, start portal, each chest, each spike trap, and altar proximity — all every frame. Each call computes a square root. With 3 traps + 2 chests + portal + altar = 7 sqrt calls/frame.
+- **Suggested fix:** Use `distSq2D` (squared distance) comparisons for the common case. Only compute actual distance when the squared check passes threshold.
 
 #### M-5: Minimap redraws full canvas every 3rd frame unnecessarily
 - **Location:** Lines 1409-1449
-- **Description:** Dungeon layout is static — only player positions change. Full redraw wastes ~80% of minimap draw calls.
-- **Suggested fix:** Render static dungeon to an offscreen canvas once; composite with player dots each update.
+- **Description:** The minimap clears and redraws all rooms, corridors, portal, and player dots from scratch every 3 frames. The dungeon layout is static — only player positions change.
+- **Suggested fix:** Render the static dungeon layout to an offscreen canvas once, then composite it with player dots each update. This would cut minimap draw calls by ~80%.
 
 #### M-6: No `dispose()` for portal group textures on page unload
 - **Location:** Lines 637-696 (`createPortal`)
-- **Description:** Portal creates canvas textures, particle geometries, and multiple materials that are never disposed.
-- **Suggested fix:** Add a `destroyPortal(group)` function.
+- **Description:** Portal groups create canvas textures, particle geometries, and multiple materials. These are never disposed. While this doesn't matter for a single page session, if the game ever becomes an SPA component, this would be a memory leak.
+- **Suggested fix:** Add a `destroyPortal(group)` function that traverses and disposes, similar to `MmdPlayer.destroy()`.
 
 #### M-7: `_minimapFrame` integer overflow after extended play
 - **Location:** Line 1214, 1410
-- **Description:** Technically harmless (overflows after millions of years at 60fps) but worth noting.
+- **Description:** `_minimapFrame` increments every frame with no reset. At 60fps, it overflows `Number.MAX_SAFE_INTEGER` after ~4.7 million years, so technically harmless — but the modulo check `% 3 === 0` would still work. This is a nitpick.
+- **Suggested fix:** None needed, noted for completeness.
 
 #### M-8: Spike trap damage applies based on proximity, not actual spike state
 - **Location:** Lines 1387-1389
-- **Description:** Damage applies if `d < 8` during `hold` state, but player could have moved away since trigger.
-- **Suggested fix:** Re-check `d < 5` during hold, or track which player triggered the trap.
+- **Description:** During the `hold` state, damage is applied if `d < 8`, but the player could have moved away between `rising` trigger (also `d < 8`) and the `hold` phase. The trap should re-check distance or track which player triggered it.
+- **Suggested fix:** Re-check `d < 5` (tighter radius) during hold, or only damage if player is actually standing on the pressure plate area.
 
 #### M-9: `hashColor` produces visually similar colors for similar IDs
 - **Location:** Lines 719-728
-- **Description:** Hash function can produce similar hues for IDs differing by one character (e.g. "player1" vs "player2").
-- **Suggested fix:** Use golden-ratio hue spacing based on player join order.
+- **Description:** The hash function `h = (h * 31 + charCode) | 0` with `% 360` can produce similar hues for IDs that differ by only one character (e.g., "player1" vs "player2"). With few players this is fine; with 10+ it could make players hard to distinguish.
+- **Suggested fix:** Use a better hash distribution or golden-ratio hue spacing based on player join order.
 
 #### M-10: `renderer.shadowMap.enabled = true` but no shadows are cast
 - **Location:** Line 172
-- **Description:** Shadow mapping enabled but no light has `castShadow = true` and no mesh has `receiveShadow = true`. Wastes GPU cycles.
-- **Suggested fix:** Remove `renderer.shadowMap.enabled = true`.
+- **Description:** Shadow mapping is enabled on the renderer but no light has `castShadow = true` and no mesh has `receiveShadow = true`. This wastes GPU cycles on shadow map setup per frame.
+- **Suggested fix:** Either remove `renderer.shadowMap.enabled = true` or implement actual shadow casting for torches/player.
 
 ### Low
 
 #### L-1: `mozpointerlockchange` event listener is obsolete
 - **Location:** Line 1133
-- **Suggested fix:** Remove — standard `pointerlockchange` covers all modern browsers.
+- **Description:** The `moz` prefix for pointer lock was removed from Firefox years ago. The standard `pointerlockchange` event (line 1132) covers all modern browsers.
+- **Suggested fix:** Remove the `mozpointerlockchange` listener.
 
 #### L-2: Hardcoded WebSocket URL makes local development awkward
 - **Location:** Line 77
-- **Suggested fix:** `const WS_URL = location.hostname === 'localhost' ? 'ws://localhost:8080' : 'ws://5.161.208.234:8080';`
+- **Description:** `WS_URL` is hardcoded to `ws://5.161.208.234:8080`. Developers must manually edit this for local testing.
+- **Suggested fix:** Auto-detect: `const WS_URL = location.hostname === 'localhost' ? 'ws://localhost:8080' : 'ws://5.161.208.234:8080';`
 
 #### L-3: `requestPointerLock` error handling uses `.catch(()=>{})`
 - **Location:** Line 1131
-- **Suggested fix:** `.catch(e => console.debug('[Input] pointer lock:', e))`
+- **Description:** `const p = canvas.requestPointerLock(); if(p && p.catch) p.catch(()=>{});` — silently swallows pointer lock errors. Some browsers throw on repeated rapid-fire lock requests.
+- **Suggested fix:** Log the error for debugging: `.catch(e => console.debug('[Input] pointer lock:', e))`
 
 #### L-4: CSS `touch-action: none` on `#game-canvas` duplicated
 - **Location:** Lines 10, 32
+- **Description:** `#game-canvas` gets `display: block` from line 10 and `touch-action: none` from line 32 as a separate rule. Minor duplication.
 - **Suggested fix:** Merge into one `#game-canvas` rule block.
 
 #### L-5: Name label canvas allocates 256x48 per player without atlas
 - **Location:** Lines 840-847
-- **Description:** 20 players = 20 separate texture uploads for name labels.
-- **Suggested fix:** Shared name-label texture atlas (not urgent at current player counts).
+- **Description:** Each remote player gets a dedicated 256x48 canvas texture for their name label. With 20 players, that's 20 separate texture uploads.
+- **Suggested fix:** For scale, consider a shared name-label texture atlas. Not urgent at current player counts.
 
 #### L-6: `setInterval` for move sync not cleared on page unload
 - **Location:** Line 1032
+- **Description:** The 20Hz move interval (`this._moveInterval`) is only cleared on `ws.onclose` or `disconnect()`. If the page is closed without clean disconnection, the interval runs until GC.
 - **Suggested fix:** Add `window.addEventListener('beforeunload', () => net.disconnect())`.
 
 #### L-7: `Three.LuminanceFormat` deprecated in newer Three.js
 - **Location:** Line 710
-- **Description:** Safe on r128 but blocks future upgrades. Replace with `THREE.RedFormat` when upgrading.
+- **Description:** `THREE.LuminanceFormat` is used for the toon gradient map. This format was deprecated in Three.js r132 and removed in later versions. Currently safe on r128 but blocks upgrades.
+- **Suggested fix:** When upgrading Three.js, replace with `THREE.RedFormat` and adjust shader accordingly.
 
 #### L-8: `#interact-hint` has `pointer-events: none` inherited from `#hud` but has click handler
 - **Location:** Lines 11 (CSS), 29 (CSS), 1213 (JS)
-- **Description:** `#hud` sets `pointer-events: none`. `#interact-hint` is a child and has a `touchstart` listener but never overrides `pointer-events` to `all`. Touch handler will **never fire** on mobile.
-- **Suggested fix:** Add `pointer-events: all;` to `#interact-hint` CSS — same pattern as `#rename-panel` (line 24).
+- **Description:** `#hud` sets `pointer-events: none` (line 11). `#interact-hint` is a child of `#hud` and has a `touchstart` event listener (line 1213) but never overrides `pointer-events` to `all`. The touch handler will never fire on mobile.
+- **Suggested fix:** Add `pointer-events: all;` to `#interact-hint` CSS, similar to how `#rename-panel` (line 24) does it.
 
 ---
 
 ## Runtime Observations (Option B)
+
+### Console Logs
+- No JavaScript errors or warnings in console during normal gameplay
+- Vite HMR connection established successfully
+- One `[vite] server connection lost` message observed (transient, reconnected)
 
 ### Network Requests
 | Request | Status | Notes |
@@ -153,39 +167,81 @@
 | `GET /` | 200 OK | Page loads correctly |
 | `GET three.min.js` (CDN) | 200 | Three.js loaded from cdnjs |
 | `GET GLTFLoader.js` (CDN) | 200 | Loader from jsdelivr |
+| `GET SkeletonUtils.js` (CDN) | 200 | Utils from jsdelivr |
 | `GET /models/Character_Male_1.gltf` | 200 OK | GLTF model loaded |
 | `GET https://jam.pieter.com/portal/2026` | **404 Not Found** | Portal preload iframe target is dead |
+| `GET http://localhost:3000/` (second) | **ERR_CONNECTION_REFUSED** | Likely stale HMR reconnect attempt |
 
-### Console
-- No JavaScript errors during normal gameplay
-- One transient `[vite] server connection lost` (reconnected)
+### Visual Observations (Screenshot)
+- Game renders correctly: dungeon walls, floor, ceiling visible
+- HUD elements present: HP bar, player count ("4 players in dungeon"), minimap, spell bar
+- Crosshair centered
+- Spike traps visible in foreground
+- No visual glitches or rendering artifacts
 
 ---
 
 ## ESLint Static Analysis (Option C)
 
+### Configuration
 ```
-5 problems (0 errors, 5 warnings)
-  'incomingSpeed' assigned but never used
-  'makeWallMat' defined but never used
-  'makeFloorMat' defined but never used
-  'makeCeilMat' defined but never used
-  Empty block statement (catch block)
+eslint@8.57.1 --no-eslintrc --env browser,es2021
+--parser-options=ecmaVersion:2021,sourceType:script
+--global THREE,WebSocket
 ```
 
-Codebase is syntactically clean — 0 errors.
+### Rules Applied
+`no-unused-vars`, `no-undef`, `no-redeclare`, `eqeqeq`, `no-constant-condition`, `no-unreachable`, `no-empty`, `no-extra-semi`, `no-dupe-keys`, `no-duplicate-case`, `no-loss-of-precision`, `use-isnan`, `valid-typeof`, `no-self-assign`, `no-self-compare`
+
+### Raw Output
+```
+/tmp/mmd_review.js
+   42:7   warning  'incomingSpeed' is assigned a value but never used  no-unused-vars
+  247:10  warning  'makeWallMat' is defined but never used             no-unused-vars
+  250:10  warning  'makeFloorMat' is defined but never used            no-unused-vars
+  253:10  warning  'makeCeilMat' is defined but never used             no-unused-vars
+  945:78  warning  Empty block statement                               no-empty
+
+5 problems (0 errors, 5 warnings)
+```
+
+### ESLint Analysis Summary
+- **0 errors** — no syntax issues, no undefined variables, no redeclarations
+- **5 warnings** — 4 dead code (unused vars/functions), 1 empty catch block
+- The codebase is syntactically clean. The `--global THREE,WebSocket` flag correctly suppressed false positives for CDN-loaded globals.
+- Note: Line numbers are offset by ~70 from index.html (stripped HTML/CSS header) — actual locations mapped in findings above.
 
 ---
 
 ## Top 5 Prioritized Action Items
 
-1. **Add player-wall collision detection (H-1)** — Biggest gameplay gap.
-2. **Fix `#interact-hint` pointer-events for mobile (L-8)** — One CSS line; fixes altar tap (Task 003 covers this).
-3. **Add WebSocket reconnection (H-4)** — Players silently become ghosts on network drop.
-4. **Reduce texture cloning (H-2)** — Use existing material factory functions; cut ~180 GPU uploads to ~8.
-5. **Log WebSocket errors (M-3)** — One-line fix with high diagnostic value.
+1. **Add player-wall collision detection (H-1)** — This is the biggest gameplay gap. Players walking through walls breaks immersion and gameplay. Implement raycaster or AABB collision in `updateLocal()`.
+
+2. **Fix `#interact-hint` pointer-events for mobile (L-8)** — The interact hint's touch handler is dead code on mobile because `pointer-events: none` is inherited from `#hud`. One CSS line fix.
+
+3. **Add WebSocket reconnection (H-4)** — Players silently become ghosts after any network interruption. Exponential backoff reconnect with re-join would make multiplayer resilient.
+
+4. **Reduce texture cloning in dungeon renderer (H-2)** — Use the existing (but unused) material factory functions or group by UV repeat to cut ~180 texture clones down to ~8. This is the lowest-effort performance win.
+
+5. **Log WebSocket errors instead of swallowing them (M-3)** — The empty catch block at line 1015 makes multiplayer debugging nearly impossible. One-line fix with high diagnostic value.
 
 ### Honorable Mentions
-- Remove `shadowMap.enabled` (M-10) — free performance win
-- Remove dead code: `incomingSpeed`, `makeWallMat/Floor/Ceil` (M-1, M-2)
-- Add `beforeunload` disconnect handler (L-6)
+- Remove `renderer.shadowMap.enabled = true` (M-10) — free performance win, one line
+- Remove dead code: `incomingSpeed`, `makeWallMat`/`makeFloorMat`/`makeCeilMat` (M-1, M-2) — clean up ~15 lines
+- Add `beforeunload` disconnect handler (L-6) — clean multiplayer exit
+
+---
+
+## Step 3: Verification
+
+| # | Criterion | Result | Notes |
+|---|-----------|--------|-------|
+| 1 | Report contains findings from all 3 methods | ✅ PASS | Manual (24 findings), Runtime (network + console + screenshot), ESLint (5 warnings) |
+| 2 | Every finding has severity level | ✅ PASS | All 24 findings tagged Critical/High/Medium/Low |
+| 3 | Every finding has location + suggested fix | ✅ PASS | Line numbers and fix suggestions included |
+| 4 | ESLint output appendix | ✅ PASS | Raw output + config + analysis in dedicated section |
+| 5 | Runtime observations section | ✅ PASS | Console, network table, visual observations |
+| 6 | Top 5 prioritized action items | ✅ PASS | Ranked by impact, with honorable mentions |
+| 7 | `git diff index.html` is empty | ⏳ PENDING | To be verified |
+
+**All content criteria pass: YES**
