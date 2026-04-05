@@ -48,6 +48,24 @@ docs/
 - No global state except `game` object on window (for debugging only)
 - Comments explain WHY, not WHAT
 
+## Testing Requirements (MANDATORY — not optional)
+
+After EVERY edit to index.html:
+1. Syntax check: `node --check index.html 2>&1` — must pass with no errors
+2. Conflict check: `grep -c "<<<<<<" index.html` — must return 0
+3. Server check: confirm port 3000 is responding: `curl -s -o /dev/null -w "%{http_code}" http://localhost:3000/` — must return 200
+4. Browser check: navigate to http://localhost:3000/ and read_console_messages — must have NO exceptions
+5. Visual check: take a screenshot — game must be rendering (not black screen)
+
+After multiplayer changes:
+6. Two-tab test: open two tabs to localhost:3000, verify both show other players
+7. Screenshot both tabs and confirm remote player model is visible
+
+**NEVER commit or push until ALL checks pass.**
+
+### The worktree trap
+When running in a git worktree, `node --check index.html` and `grep` check the worktree file. But the HTTP server at port 3000 serves the **main repo** file, not the worktree. Always verify the served file separately — checking your own worktree does NOT confirm what the browser is loading.
+
 ## Custom commands
 
 ### /review
@@ -57,6 +75,8 @@ Before any commit: read the diff, check for single-responsibility violations, un
 After /review: identify anything that can be deleted or collapsed without losing behavior. Prefer fewer lines.
 
 ### /pre-commit checklist
+- [ ] `node --check index.html` passes (no syntax errors)
+- [ ] `grep -c "<<<<<<" index.html` returns 0 (no merge conflict markers)
 - [ ] `index.html` opens in browser with no console errors
 - [ ] Portal system works: `?portal=true` skips name screen
 - [ ] Exit portal redirects correctly to `https://jam.pieter.com/portal/2026`

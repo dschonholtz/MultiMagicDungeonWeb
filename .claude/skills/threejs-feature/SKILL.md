@@ -131,6 +131,20 @@ function hashColor(id) {
 - **No build step**: CDN imports only (Three.js r128 via importmap at top of script)
 - **`keys` Set**: holds `e.code` values (e.g., `'KeyW'`, `'Space'`, `'Digit1'`), not `e.key`
 
+## Mandatory Pre-Commit Checklist
+
+Run ALL of these before every commit. Do not skip any step.
+
+- [ ] `node --check index.html` passes (no syntax errors)
+- [ ] `grep -c "<<<<<<" index.html` returns 0 (no merge conflict markers)
+- [ ] HTTP server returns 200: `curl -s -o /dev/null -w "%{http_code}" http://localhost:3000/`
+- [ ] Browser console shows no EXCEPTION messages after reload (use `read_console_messages`)
+- [ ] Screenshot confirms scene is visible (not black screen)
+- [ ] If multiplayer change: second tab shows correct remote player model (screenshot both tabs)
+
+### Why these checks exist
+A prior session committed `<<<<<<` merge markers to main — the session checked its own worktree (clean) instead of the file the HTTP server was actually serving. The game broke for everyone with a SyntaxError. Another session claimed "pushed and working" without loading the page. These checks are non-negotiable.
+
 ## Portal gotchas
 
 ### TorusGeometry orientation

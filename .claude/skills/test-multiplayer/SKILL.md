@@ -45,6 +45,15 @@ file:///Users/douglasschonholtz/repos/MultiMagicDungeonWeb/index.html
 ### Disconnect
 - Close Tab A → Tab B's remote player disappears (`player_leave`)
 
+## Step 3b: Screenshot verification (MANDATORY)
+
+After verifying the above, take a screenshot of EACH tab and explicitly describe what you see:
+
+**Tab A screenshot** — describe: Is the scene rendering? Is there a player visible? Any console errors?
+**Tab B screenshot** — describe: Is the remote player model visible? Correct position/color? Any visual anomalies?
+
+Do NOT report "multiplayer working" unless you have taken screenshots of both tabs and confirmed the remote player model is visible in each. Claiming success without visual confirmation is how bugs get shipped.
+
 ## Step 4: Stop server
 ```bash
 kill $WS_PID 2>/dev/null || pkill -f 'node.*index.js'
