@@ -26,15 +26,25 @@ const MIMES = {
 
 // Resolve a URL pathname to a file path, checking ROOT then ROOT/public/ as fallback.
 // Mirrors Vite's convention: files in public/ are served at the root URL path.
+// If the resolved path is a directory, serves index.html inside it.
 function resolveFile(pathname) {
   const rel  = pathname === '/' ? 'index.html' : pathname;
-  const main = path.join(ROOT, rel);
-  if (!main.startsWith(ROOT)) return null; // path traversal guard
-  if (fs.existsSync(main)) return main;
-  const pub = path.join(ROOT, 'public', rel);
-  if (!pub.startsWith(ROOT)) return null;
-  if (fs.existsSync(pub)) return pub;
-  return null;
+
+  function tryPath(base) {
+    const full = path.join(base, rel);
+    if (!full.startsWith(ROOT)) return null; // path traversal guard
+    if (fs.existsSync(full)) {
+      const stat = fs.statSync(full);
+      if (stat.isDirectory()) {
+        const idx = path.join(full, 'index.html');
+        return fs.existsSync(idx) ? idx : null;
+      }
+      return full;
+    }
+    return null;
+  }
+
+  return tryPath(ROOT) || tryPath(path.join(ROOT, 'public'));
 }
 
 http.createServer((req, res) => {
