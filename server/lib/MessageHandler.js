@@ -40,6 +40,7 @@ export class MessageHandler {
     const player = new PlayerState({ id: playerId, username, sessionId: session.id, spawnPoint, ws });
     this.sessionManager.addPlayer(session, player);
     this.players.set(playerId, player);
+    ws._mmdPlayerId = playerId; // O(1) lookup in _playerForWs
 
     // Send welcome to the joining player
     this._send(ws, {
@@ -143,10 +144,7 @@ export class MessageHandler {
   // ---- helpers ----
 
   _playerForWs(ws) {
-    for (const p of this.players.values()) {
-      if (p.ws === ws) return p;
-    }
-    return null;
+    return ws._mmdPlayerId ? (this.players.get(ws._mmdPlayerId) ?? null) : null;
   }
 
   _send(ws, obj) {
