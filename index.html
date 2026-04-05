@@ -317,15 +317,39 @@ const _ceilTex = makeCanvasTex(256, 256, ctx => {
 });
 _ceilTex.repeat.set(4, 4);
 
-// Shared MeshStandardMaterial instances — lighting interacts with roughness
-function makeWallMat() {
-  return new THREE.MeshStandardMaterial({ map: _wallTex, roughness: 0.9, metalness: 0.03 });
+// Shared material caches — one material per unique UV-repeat key
+const _wallMatCache = new Map();
+const _floorMatCache = new Map();
+const _ceilMatCache = new Map();
+function makeWallMat(repeatX = 1, repeatY = 1) {
+  const key = `${repeatX},${repeatY}`;
+  if (_wallMatCache.has(key)) return _wallMatCache.get(key);
+  const tex = _wallTex.clone();
+  tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
+  tex.repeat.set(repeatX, repeatY);
+  const mat = new THREE.MeshStandardMaterial({ map: tex, roughness: 0.9, metalness: 0.03 });
+  _wallMatCache.set(key, mat);
+  return mat;
 }
-function makeFloorMat() {
-  return new THREE.MeshStandardMaterial({ map: _floorTex, roughness: 0.85, metalness: 0.04 });
+function makeFloorMat(repeatX = 1, repeatY = 1) {
+  const key = `${repeatX},${repeatY}`;
+  if (_floorMatCache.has(key)) return _floorMatCache.get(key);
+  const tex = _floorTex.clone();
+  tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
+  tex.repeat.set(repeatX, repeatY);
+  const mat = new THREE.MeshStandardMaterial({ map: tex, roughness: 0.85, metalness: 0.04 });
+  _floorMatCache.set(key, mat);
+  return mat;
 }
-function makeCeilMat() {
-  return new THREE.MeshStandardMaterial({ map: _ceilTex, roughness: 1.0, metalness: 0.0 });
+function makeCeilMat(repeatX = 1, repeatY = 1) {
+  const key = `${repeatX},${repeatY}`;
+  if (_ceilMatCache.has(key)) return _ceilMatCache.get(key);
+  const tex = _ceilTex.clone();
+  tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
+  tex.repeat.set(repeatX, repeatY);
+  const mat = new THREE.MeshStandardMaterial({ map: tex, roughness: 1.0, metalness: 0.0 });
+  _ceilMatCache.set(key, mat);
+  return mat;
 }
 
 // === DUNGEON RENDERER ===
@@ -339,11 +363,7 @@ function renderDungeon(layout) {
   const EPS  = 0.5; // snap tolerance for shared-face detection
 
   const addWall = (px, py, pz, rx, ry, rz, gw, gh) => {
-    // Wall UV repeat proportional to size so bricks stay roughly same scale
-    const tex = _wallTex.clone();
-    tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
-    tex.repeat.set(gw / 12, gh / 12);
-    const mat = new THREE.MeshStandardMaterial({ map: tex, roughness: 0.9, metalness: 0.03 });
+    const mat = makeWallMat(gw / 12, gh / 12);
     const m = new THREE.Mesh(new THREE.PlaneGeometry(gw, gh), mat);
     m.position.set(px, py, pz); m.rotation.set(rx, ry, rz); scene.add(m);
     wallMeshes.push(m); // collected for spell raycasting
@@ -367,19 +387,11 @@ function renderDungeon(layout) {
     const z0 = b.z - b.d / 2, z1 = b.z + b.d / 2;
 
     // Floor
-    const flTex = _floorTex.clone();
-    flTex.wrapS = flTex.wrapT = THREE.RepeatWrapping;
-    flTex.repeat.set(b.w / 8, b.d / 8);
-    const fl = new THREE.Mesh(new THREE.PlaneGeometry(b.w, b.d),
-      new THREE.MeshStandardMaterial({ map: flTex, roughness: 0.85, metalness: 0.04 }));
+    const fl = new THREE.Mesh(new THREE.PlaneGeometry(b.w, b.d), makeFloorMat(b.w / 8, b.d / 8));
     fl.rotation.x = -Math.PI/2; fl.position.set(b.x, 0, b.z); scene.add(fl);
 
     // Ceiling
-    const ceTex = _ceilTex.clone();
-    ceTex.wrapS = ceTex.wrapT = THREE.RepeatWrapping;
-    ceTex.repeat.set(b.w / 10, b.d / 10);
-    const ce = new THREE.Mesh(new THREE.PlaneGeometry(b.w, b.d),
-      new THREE.MeshStandardMaterial({ map: ceTex, roughness: 1.0, metalness: 0.0 }));
+    const ce = new THREE.Mesh(new THREE.PlaneGeometry(b.w, b.d), makeCeilMat(b.w / 10, b.d / 10));
     ce.rotation.x = Math.PI/2; ce.position.set(b.x, WH, b.z); scene.add(ce);
 
     // Walls — skip any face that is shared with an adjacent box (that face becomes a doorway)
