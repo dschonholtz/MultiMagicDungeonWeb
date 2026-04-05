@@ -1126,9 +1126,9 @@ class MmdNetworkClient {
     catch(e) { console.warn('[Net] unavailable - offline'); _createOfflinePlayer(username); return; }
     const to=setTimeout(()=>{ if(!this.connected){console.warn('[Net] timeout - offline'); _createOfflinePlayer(username);} }, 3000);
     this.ws.onopen=()=>{ clearTimeout(to); this.connected=true; this.send({type:'join',username}); };
-    this.ws.onmessage=(e)=>{ try{this._handle(JSON.parse(e.data));}catch(err){} };
+    this.ws.onmessage=(e)=>{ try{this._handle(JSON.parse(e.data));}catch(err){ console.warn('[Net] message handler error:', err, '| raw:', e.data?.slice(0, 200)); } };
     this.ws.onclose=()=>{ clearTimeout(to); clearInterval(this._moveInterval); this.connected=false; if(!localPlayer)_createOfflinePlayer(username); };
-    this.ws.onerror=()=>{ console.warn('[Net] error'); };
+    this.ws.onerror=(err)=>{ console.error('[Net] WebSocket error:', err); };
   }
   _handle(msg) {
     if(msg.type==='welcome')            this._onWelcome(msg);
