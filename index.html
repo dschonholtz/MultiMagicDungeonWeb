@@ -30,6 +30,7 @@
   #rename-btn:hover { background: #777; }
   #minimap { position: absolute; top: 120px; right: 20px; width: 180px; height: 180px; background: rgba(0,0,0,0.55); border-radius: 4px; border: 1px solid #444; }
   #interact-hint { position: absolute; bottom: 160px; left: 50%; transform: translateX(-50%); background: rgba(60,20,100,0.22); color: #c090ff; padding: 8px 20px; border-radius: 4px; font-size: 14px; border: 1px solid #8040cc; display: none; text-align: center; cursor: pointer; user-select: none; }
+  #interact-btn { position: fixed; bottom: 120px; left: 50%; transform: translateX(-50%); background: rgba(60,20,100,0.72); color: #c090ff; padding: 12px 28px; border-radius: 8px; font-size: 16px; border: 2px solid #8040cc; display: none; text-align: center; cursor: pointer; user-select: none; touch-action: none; z-index: 100; font-family: monospace; pointer-events: auto; }
   #rotate-prompt { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 200; align-items: center; justify-content: center; color: #fff; font-size: 24px; text-align: center; pointer-events: none; }
   #crosshair { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: rgba(255,255,255,0.7); font-size: 18px; user-select: none; }
   #game-canvas { touch-action: none; }
@@ -58,6 +59,7 @@
   <div id="portal-hint">&#x2191; VIBE JAM 2026 PORTAL &#x2014; walk in to travel</div>
   <canvas id="minimap" width="180" height="180"></canvas>
   <div id="interact-hint"></div>
+  <button id="interact-btn"></button>
   <div id="spells">
     <div class="spell-slot ready" id="spell-0"><span class="spell-icon">&#x1F525;</span><span>Fireball</span><span style="color:#888;font-size:9px">LClick</span></div>
     <div class="spell-slot ready" id="spell-1"><span class="spell-icon">&#x2744;&#xFE0F;</span><span>Frostbolt</span><span style="color:#888;font-size:9px">RClick</span></div>
@@ -119,6 +121,9 @@ const incomingHp     = Number.isFinite(rawHp) ? Math.max(0, Math.min(HP_MAX, raw
 // Validate ref - hostname pattern only, no protocol injection
 const REF_PATTERN    = /^[a-zA-Z0-9.-]+(:\d+)?$/;
 const safeRef        = (incomingRef && REF_PATTERN.test(incomingRef)) ? incomingRef : '';
+// ?pos=x,z — teleport player on spawn (used by Playwright tests)
+const incomingPos    = urlParams.get('pos');
+const isMobile       = 'ontouchstart' in window || matchMedia('(hover:none)').matches;
 
 // === SPELL SYSTEM ===
 // SPELL_DEFS registry - single source of truth for all spell properties
@@ -1203,10 +1208,12 @@ const keys={};
 let yaw=0, pitch=0, isLocked=false;
 // Virtual joystick direction (mobile) — read by updateLocal each frame
 let touchMoveX=0, touchMoveZ=0;
+let _interactCount = 0;
 function doInteract() {
   if (!localPlayer) return;
   const pp = localPlayer.position;
   if (dist2D(pp, { x: 0, z: -57 }) < 8) {
+    _interactCount++;
     // Altar examine — show flavour text briefly
     interactHintEl.textContent = '✦ The altar hums with ancient magic…';
     setTimeout(() => { if (interactHintEl.textContent.startsWith('✦')) interactHintEl.textContent = '[F] Examine Altar'; }, 2500);
@@ -1312,6 +1319,10 @@ if ('ontouchstart' in window) {
 const portalHintEl=document.getElementById('portal-hint');
 const minimapEl=document.getElementById('minimap');
 const interactHintEl=document.getElementById('interact-hint');
+const interactBtnEl=document.getElementById('interact-btn');
+interactBtnEl.textContent = isMobile ? 'Examine' : 'Examine [F]';
+interactBtnEl.addEventListener('click', e => { e.preventDefault(); doInteract(); });
+interactBtnEl.addEventListener('touchstart', e => { e.preventDefault(); doInteract(); }, {passive:false});
 interactHintEl.addEventListener('touchstart', e=>{ e.preventDefault(); doInteract(); }, {passive:false});
 let _minimapFrame=0;
 
@@ -1515,9 +1526,9 @@ function gameLoop() {
   }
 
   // Interact hint display
-  if (_interactNear === 'altar')       { interactHintEl.style.display='block'; interactHintEl.textContent='[F] Examine Altar'; }
-  else if (_interactNear === 'chest')  { interactHintEl.style.display='block'; interactHintEl.textContent='Treasure awaits\u2026'; }
-  else                                   interactHintEl.style.display='none';
+  if (_interactNear === 'altar')       { interactHintEl.style.display='block'; interactHintEl.textContent='[F] Examine Altar'; interactBtnEl.style.display='block'; }
+  else if (_interactNear === 'chest')  { interactHintEl.style.display='block'; interactHintEl.textContent='Treasure awaits\u2026'; interactBtnEl.style.display='none'; }
+  else                                 { interactHintEl.style.display='none'; interactBtnEl.style.display='none'; }
 
   // Minimap — redraw every 3rd frame
   if (minimapEl && ++_minimapFrame % 3 === 0) {
@@ -1610,11 +1621,22 @@ window.__TEST__ = {
     teleport:     (x, z) => { if (localPlayer) localPlayer.position.set(x, localPlayer.position.y, z); },
     setUsername:  (name) => { if (localPlayer) localPlayer.username = name.trim().slice(0, 24); },
   },
+  teleportTo: (x, z) => { if (localPlayer) localPlayer.position.set(x, localPlayer.position.y, z); },
+  get interactCount() { return _interactCount; },
 };
 // Flip ready once localPlayer exists; interval clears itself immediately after
+// Also apply ?pos= teleport on first spawn
 const _testReadyInterval = setInterval(() => {
-  if (localPlayer) { window.__TEST__.ready = true; clearInterval(_testReadyInterval); }
+  if (localPlayer) {
+    window.__TEST__.ready = true;
+    clearInterval(_testReadyInterval);
+    if (incomingPos) {
+      const [px, pz] = incomingPos.split(',').map(Number);
+      if (Number.isFinite(px) && Number.isFinite(pz)) localPlayer.position.set(px, localPlayer.position.y, pz);
+    }
+  }
 }, 50);
+
 </script>
 </body>
 </html>
