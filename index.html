@@ -113,9 +113,9 @@ const safeRef        = (incomingRef && REF_PATTERN.test(incomingRef)) ? incoming
 // === SPELL SYSTEM ===
 // SPELL_DEFS registry - single source of truth for all spell properties
 const SPELL_DEFS = {
-  fireball:    { color: 0xff6600, size: 0.8, speed: 22,  maxLifeMs: 1333, cooldownMs:  666, icon: '&#x1F525;', label: 'Fireball',    key: 'LClick' },
-  frostbolt:   { color: 0x44aaff, size: 0.6, speed: 14,  maxLifeMs: 2000, cooldownMs: 1000, icon: '&#x2744;',  label: 'Frostbolt',   key: 'RClick' },
-  telekinesis: { color: 0xaa44ff, size: 1.0, speed: 18,  maxLifeMs: 1667, cooldownMs: 1500, icon: '&#x1F300;', label: 'Telekinesis', key: 'E'      },
+  fireball:    { color: 0xff6600, size: 0.8, speed: 22,  maxLifeMs: 6000, maxDist: 80,  cooldownMs:  666, icon: '&#x1F525;', label: 'Fireball',    key: 'LClick' },
+  frostbolt:   { color: 0x44aaff, size: 0.6, speed: 14,  maxLifeMs: 6000, maxDist: 60,  cooldownMs: 1000, icon: '&#x2744;',  label: 'Frostbolt',   key: 'RClick' },
+  telekinesis: { color: 0xaa44ff, size: 1.0, speed: 18,  maxLifeMs: 6000, maxDist: 90,  cooldownMs: 1500, icon: '&#x1F300;', label: 'Telekinesis', key: 'E'      },
 };
 // Shared geo/mat cache - no per-projectile GPU alloc
 const _geoCache = {}, _matCache = {};
@@ -311,6 +311,8 @@ function makeCeilMat() {
 }
 
 // === DUNGEON RENDERER ===
+// Wall meshes collected here so the spell raycaster can test against them
+const wallMeshes = [];
 // Dungeon renderer - builds geometry from layout data
 function renderDungeon(layout) {
   const pMat = new THREE.MeshStandardMaterial({ color: 0x3a2e50, roughness: 0.9, metalness: 0.05 });
@@ -325,6 +327,7 @@ function renderDungeon(layout) {
     const mat = new THREE.MeshStandardMaterial({ map: tex, roughness: 0.9, metalness: 0.03 });
     const m = new THREE.Mesh(new THREE.PlaneGeometry(gw, gh), mat);
     m.position.set(px, py, pz); m.rotation.set(rx, ry, rz); scene.add(m);
+    wallMeshes.push(m); // collected for spell raycasting
   };
 
   layout.rooms.forEach(r => {
@@ -676,31 +679,73 @@ class MmdPlayer {
   }
 }
 
+// === SPELL TRAIL / RAYCASTER ===
+// Module-level reuse — no per-frame alloc
+const _spellRay = new THREE.Raycaster();
+const impactLights = [];
+function spawnImpactFlash(point, color) {
+  const light = new THREE.PointLight(color, 3.0, 12);
+  light.position.copy(point);
+  light._decayIntensity = 3.0; // track separately — THREE r128 uses .intensity directly
+  scene.add(light);
+  impactLights.push(light);
+}
+
 // === SPELLS ===
 // MmdSpell - delta-time based, pooled geo/mat
+const TRAIL_LENGTH = 12;
 class MmdSpell {
   constructor(type, position, direction, ownerId=null) {
     const def=SPELL_DEFS[type];
     if(!def){this.alive=false;return;}
-    this.type=type; this.ownerId=ownerId; this.alive=true;
+    this.type=type; this.def=def; this.ownerId=ownerId; this.alive=true;
     this.lifeMs=0; this.maxLifeMs=def.maxLifeMs; this.speed=def.speed;
+    this.distTraveled=0; this.maxDist=def.maxDist;
     this.mesh=new THREE.Mesh(getSpellGeo(def.size), getSpellMat(def.color));
     this.mesh.position.copy(position);
     this.direction=direction.clone().normalize();
     scene.add(this.mesh);
     this.mesh.add(new THREE.PointLight(def.color, 1.5, 20));
+    // Trail: 12-point ring buffer, all initialized at spawn position
+    const tp = new Float32Array(TRAIL_LENGTH * 3);
+    for (let i = 0; i < TRAIL_LENGTH; i++) {
+      tp[i*3]=position.x; tp[i*3+1]=position.y; tp[i*3+2]=position.z;
+    }
+    const tGeo = new THREE.BufferGeometry();
+    tGeo.setAttribute('position', new THREE.BufferAttribute(tp, 3));
+    this._trail = new THREE.Line(tGeo, new THREE.LineBasicMaterial({ color: def.color, transparent: true, opacity: 0.5, linewidth: 1 }));
+    this._trailPositions = tp;
+    scene.add(this._trail);
   }
   update(dt) {
     this.mesh.position.addScaledVector(this.direction, this.speed*dt);
-    this.lifeMs+=dt*1000;
-    if(this.lifeMs>this.maxLifeMs){this.destroy();return;}
-    if(Math.abs(this.mesh.position.x)>115||Math.abs(this.mesh.position.z)>115) this.destroy();
+    this.distTraveled += this.speed * dt;
+    this.lifeMs += dt * 1000;
+    // Distance cap is primary; maxLifeMs is safety fallback only
+    if (this.distTraveled > this.maxDist || this.lifeMs > this.maxLifeMs) { this.destroy(); return; }
+    if (Math.abs(this.mesh.position.x) > 150 || Math.abs(this.mesh.position.z) > 265) { this.destroy(); return; }
+    // Wall collision — raycast ahead one step
+    _spellRay.set(this.mesh.position, this.direction);
+    _spellRay.far = this.speed * dt * 2 + this.def.size;
+    const hits = _spellRay.intersectObjects(wallMeshes, false);
+    if (hits.length > 0) { spawnImpactFlash(hits[0].point, this.def.color); this.destroy(); return; }
+    // Shift trail ring buffer back, write current position at slot 0
+    const p = this._trailPositions;
+    for (let i = TRAIL_LENGTH - 1; i > 0; i--) {
+      p[i*3]=p[(i-1)*3]; p[i*3+1]=p[(i-1)*3+1]; p[i*3+2]=p[(i-1)*3+2];
+    }
+    p[0]=this.mesh.position.x; p[1]=this.mesh.position.y; p[2]=this.mesh.position.z;
+    this._trail.geometry.attributes.position.needsUpdate = true;
   }
   destroy() {
     if(!this.alive)return; this.alive=false;
     // Remove child PointLight before removing mesh so it doesn't linger in the scene graph
     while(this.mesh.children.length) this.mesh.remove(this.mesh.children[0]);
     scene.remove(this.mesh);
+    // Trail cleanup — not pooled, must dispose
+    scene.remove(this._trail);
+    this._trail.geometry.dispose();
+    this._trail.material.dispose();
     // Geometry and material are pooled (_geoCache/_matCache) — do NOT dispose them here
   }
 }
@@ -1015,6 +1060,12 @@ function gameLoop() {
   for(let i=spellProjectiles.length-1;i>=0;i--){
     spellProjectiles[i].update(dt);
     if(!spellProjectiles[i].alive) spellProjectiles.splice(i,1);
+  }
+  // Impact flash decay — 0.35s fade from intensity 3.0 to 0
+  for(let i=impactLights.length-1;i>=0;i--){
+    impactLights[i]._decayIntensity -= 3.0 * dt / 0.35;
+    impactLights[i].intensity = Math.max(0, impactLights[i]._decayIntensity);
+    if(impactLights[i]._decayIntensity<=0){ scene.remove(impactLights[i]); impactLights.splice(i,1); }
   }
   torch1.intensity=TORCH1_BASE_INTENSITY+Math.sin(elapsedSecs*TORCH1_FLICKER_FREQ)*TORCH1_FLICKER_AMP;
   torch2.intensity=TORCH2_BASE_INTENSITY+Math.sin(elapsedSecs*TORCH2_FLICKER_FREQ+1)*TORCH2_FLICKER_AMP;
