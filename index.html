@@ -141,12 +141,12 @@ const DEFAULT_DUNGEON = {
     { x:   0, z: -200, w: 110, d:  90 },  // boss chamber
   ],
   corridors: [
-    { x:  45, z:   0, w: 30, d: 15 },
-    { x: -45, z:   0, w: 30, d: 15 },
-    { x:   0, z: -45, w: 15, d: 30 },
-    { x:  80, z: -45, w: 12, d: 30 },   // trap corridor — east wing south
-    { x:  40, z: -80, w: 25, d: 12 },   // connector: trap → south room
-    { x:   0, z:-135, w: 15, d: 30 },   // connector: south room → boss chamber
+    { x:  47.5, z:   0,    w: 15, d: 15 },    // room 1 (maxX=40) → room 2 (minX=55)
+    { x: -47.5, z:   0,    w: 15, d: 15 },    // room 1 (minX=-40) → room 3 (maxX=-55)
+    { x:   0,   z: -42.5,  w: 15, d: 25 },    // room 1 (minZ=-30) → room 4 (maxZ=-55)
+    { x:  80,   z: -50,    w: 12, d: 60 },    // trap corridor — room 2 (minZ=-20) south to z=-80
+    { x:  52,   z: -80,    w: 44, d: 12 },    // connector: trap (minX=74) → room 4 (maxX=30)
+    { x:   0,   z:-130,    w: 15, d: 50 },    // room 4 (minZ=-105) → boss chamber (maxZ=-155)
   ],
   pillars: [
     [15,15],[-15,15],[15,-15],[-15,-15],
