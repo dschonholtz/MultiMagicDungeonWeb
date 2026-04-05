@@ -25,6 +25,8 @@
   #rename-input { background: #111; border: 1px solid #555; color: #fff; padding: 4px 8px; font-size: 12px; font-family: monospace; border-radius: 3px; width: 130px; }
   #rename-btn { padding: 4px 10px; background: #555; border: none; color: #fff; font-size: 12px; font-family: monospace; border-radius: 3px; cursor: pointer; }
   #rename-btn:hover { background: #777; }
+  #minimap { position: absolute; top: 120px; right: 20px; width: 180px; height: 180px; background: rgba(0,0,0,0.55); border-radius: 4px; border: 1px solid #444; }
+  #interact-hint { position: absolute; bottom: 160px; left: 50%; transform: translateX(-50%); background: rgba(60,20,100,0.22); color: #c090ff; padding: 8px 20px; border-radius: 4px; font-size: 14px; border: 1px solid #8040cc; display: none; text-align: center; }
   #crosshair { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: rgba(255,255,255,0.7); font-size: 18px; user-select: none; }
   #game-canvas { touch-action: none; }
   #joystick-outer { display: none; position: fixed; bottom: 30px; left: 30px; width: 200px; height: 200px; border-radius: 50%; background: rgba(255,255,255,0.07); border: 2px solid rgba(255,255,255,0.22); touch-action: none; z-index: 100; }
@@ -50,6 +52,8 @@
   <div id="player-count">1 player in dungeon</div>
   <div id="arrived-from"></div>
   <div id="portal-hint">&#x2191; VIBE JAM 2026 PORTAL &#x2014; walk in to travel</div>
+  <canvas id="minimap" width="180" height="180"></canvas>
+  <div id="interact-hint"></div>
   <div id="spells">
     <div class="spell-slot ready" id="spell-0"><span class="spell-icon">&#x1F525;</span><span>Fireball</span><span style="color:#888;font-size:9px">LClick</span></div>
     <div class="spell-slot ready" id="spell-1"><span class="spell-icon">&#x2744;&#xFE0F;</span><span>Frostbolt</span><span style="color:#888;font-size:9px">RClick</span></div>
@@ -132,14 +136,22 @@ const DEFAULT_DUNGEON = {
     { x:   0, z:   0, w: 80, d: 60 },
     { x:  80, z:   0, w: 50, d: 40 },
     { x: -80, z:   0, w: 50, d: 40 },
-    { x:   0, z: -80, w: 60, d: 50 },
+    { x:   0, z:  -80, w:  60, d:  50 },
+    { x:   0, z: -200, w: 110, d:  90 },  // boss chamber
   ],
   corridors: [
-    { x:  45, z:  0, w: 30, d: 15 },
-    { x: -45, z:  0, w: 30, d: 15 },
+    { x:  45, z:   0, w: 30, d: 15 },
+    { x: -45, z:   0, w: 30, d: 15 },
     { x:   0, z: -45, w: 15, d: 30 },
+    { x:  80, z: -45, w: 12, d: 30 },   // trap corridor — east wing south
+    { x:  40, z: -80, w: 25, d: 12 },   // connector: trap → south room
+    { x:   0, z:-135, w: 15, d: 30 },   // connector: south room → boss chamber
   ],
-  pillars: [[15,15],[-15,15],[15,-15],[-15,-15]],
+  pillars: [
+    [15,15],[-15,15],[15,-15],[-15,-15],
+    [20,-180],[-20,-180],[35,-180],[-35,-180],
+    [20,-220],[-20,-220],[35,-220],[-35,-220],
+  ],
   spawnPoints: [
     { x:  10, y: PLAYER_HEIGHT, z:  10 },
     { x: -10, y: PLAYER_HEIGHT, z:  10 },
@@ -373,6 +385,233 @@ function renderDungeon(layout) {
   });
 }
 renderDungeon(DEFAULT_DUNGEON);
+
+// === PROPS ===
+// All props use Three.js r128 primitives; no new CDN imports.
+// Materials use same style conventions as dungeon (MeshStandardMaterial, seededRand, makeCanvasTex).
+
+// --- Torch sconce factory ---
+// Group: iron bracket (Box) + wood stick (Cylinder) + flame cone + child PointLight
+function makeTorch(wx, wy, wz) {
+  const g = new THREE.Group();
+  const ironMat  = new THREE.MeshStandardMaterial({ color: 0x1e1e1e, roughness: 0.6, metalness: 0.8 });
+  const woodMat  = new THREE.MeshStandardMaterial({ color: 0x4a2808, roughness: 0.95 });
+  const flameMat = new THREE.MeshStandardMaterial({ color: 0xff5500, emissive: 0xff3300, emissiveIntensity: 3.0 });
+  g.add(new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.3, 0.8), ironMat));
+  const stick = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.14, 1.8, 6), woodMat);
+  stick.position.y = 0.9; g.add(stick);
+  const flame = new THREE.Mesh(new THREE.ConeGeometry(0.25, 0.7, 6), flameMat);
+  flame.position.y = 2.05; g.add(flame);
+  const pl = new THREE.PointLight(0xff9944, 0.9, 14);
+  pl.position.y = 2.2; g.add(pl);
+  g.position.set(wx, wy, wz);
+  scene.add(g);
+  return g;
+}
+// Main room (80×60, center 0,0)
+makeTorch(-30, 10, -29.5); makeTorch( 30, 10, -29.5); // south wall
+makeTorch(-30, 10,  29.5); makeTorch( 30, 10,  29.5); // north wall
+// East room (50×40, center 80,0): east wall x=105
+makeTorch(104.5, 10,  12); makeTorch(104.5, 10, -12);
+// West room (50×40, center -80,0): west wall x=-105
+makeTorch(-104.5, 10,  12); makeTorch(-104.5, 10, -12);
+// South room (60×50, center 0,-80)
+makeTorch(-22, 10, -55.5); makeTorch( 22, 10, -55.5);   // north wall
+makeTorch(-22, 10, -104.5); makeTorch( 22, 10, -104.5); // south wall
+// Boss chamber (110×90, center 0,-200)
+makeTorch(-40, 10, -155.5); makeTorch( 40, 10, -155.5); // north wall
+makeTorch(-40, 10, -244.5); makeTorch( 40, 10, -244.5); // south wall
+makeTorch(-54.5, 10, -185); makeTorch( 54.5, 10, -185); // side walls
+
+// Boss chamber dedicated point lights (brazier glow — no sconce mesh needed)
+[[-32, 3, -200], [32, 3, -200]].forEach(([lx, ly, lz]) => {
+  const bl = new THREE.PointLight(0xff3300, 1.2, 35);
+  bl.position.set(lx, ly, lz); scene.add(bl);
+});
+
+// --- Treasure chests (south room, two on a shared raised dais) ---
+const chests = [];
+function makeChest(cx, cz) {
+  const g      = new THREE.Group();
+  const woodMat = new THREE.MeshStandardMaterial({ color: 0x3d1f0a, roughness: 0.9 });
+  const bandMat = new THREE.MeshStandardMaterial({ color: 0x7a6020, roughness: 0.5, metalness: 0.6 });
+  const daisMat = new THREE.MeshStandardMaterial({ color: 0x1e1c2e, roughness: 0.9 });
+  const dais = new THREE.Mesh(new THREE.BoxGeometry(4.2, 0.4, 3.0), daisMat);
+  dais.position.y = 0.2; g.add(dais);
+  const base = new THREE.Mesh(new THREE.BoxGeometry(3, 1.5, 2), woodMat);
+  base.position.y = 1.15; g.add(base);
+  const band = new THREE.Mesh(new THREE.BoxGeometry(3.1, 0.22, 2.08), bandMat);
+  band.position.y = 1.45; g.add(band);
+  // Lid group — pivot at back edge so it swings open correctly
+  const lidGroup = new THREE.Group();
+  lidGroup.position.set(0, 1.9, -1.0);
+  const lid = new THREE.Mesh(new THREE.BoxGeometry(3, 0.8, 2), woodMat);
+  lid.position.set(0, 0.4, 1.0); lidGroup.add(lid);
+  const lock = new THREE.Mesh(new THREE.SphereGeometry(0.18, 8, 8), bandMat);
+  lock.position.set(0, 0.25, -1.02); lidGroup.add(lock);
+  g.add(lidGroup);
+  g.position.set(cx, 0, cz);
+  scene.add(g);
+  chests.push({ group: g, lidGroup, open: false, openT: 0 });
+}
+makeChest(-8, -80);
+makeChest( 8, -80);
+
+// --- Bone piles (deterministic per-position seeding) ---
+function makeBonePile(bx, bz) {
+  const g       = new THREE.Group();
+  const boneMat = new THREE.MeshStandardMaterial({ color: 0xd4c9a8, roughness: 0.8 });
+  const rand    = seededRand(((bx * 73 + bz * 31) & 0xffffffff) >>> 0);
+  for (let i = 0; i < 3; i++) {
+    const bone = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.12, 1.2 + rand() * 0.6, 5), boneMat);
+    bone.position.set(rand() * 1.4 - 0.7, 0.2, rand() * 1.4 - 0.7);
+    bone.rotation.set(rand() * 0.6 - 0.3, rand() * Math.PI * 2, rand() * 0.8 - 0.4);
+    g.add(bone);
+  }
+  const skull = new THREE.Mesh(new THREE.SphereGeometry(0.35, 7, 7), boneMat);
+  skull.position.set(rand() * 0.6 - 0.3, 0.35, rand() * 0.6 - 0.3);
+  skull.scale.set(1.0, 0.8, 1.1); g.add(skull);
+  for (let i = 0; i < 3; i++) {
+    const joint = new THREE.Mesh(new THREE.SphereGeometry(0.11, 5, 5), boneMat);
+    joint.position.set(rand() * 1.5 - 0.75, 0.12, rand() * 1.5 - 0.75);
+    g.add(joint);
+  }
+  g.position.set(bx, 0, bz);
+  scene.add(g);
+}
+makeBonePile( 100,  17);  // east room SE
+makeBonePile(-100,  17);  // west room SW
+makeBonePile( -26, -98);  // south room SW
+makeBonePile(  26, -98);  // south room SE
+makeBonePile( -48, -237); // boss chamber SW
+makeBonePile(  48, -237); // boss chamber SE
+makeBonePile( -48, -163); // boss chamber NW
+makeBonePile(  48, -163); // boss chamber NE
+
+// --- Magic rune floor overlays (rotate slowly in game loop) ---
+const rotatingRunes = [];
+function placeRune(rx, rz, size, emissiveHex, canvasColor) {
+  const tex = makeCanvasTex(256, 256, ctx => {
+    ctx.clearRect(0, 0, 256, 256);
+    ctx.strokeStyle = canvasColor; ctx.lineWidth = 3;
+    ctx.shadowColor = canvasColor; ctx.shadowBlur = 14;
+    // Concentric circles
+    for (let r = 25; r <= 115; r += 22) {
+      ctx.beginPath(); ctx.arc(128, 128, r, 0, Math.PI * 2); ctx.stroke();
+    }
+    // Star lines (8-pointed)
+    for (let i = 0; i < 8; i++) {
+      const a = i * Math.PI / 4;
+      ctx.beginPath();
+      ctx.moveTo(128 + Math.cos(a) * 28, 128 + Math.sin(a) * 28);
+      ctx.lineTo(128 + Math.cos(a) * 115, 128 + Math.sin(a) * 115);
+      ctx.stroke();
+    }
+    // Inner rune marks
+    ctx.lineWidth = 1.5;
+    for (let i = 0; i < 6; i++) {
+      const a = i * Math.PI / 3;
+      ctx.beginPath();
+      ctx.moveTo(128 + Math.cos(a) * 50, 128 + Math.sin(a) * 50);
+      ctx.lineTo(128 + Math.cos(a + 0.4) * 80, 128 + Math.sin(a + 0.4) * 80);
+      ctx.stroke();
+    }
+  });
+  tex.wrapS = tex.wrapT = THREE.ClampToEdgeWrapping;
+  const mat = new THREE.MeshStandardMaterial({
+    map: tex, emissiveMap: tex, transparent: true, side: THREE.DoubleSide,
+    emissive: new THREE.Color(emissiveHex), emissiveIntensity: 1.2, roughness: 1.0,
+  });
+  const mesh = new THREE.Mesh(new THREE.PlaneGeometry(size, size), mat);
+  mesh.rotation.x = -Math.PI / 2;
+  mesh.position.set(rx, 0.02, rz);
+  scene.add(mesh);
+  rotatingRunes.push(mesh);
+}
+placeRune(0, -80, 12, 0x7722bb, '#aa44ff'); // south room — purple
+
+// Ritual circle (boss chamber — large pentagram, emissive red)
+(function() {
+  const tex = makeCanvasTex(512, 512, ctx => {
+    ctx.clearRect(0, 0, 512, 512);
+    ctx.strokeStyle = '#cc2200'; ctx.shadowColor = '#ff0000'; ctx.shadowBlur = 22;
+    ctx.lineWidth = 5;
+    ctx.beginPath(); ctx.arc(256, 256, 245, 0, Math.PI * 2); ctx.stroke();
+    ctx.beginPath(); ctx.arc(256, 256, 145, 0, Math.PI * 2); ctx.stroke();
+    // Pentagram — connect every 2nd of 5 points on outer circle
+    ctx.lineWidth = 4;
+    const pts = Array.from({ length: 5 }, (_, i) => {
+      const a = i * 4 * Math.PI / 5 - Math.PI / 2;
+      return [256 + Math.cos(a) * 245, 256 + Math.sin(a) * 245];
+    });
+    ctx.beginPath(); ctx.moveTo(pts[0][0], pts[0][1]);
+    for (let i = 1; i < 5; i++) ctx.lineTo(pts[i][0], pts[i][1]);
+    ctx.closePath(); ctx.stroke();
+    ctx.lineWidth = 2;
+    for (let i = 0; i < 10; i++) {
+      const a = i * Math.PI / 5;
+      ctx.beginPath();
+      ctx.moveTo(256 + Math.cos(a) * 145, 256 + Math.sin(a) * 145);
+      ctx.lineTo(256 + Math.cos(a) * 245, 256 + Math.sin(a) * 245);
+      ctx.stroke();
+    }
+  });
+  tex.wrapS = tex.wrapT = THREE.ClampToEdgeWrapping;
+  const mesh = new THREE.Mesh(new THREE.PlaneGeometry(30, 30),
+    new THREE.MeshStandardMaterial({
+      map: tex, emissiveMap: tex, transparent: true, side: THREE.DoubleSide,
+      emissive: new THREE.Color(0xaa0000), emissiveIntensity: 1.8, roughness: 1.0,
+    }));
+  mesh.rotation.x = -Math.PI / 2;
+  mesh.position.set(0, 0.03, -200);
+  scene.add(mesh);
+  rotatingRunes.push(mesh);
+})();
+
+// --- Altar (south room, against north wall z≈-55) ---
+(function() {
+  const stoneMat   = new THREE.MeshStandardMaterial({ color: 0x242035, roughness: 0.9 });
+  const crystalMat = new THREE.MeshStandardMaterial({ color: 0x8844cc, emissive: 0x441188, emissiveIntensity: 2.0, roughness: 0.3, metalness: 0.4 });
+  const goldMat    = new THREE.MeshStandardMaterial({ color: 0x5a4010, roughness: 0.5, metalness: 0.6 });
+  const g = new THREE.Group();
+  const base = new THREE.Mesh(new THREE.BoxGeometry(8, 2, 4), stoneMat);
+  base.position.y = 1.0; g.add(base);
+  const slab = new THREE.Mesh(new THREE.BoxGeometry(7, 0.5, 3.5), stoneMat);
+  slab.position.y = 2.25; g.add(slab);
+  // Torus ring lying flat atop the slab
+  const ring = new THREE.Mesh(new THREE.TorusGeometry(2.0, 0.22, 8, 24), goldMat);
+  ring.rotation.x = Math.PI / 2; ring.position.y = 2.6; g.add(ring);
+  // OctahedronGeometry = two pyramids base-to-base — serves as arcane crystal
+  const crystal = new THREE.Mesh(new THREE.OctahedronGeometry(0.85, 0), crystalMat);
+  crystal.position.y = 3.85; g.add(crystal);
+  g.position.set(0, 0, -57);
+  scene.add(g);
+})();
+
+// --- Spike traps (trap corridor: center 80,-45, width 12, depth 30) ---
+// 3 pressure plates with 3×3 spike grid each; spikes start below floor
+const spikeTraps = [];
+function makeSpikeTrap(tx, tz) {
+  const plateMat = new THREE.MeshStandardMaterial({ color: 0x222222, roughness: 0.7, metalness: 0.5 });
+  const spikeMat = new THREE.MeshStandardMaterial({ color: 0x999999, roughness: 0.3, metalness: 0.8 });
+  const g = new THREE.Group();
+  const plate = new THREE.Mesh(new THREE.PlaneGeometry(4.5, 4.5), plateMat);
+  plate.rotation.x = -Math.PI / 2; plate.position.y = 0.01; g.add(plate);
+  const spikeMeshes = [];
+  for (let sx = -1; sx <= 1; sx++) {
+    for (let sz = -1; sz <= 1; sz++) {
+      const spike = new THREE.Mesh(new THREE.ConeGeometry(0.18, 2.0, 5), spikeMat);
+      spike.position.set(sx * 1.4, -2.0, sz * 1.4); // retracted below floor
+      g.add(spike); spikeMeshes.push(spike);
+    }
+  }
+  g.position.set(tx, 0, tz);
+  scene.add(g);
+  spikeTraps.push({ group: g, spikeMeshes, state: 'idle', activeT: 0 });
+}
+makeSpikeTrap(80, -34);
+makeSpikeTrap(80, -45);
+makeSpikeTrap(80, -56);
 
 // === PORTAL SYSTEM ===
 // Portal helpers
@@ -659,7 +898,7 @@ class MmdSpell {
     this.mesh.position.addScaledVector(this.direction, this.speed*dt);
     this.lifeMs+=dt*1000;
     if(this.lifeMs>this.maxLifeMs){this.destroy();return;}
-    if(Math.abs(this.mesh.position.x)>115||Math.abs(this.mesh.position.z)>115) this.destroy();
+    if(Math.abs(this.mesh.position.x)>150||Math.abs(this.mesh.position.z)>265) this.destroy();
   }
   destroy() {
     if(!this.alive)return; this.alive=false;
@@ -869,6 +1108,9 @@ if ('ontouchstart' in window) {
 // === PORTAL CHECKS ===
 // Portal checks (travel guard + 2D distance - fixes Y gap bug)
 const portalHintEl=document.getElementById('portal-hint');
+const minimapEl=document.getElementById('minimap');
+const interactHintEl=document.getElementById('interact-hint');
+let _minimapFrame=0;
 let portalPreloaded=false, traveling=false;
 function dist2D(a,b){const dx=a.x-b.x,dz=a.z-b.z;return Math.sqrt(dx*dx+dz*dz);}
 function checkPortals() {
@@ -974,6 +1216,96 @@ function gameLoop() {
     startPortalGroup.scale.setScalar(1.0 + PORTAL_PULSE_AMP * Math.sin(elapsedSecs * PORTAL_PULSE_FREQ + Math.PI));
   }
   checkPortals(); updateHud();
+
+  // Rotate floor runes (purple rune + boss ritual circle)
+  for (const r of rotatingRunes) r.rotation.z += dt * 0.12;
+
+  // Chest proximity auto-open + ease-out cubic lid animation
+  let _interactNear = null;
+  if (localPlayer) {
+    const pp = localPlayer.position;
+    for (const ch of chests) {
+      if (!ch.open && dist2D(pp, ch.group.position) < 6) { ch.open = true; _interactNear = 'chest'; }
+      if (ch.open && ch.openT < 1.0) {
+        ch.openT = Math.min(1.0, ch.openT + dt / 0.5);
+        ch.lidGroup.rotation.x = -Math.PI * 0.7 * (1 - Math.pow(1 - ch.openT, 3));
+      }
+    }
+
+    // Spike traps: idle → rising (0.3s) → hold (2s, deal 15 HP/s) → retracting (0.3s) → idle
+    for (const trap of spikeTraps) {
+      const d = dist2D(pp, trap.group.position);
+      if (trap.state === 'idle' && d < 8) { trap.state = 'rising'; trap.activeT = 0; }
+      if (trap.state === 'rising') {
+        trap.activeT += dt;
+        const t = Math.min(trap.activeT / 0.3, 1.0);
+        for (const sp of trap.spikeMeshes) sp.position.y = -2.0 + 3.5 * t;
+        if (trap.activeT >= 0.3) { trap.state = 'hold'; trap.activeT = 0; }
+      }
+      if (trap.state === 'hold') {
+        trap.activeT += dt;
+        if (d < 8) localPlayer.hp = Math.max(0, localPlayer.hp - 15 * dt);
+        if (trap.activeT >= 2.0) { trap.state = 'retracting'; trap.activeT = 0; }
+      }
+      if (trap.state === 'retracting') {
+        trap.activeT += dt;
+        const t = Math.min(trap.activeT / 0.3, 1.0);
+        for (const sp of trap.spikeMeshes) sp.position.y = -2.0 + 3.5 * (1 - t);
+        if (trap.activeT >= 0.3) { trap.state = 'idle'; trap.activeT = 0; }
+      }
+    }
+
+    // Altar proximity hint
+    if (dist2D(pp, { x: 0, z: -57 }) < 8) _interactNear = 'altar';
+  }
+
+  // Interact hint display
+  if (_interactNear === 'altar')       { interactHintEl.style.display='block'; interactHintEl.textContent='[F] Examine Altar'; }
+  else if (_interactNear === 'chest')  { interactHintEl.style.display='block'; interactHintEl.textContent='Treasure awaits\u2026'; }
+  else                                   interactHintEl.style.display='none';
+
+  // Minimap — redraw every 3rd frame
+  if (minimapEl && ++_minimapFrame % 3 === 0) {
+    const mCtx = minimapEl.getContext('2d');
+    const MW = 180, MH = 180;
+    const wx2m = wx => (wx + 140) / 280 * MW;
+    const wz2m = wz => (wz + 260) / 300 * MH;
+    mCtx.clearRect(0, 0, MW, MH);
+    // Rooms — dark filled rect with lighter border
+    mCtx.fillStyle = 'rgba(55,44,75,0.92)';
+    mCtx.strokeStyle = 'rgba(110,90,150,0.85)';
+    mCtx.lineWidth = 1;
+    for (const r of DEFAULT_DUNGEON.rooms) {
+      const rx=wx2m(r.x-r.w/2), ry=wz2m(r.z-r.d/2), rw=r.w/280*MW, rh=r.d/300*MH;
+      mCtx.fillRect(rx,ry,rw,rh); mCtx.strokeRect(rx,ry,rw,rh);
+    }
+    // Corridors — slightly lighter fill
+    mCtx.fillStyle = 'rgba(68,56,92,0.92)';
+    for (const c of DEFAULT_DUNGEON.corridors) {
+      const cx2=wx2m(c.x-c.w/2), cy2=wz2m(c.z-c.d/2), cw2=c.w/280*MW, ch2=c.d/300*MH;
+      mCtx.fillRect(cx2,cy2,cw2,ch2); mCtx.strokeRect(cx2,cy2,cw2,ch2);
+    }
+    // Exit portal marker
+    mCtx.fillStyle = '#00ff44';
+    mCtx.beginPath(); mCtx.arc(wx2m(exitPortalGroup.position.x), wz2m(exitPortalGroup.position.z), 4, 0, Math.PI*2); mCtx.fill();
+    // Remote players — grey dots
+    mCtx.fillStyle = '#888';
+    for (const rp of remotePlayers.values()) {
+      mCtx.beginPath(); mCtx.arc(wx2m(rp.position.x), wz2m(rp.position.z), 3, 0, Math.PI*2); mCtx.fill();
+    }
+    // Local player — green dot + short direction line based on yaw
+    if (localPlayer) {
+      const lpx=wx2m(localPlayer.position.x), lpy=wz2m(localPlayer.position.z);
+      mCtx.fillStyle = '#00ff88';
+      mCtx.beginPath(); mCtx.arc(lpx, lpy, 4, 0, Math.PI*2); mCtx.fill();
+      mCtx.strokeStyle = '#00ff88'; mCtx.lineWidth = 1.5;
+      mCtx.beginPath(); mCtx.moveTo(lpx, lpy);
+      // yaw=0 looks in -Z which is upward on map (lower wz = lower ry)
+      mCtx.lineTo(lpx - Math.sin(yaw) * 8, lpy - Math.cos(yaw) * 8);
+      mCtx.stroke();
+    }
+  }
+
   renderer.render(scene,camera);
 }
 gameLoop();
