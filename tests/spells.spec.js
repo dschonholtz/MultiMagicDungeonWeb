@@ -7,9 +7,9 @@ import { waitForGame, gameState, enableSpells, castSpell } from './helpers.js';
 
 // SPELL_DEFS from the game (duplicated here for assertion constants)
 const SPELL = {
-  fireball:    { maxLifeMs: 1333, cooldownMs:  666 },
-  frostbolt:   { maxLifeMs: 2000, cooldownMs: 1000 },
-  telekinesis: { maxLifeMs: 1667, cooldownMs: 1500 },
+  fireball:    { maxLifeMs: 6000, maxDist: 80, speed: 22, cooldownMs:  666 },
+  frostbolt:   { maxLifeMs: 6000, maxDist: 60, speed: 14, cooldownMs: 1000 },
+  telekinesis: { maxLifeMs: 6000, maxDist: 90, speed: 18, cooldownMs: 1500 },
 };
 
 test('fireball projectile is created on cast', async ({ page }) => {
@@ -33,14 +33,18 @@ test('fireball projectile is created on cast', async ({ page }) => {
   expect(after.spells[0].alive).toBe(true);
 });
 
-test('fireball disappears within its maxLifeMs', async ({ page }) => {
+test('fireball disappears within its maxDist travel', async ({ page }) => {
   await page.goto('/');
   await waitForGame(page);
   await enableSpells(page);
   await castSpell(page, 'fireball');
 
-  // Wait slightly past maxLifeMs (1333ms) for the game loop to clean it up
-  await page.waitForTimeout(SPELL.fireball.maxLifeMs + 200);
+  // Game kills fireball by distance (maxDist=80 at speed=22 ≈ 3.6s travel).
+  // Poll until no live fireball, with generous timeout.
+  await page.waitForFunction(
+    () => !window.__TEST__.state().spells.some(s => s.type === 'fireball' && s.alive),
+    { timeout: 6_000 }
+  );
 
   const state = await gameState(page);
   const live = state.spells.filter(s => s.type === 'fireball' && s.alive);
@@ -113,10 +117,13 @@ test('fireball cooldown clears after cooldownMs elapses', async ({ page }) => {
   await enableSpells(page);
   await castSpell(page, 'fireball');
 
-  // Wait past cooldownMs (666ms) + a buffer
-  await page.waitForTimeout(SPELL.fireball.cooldownMs + 300);
+  // Poll until cooldown clears (stored in seconds, decremented each frame)
+  await page.waitForFunction(
+    () => (window.__TEST__.state().localPlayer?.cooldowns?.fireball ?? 0) <= 0,
+    { timeout: 4_000 }
+  );
 
   const state = await gameState(page);
-  expect(state.localPlayer.cooldowns.fireball).toBe(0);
+  expect(state.localPlayer.cooldowns.fireball).toBeLessThanOrEqual(0.1);
   await expect(page.locator('#spell-0')).toHaveClass(/ready/);
 });
