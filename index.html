@@ -26,7 +26,8 @@
   #rename-btn { padding: 4px 10px; background: #555; border: none; color: #fff; font-size: 12px; font-family: monospace; border-radius: 3px; cursor: pointer; }
   #rename-btn:hover { background: #777; }
   #minimap { position: absolute; top: 120px; right: 20px; width: 180px; height: 180px; background: rgba(0,0,0,0.55); border-radius: 4px; border: 1px solid #444; }
-  #interact-hint { position: absolute; bottom: 160px; left: 50%; transform: translateX(-50%); background: rgba(60,20,100,0.22); color: #c090ff; padding: 8px 20px; border-radius: 4px; font-size: 14px; border: 1px solid #8040cc; display: none; text-align: center; }
+  #interact-hint { position: absolute; bottom: 160px; left: 50%; transform: translateX(-50%); background: rgba(60,20,100,0.22); color: #c090ff; padding: 8px 20px; border-radius: 4px; font-size: 14px; border: 1px solid #8040cc; display: none; text-align: center; cursor: pointer; user-select: none; }
+  #rotate-prompt { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 200; align-items: center; justify-content: center; color: #fff; font-size: 24px; text-align: center; pointer-events: none; }
   #crosshair { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: rgba(255,255,255,0.7); font-size: 18px; user-select: none; }
   #game-canvas { touch-action: none; }
   #joystick-outer { display: none; position: fixed; bottom: 30px; left: 30px; width: 200px; height: 200px; border-radius: 50%; background: rgba(255,255,255,0.07); border: 2px solid rgba(255,255,255,0.22); touch-action: none; z-index: 100; }
@@ -60,6 +61,7 @@
     <div class="spell-slot ready" id="spell-2"><span class="spell-icon">&#x1F300;</span><span>Telekinesis</span><span style="color:#888;font-size:9px">E</span></div>
   </div>
   <div id="crosshair">+</div>
+  <div id="rotate-prompt">&#x21BB; Rotate for best experience</div>
   <div id="rename-panel"><input id="rename-input" type="text" placeholder="Rename…" maxlength="24" /><button id="rename-btn">Set</button></div>
 </div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
@@ -330,6 +332,7 @@ function renderDungeon(layout) {
   const pMat = new THREE.MeshStandardMaterial({ color: 0x3a2e50, roughness: 0.9, metalness: 0.05 });
   const pGeo = new THREE.CylinderGeometry(1.5, 2, 20, 8);
   const WH   = 20;
+  const EPS  = 0.5; // snap tolerance for shared-face detection
 
   const addWall = (px, py, pz, rx, ry, rz, gw, gh) => {
     // Wall UV repeat proportional to size so bricks stay roughly same scale
@@ -342,44 +345,44 @@ function renderDungeon(layout) {
     wallMeshes.push(m); // collected for spell raycasting
   };
 
-  layout.rooms.forEach(r => {
+  // Pre-compute AABB for every room and corridor
+  const allBoxes = [...layout.rooms, ...layout.corridors].map(b => ({
+    minX: b.x - b.w / 2, maxX: b.x + b.w / 2,
+    minZ: b.z - b.d / 2, maxZ: b.z + b.d / 2,
+  }));
+  // For each face, check if another box's OPPOSITE face touches it with overlapping span.
+  // North face of A (at z=z0): skip if any B has maxZ≈z0 and overlapping X span.
+  const hasN = (z, x0, x1) => allBoxes.some(b => Math.abs(b.maxZ - z) < EPS && b.minX < x1 - EPS && b.maxX > x0 + EPS);
+  const hasS = (z, x0, x1) => allBoxes.some(b => Math.abs(b.minZ - z) < EPS && b.minX < x1 - EPS && b.maxX > x0 + EPS);
+  const hasW = (x, z0, z1) => allBoxes.some(b => Math.abs(b.maxX - x) < EPS && b.minZ < z1 - EPS && b.maxZ > z0 + EPS);
+  const hasE = (x, z0, z1) => allBoxes.some(b => Math.abs(b.minX - x) < EPS && b.minZ < z1 - EPS && b.maxZ > z0 + EPS);
+
+  // Unified loop over rooms + corridors — doorways open automatically where boxes share a face
+  [...layout.rooms, ...layout.corridors].forEach(b => {
+    const x0 = b.x - b.w / 2, x1 = b.x + b.w / 2;
+    const z0 = b.z - b.d / 2, z1 = b.z + b.d / 2;
+
     // Floor
     const flTex = _floorTex.clone();
     flTex.wrapS = flTex.wrapT = THREE.RepeatWrapping;
-    flTex.repeat.set(r.w / 8, r.d / 8);
-    const flMat = new THREE.MeshStandardMaterial({ map: flTex, roughness: 0.85, metalness: 0.04 });
-    const fl = new THREE.Mesh(new THREE.PlaneGeometry(r.w, r.d), flMat);
-    fl.rotation.x = -Math.PI/2; fl.position.set(r.x, 0, r.z); scene.add(fl);
+    flTex.repeat.set(b.w / 8, b.d / 8);
+    const fl = new THREE.Mesh(new THREE.PlaneGeometry(b.w, b.d),
+      new THREE.MeshStandardMaterial({ map: flTex, roughness: 0.85, metalness: 0.04 }));
+    fl.rotation.x = -Math.PI/2; fl.position.set(b.x, 0, b.z); scene.add(fl);
 
     // Ceiling
     const ceTex = _ceilTex.clone();
     ceTex.wrapS = ceTex.wrapT = THREE.RepeatWrapping;
-    ceTex.repeat.set(r.w / 10, r.d / 10);
-    const ceMat = new THREE.MeshStandardMaterial({ map: ceTex, roughness: 1.0, metalness: 0.0 });
-    const ce = new THREE.Mesh(new THREE.PlaneGeometry(r.w, r.d), ceMat);
-    ce.rotation.x = Math.PI/2; ce.position.set(r.x, WH, r.z); scene.add(ce);
+    ceTex.repeat.set(b.w / 10, b.d / 10);
+    const ce = new THREE.Mesh(new THREE.PlaneGeometry(b.w, b.d),
+      new THREE.MeshStandardMaterial({ map: ceTex, roughness: 1.0, metalness: 0.0 }));
+    ce.rotation.x = Math.PI/2; ce.position.set(b.x, WH, b.z); scene.add(ce);
 
-    // Walls
-    addWall(r.x,        WH/2, r.z-r.d/2, 0,           0,          0, r.w, WH);
-    addWall(r.x,        WH/2, r.z+r.d/2, 0,   Math.PI,            0, r.w, WH);
-    addWall(r.x-r.w/2,  WH/2, r.z,       0,   Math.PI/2,          0, r.d, WH);
-    addWall(r.x+r.w/2,  WH/2, r.z,       0,  -Math.PI/2,          0, r.d, WH);
-  });
-
-  layout.corridors.forEach(c => {
-    const flTex = _floorTex.clone();
-    flTex.wrapS = flTex.wrapT = THREE.RepeatWrapping;
-    flTex.repeat.set(c.w / 8, c.d / 8);
-    const flMat = new THREE.MeshStandardMaterial({ map: flTex, roughness: 0.85, metalness: 0.04 });
-    const f2 = new THREE.Mesh(new THREE.PlaneGeometry(c.w, c.d), flMat);
-    f2.rotation.x = -Math.PI/2; f2.position.set(c.x, 0, c.z); scene.add(f2);
-
-    const ceTex = _ceilTex.clone();
-    ceTex.wrapS = ceTex.wrapT = THREE.RepeatWrapping;
-    ceTex.repeat.set(c.w / 10, c.d / 10);
-    const ceMat = new THREE.MeshStandardMaterial({ map: ceTex, roughness: 1.0, metalness: 0.0 });
-    const c2 = new THREE.Mesh(new THREE.PlaneGeometry(c.w, c.d), ceMat);
-    c2.rotation.x = Math.PI/2; c2.position.set(c.x, WH, c.z); scene.add(c2);
+    // Walls — skip any face that is shared with an adjacent box (that face becomes a doorway)
+    if (!hasN(z0, x0, x1)) addWall(b.x, WH/2, z0, 0,           0,         0, b.w, WH);
+    if (!hasS(z1, x0, x1)) addWall(b.x, WH/2, z1, 0,   Math.PI,           0, b.w, WH);
+    if (!hasW(x0, z0, z1)) addWall(x0,  WH/2, b.z, 0,  Math.PI/2,         0, b.d, WH);
+    if (!hasE(x1, z0, z1)) addWall(x1,  WH/2, b.z, 0, -Math.PI/2,         0, b.d, WH);
   });
 
   layout.pillars.forEach(([px, pz]) => {
@@ -387,6 +390,14 @@ function renderDungeon(layout) {
   });
 }
 renderDungeon(DEFAULT_DUNGEON);
+
+// Corridor lights — one point light per corridor center; boss approach uses warm red
+DEFAULT_DUNGEON.corridors.forEach((c, i) => {
+  const color = (i === 5) ? 0xff5500 : 0xffaa44; // index 5 = boss approach connector
+  const light = new THREE.PointLight(color, 1.0, 20);
+  light.position.set(c.x, 6, c.z);
+  scene.add(light);
+});
 
 // === PROPS ===
 // All props use Three.js r128 primitives; no new CDN imports.
@@ -626,7 +637,6 @@ function makeLabelCanvas(text) {
 function createPortal(color, position, label) {
   const g = new THREE.Group();
   g.position.copy(position);
-  g.rotation.x = -Math.PI / 2; // horizontal summoning circle lying flat on the floor
   // Outer ring — MeshStandardMaterial with emissive gives glow without post-processing
   const ring = new THREE.Mesh(
     new THREE.TorusGeometry(PORTAL_RING_RADIUS, PORTAL_RING_TUBE, 16, 64),
@@ -687,7 +697,7 @@ function createPortal(color, position, label) {
 
 // Exit portal inside west wing — faces east so player approaching from spawn (0,0,0) sees the ring face-on
 const exitPortalGroup = createPortal(0x00ff00, new THREE.Vector3(-30, PLAYER_HEIGHT, 0), 'VIBE JAM 2026');
-// exitPortalGroup.rotation.y was a hack to compensate for missing rotation.x — no longer needed
+exitPortalGroup.rotation.y = Math.PI / 2; // faces east toward spawn at (0,0,0)
 let startPortalGroup = null, startPortalReady = false;
 if (incomingPortal && safeRef) {
   startPortalGroup = createPortal(0xff0000, new THREE.Vector3(0, PLAYER_HEIGHT, 25), null);
@@ -1091,9 +1101,19 @@ const keys={};
 let yaw=0, pitch=0, isLocked=false;
 // Virtual joystick direction (mobile) — read by updateLocal each frame
 let touchMoveX=0, touchMoveZ=0;
+function doInteract() {
+  if (!localPlayer) return;
+  const pp = localPlayer.position;
+  if (dist2D(pp, { x: 0, z: -57 }) < 8) {
+    // Altar examine — show flavour text briefly
+    interactHintEl.textContent = '✦ The altar hums with ancient magic…';
+    setTimeout(() => { if (interactHintEl.textContent.startsWith('✦')) interactHintEl.textContent = '[F] Examine Altar'; }, 2500);
+  }
+}
 document.addEventListener('keydown',e=>{
   keys[e.code]=true;
   if(e.code==='KeyE'&&isLocked) castSpell('telekinesis');
+  if(e.code==='KeyF') doInteract();
 });
 document.addEventListener('keyup',e=>{ keys[e.code]=false; });
 document.addEventListener('mousemove',e=>{
@@ -1190,7 +1210,18 @@ if ('ontouchstart' in window) {
 const portalHintEl=document.getElementById('portal-hint');
 const minimapEl=document.getElementById('minimap');
 const interactHintEl=document.getElementById('interact-hint');
+interactHintEl.addEventListener('touchstart', e=>{ e.preventDefault(); doInteract(); }, {passive:false});
 let _minimapFrame=0;
+
+// Portrait-mode warning (mobile only)
+const rotatePromptEl = document.getElementById('rotate-prompt');
+function _updateRotatePrompt() {
+  const portrait = window.innerHeight > window.innerWidth && 'ontouchstart' in window;
+  rotatePromptEl.style.display = portrait ? 'flex' : 'none';
+}
+window.addEventListener('resize', _updateRotatePrompt);
+window.addEventListener('orientationchange', _updateRotatePrompt);
+_updateRotatePrompt();
 let portalPreloaded=false, traveling=false;
 function dist2D(a,b){const dx=a.x-b.x,dz=a.z-b.z;return Math.sqrt(dx*dx+dz*dz);}
 function checkPortals() {
