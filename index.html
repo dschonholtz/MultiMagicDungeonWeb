@@ -21,16 +21,12 @@
   .spell-slot .spell-icon { font-size: 20px; }
   .spell-slot.cooling { border-color: #333; opacity: 0.5; }
   .spell-slot.ready   { border-color: #888; }
-  #settings-gear { position: absolute; top: 20px; right: 20px; background: rgba(0,0,0,0.6); border: 1px solid #555; color: #ccc; width: 34px; height: 34px; border-radius: 4px; font-size: 18px; cursor: pointer; display: flex; align-items: center; justify-content: center; pointer-events: all; }
-  #settings-gear:hover { background: rgba(0,0,0,0.8); color: #fff; border-color: #777; }
-  #settings-panel { position: absolute; top: 62px; right: 20px; background: rgba(0,0,0,0.7); padding: 6px 10px; border-radius: 4px; display: none; gap: 6px; align-items: center; pointer-events: all; }
-  #settings-panel.open { display: flex; }
+  #rename-panel { position: absolute; top: 20px; right: 20px; background: rgba(0,0,0,0.7); padding: 6px 10px; border-radius: 4px; display: flex; gap: 6px; align-items: center; pointer-events: all; }
   #rename-input { background: #111; border: 1px solid #555; color: #fff; padding: 4px 8px; font-size: 12px; font-family: monospace; border-radius: 3px; width: 130px; }
   #rename-btn { padding: 4px 10px; background: #555; border: none; color: #fff; font-size: 12px; font-family: monospace; border-radius: 3px; cursor: pointer; }
   #rename-btn:hover { background: #777; }
   #minimap { position: absolute; top: 120px; right: 20px; width: 180px; height: 180px; background: rgba(0,0,0,0.55); border-radius: 4px; border: 1px solid #444; }
-  #interact-hint { position: absolute; bottom: 160px; left: 50%; transform: translateX(-50%); background: rgba(60,20,100,0.22); color: #c090ff; padding: 8px 20px; border-radius: 4px; font-size: 14px; border: 1px solid #8040cc; display: none; text-align: center; cursor: pointer; user-select: none; }
-  #rotate-prompt { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 200; align-items: center; justify-content: center; color: #fff; font-size: 24px; text-align: center; pointer-events: none; }
+  #interact-hint { position: absolute; bottom: 160px; left: 50%; transform: translateX(-50%); background: rgba(60,20,100,0.22); color: #c090ff; padding: 8px 20px; border-radius: 4px; font-size: 14px; border: 1px solid #8040cc; display: none; text-align: center; cursor: pointer; pointer-events: all; }
   #crosshair { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: rgba(255,255,255,0.7); font-size: 18px; user-select: none; }
   #game-canvas { touch-action: none; }
   #joystick-outer { display: none; position: fixed; bottom: 30px; left: 30px; width: 200px; height: 200px; border-radius: 50%; background: rgba(255,255,255,0.07); border: 2px solid rgba(255,255,255,0.22); touch-action: none; z-index: 100; }
@@ -38,9 +34,11 @@
   #mobile-spells { display: none; position: fixed; bottom: 30px; right: 20px; flex-direction: column; gap: 10px; z-index: 100; }
   .mbtn { width: 70px; height: 70px; border-radius: 10px; background: rgba(0,0,0,0.72); border: 2px solid #888; color: #fff; font-size: 26px; display: flex; align-items: center; justify-content: center; touch-action: none; user-select: none; cursor: pointer; }
   .mbtn.cooling { opacity: 0.4; border-color: #444; }
+  #rotate-prompt { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); color: #c090ff; font-size: 20px; align-items: center; justify-content: center; flex-direction: column; gap: 16px; z-index: 2000; text-align: center; padding: 20px; pointer-events: none; }
 </style>
 </head>
 <body>
+<div id="rotate-prompt">&#x21BB;<br>Rotate device to landscape to play</div>
 <canvas id="game-canvas"></canvas>
 <div id="joystick-outer"><div id="joystick-knob"></div></div>
 <div id="mobile-spells">
@@ -64,9 +62,7 @@
     <div class="spell-slot ready" id="spell-2"><span class="spell-icon">&#x1F300;</span><span>Telekinesis</span><span style="color:#888;font-size:9px">E</span></div>
   </div>
   <div id="crosshair">+</div>
-  <div id="rotate-prompt">&#x21BB; Rotate for best experience</div>
-  <button id="settings-gear" title="Settings">&#x2699;</button>
-  <div id="settings-panel"><input id="rename-input" type="text" placeholder="Rename…" maxlength="24" /><button id="rename-btn">Set</button></div>
+  <div id="rename-panel"><input id="rename-input" type="text" placeholder="Rename…" maxlength="24" /><button id="rename-btn">Set</button></div>
 </div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
@@ -145,12 +141,12 @@ const DEFAULT_DUNGEON = {
     { x:   0, z: -200, w: 110, d:  90 },  // boss chamber
   ],
   corridors: [
-    { x:  47.5, z:   0,    w: 15, d: 15 },    // room 1 (maxX=40) → room 2 (minX=55)
-    { x: -47.5, z:   0,    w: 15, d: 15 },    // room 1 (minX=-40) → room 3 (maxX=-55)
-    { x:   0,   z: -42.5,  w: 15, d: 25 },    // room 1 (minZ=-30) → room 4 (maxZ=-55)
-    { x:  80,   z: -50,    w: 12, d: 60 },    // trap corridor — room 2 (minZ=-20) south to z=-80
-    { x:  52,   z: -80,    w: 44, d: 12 },    // connector: trap (minX=74) → room 4 (maxX=30)
-    { x:   0,   z:-130,    w: 15, d: 50 },    // room 4 (minZ=-105) → boss chamber (maxZ=-155)
+    { x:  45, z:   0, w: 30, d: 15 },
+    { x: -45, z:   0, w: 30, d: 15 },
+    { x:   0, z: -45, w: 15, d: 30 },
+    { x:  80, z: -45, w: 12, d: 30 },   // trap corridor — east wing south
+    { x:  40, z: -80, w: 25, d: 12 },   // connector: trap → south room
+    { x:   0, z:-135, w: 15, d: 30 },   // connector: south room → boss chamber
   ],
   pillars: [
     [15,15],[-15,15],[15,-15],[-15,-15],
@@ -331,12 +327,26 @@ function makeCeilMat() {
 // === DUNGEON RENDERER ===
 // Wall meshes collected here so the spell raycaster can test against them
 const wallMeshes = [];
+
+// Returns true if a box from allBoxes occupies the space just outside the wall face.
+// edgeX/edgeZ: the wall plane center (matches the addWall px/pz arguments).
+// dir: '+x'|'-x'|'+z'|'-z' — direction of the wall's outward normal.
+function isWallBlocked(edgeX, edgeZ, dir, allBoxes) {
+  const eps = 0.1;
+  const tx = edgeX + (dir === '+x' ? eps : dir === '-x' ? -eps : 0);
+  const tz = edgeZ + (dir === '+z' ? eps : dir === '-z' ? -eps : 0);
+  return allBoxes.some(b =>
+    tx > b.x - b.w/2 && tx < b.x + b.w/2 &&
+    tz > b.z - b.d/2 && tz < b.z + b.d/2
+  );
+}
+
 // Dungeon renderer - builds geometry from layout data
 function renderDungeon(layout) {
+  const allBoxes = [...layout.rooms, ...layout.corridors];
   const pMat = new THREE.MeshStandardMaterial({ color: 0x3a2e50, roughness: 0.9, metalness: 0.05 });
   const pGeo = new THREE.CylinderGeometry(1.5, 2, 20, 8);
   const WH   = 20;
-  const EPS  = 0.5; // snap tolerance for shared-face detection
 
   const addWall = (px, py, pz, rx, ry, rz, gw, gh) => {
     // Wall UV repeat proportional to size so bricks stay roughly same scale
@@ -349,44 +359,54 @@ function renderDungeon(layout) {
     wallMeshes.push(m); // collected for spell raycasting
   };
 
-  // Pre-compute AABB for every room and corridor
-  const allBoxes = [...layout.rooms, ...layout.corridors].map(b => ({
-    minX: b.x - b.w / 2, maxX: b.x + b.w / 2,
-    minZ: b.z - b.d / 2, maxZ: b.z + b.d / 2,
-  }));
-  // For each face, check if another box's OPPOSITE face touches it with overlapping span.
-  // North face of A (at z=z0): skip if any B has maxZ≈z0 and overlapping X span.
-  const hasN = (z, x0, x1) => allBoxes.some(b => Math.abs(b.maxZ - z) < EPS && b.minX < x1 - EPS && b.maxX > x0 + EPS);
-  const hasS = (z, x0, x1) => allBoxes.some(b => Math.abs(b.minZ - z) < EPS && b.minX < x1 - EPS && b.maxX > x0 + EPS);
-  const hasW = (x, z0, z1) => allBoxes.some(b => Math.abs(b.maxX - x) < EPS && b.minZ < z1 - EPS && b.maxZ > z0 + EPS);
-  const hasE = (x, z0, z1) => allBoxes.some(b => Math.abs(b.minX - x) < EPS && b.minZ < z1 - EPS && b.maxZ > z0 + EPS);
-
-  // Unified loop over rooms + corridors — doorways open automatically where boxes share a face
-  [...layout.rooms, ...layout.corridors].forEach(b => {
-    const x0 = b.x - b.w / 2, x1 = b.x + b.w / 2;
-    const z0 = b.z - b.d / 2, z1 = b.z + b.d / 2;
-
+  layout.rooms.forEach(r => {
     // Floor
     const flTex = _floorTex.clone();
     flTex.wrapS = flTex.wrapT = THREE.RepeatWrapping;
-    flTex.repeat.set(b.w / 8, b.d / 8);
-    const fl = new THREE.Mesh(new THREE.PlaneGeometry(b.w, b.d),
-      new THREE.MeshStandardMaterial({ map: flTex, roughness: 0.85, metalness: 0.04 }));
-    fl.rotation.x = -Math.PI/2; fl.position.set(b.x, 0, b.z); scene.add(fl);
+    flTex.repeat.set(r.w / 8, r.d / 8);
+    const flMat = new THREE.MeshStandardMaterial({ map: flTex, roughness: 0.85, metalness: 0.04 });
+    const fl = new THREE.Mesh(new THREE.PlaneGeometry(r.w, r.d), flMat);
+    fl.rotation.x = -Math.PI/2; fl.position.set(r.x, 0, r.z); scene.add(fl);
 
     // Ceiling
     const ceTex = _ceilTex.clone();
     ceTex.wrapS = ceTex.wrapT = THREE.RepeatWrapping;
-    ceTex.repeat.set(b.w / 10, b.d / 10);
-    const ce = new THREE.Mesh(new THREE.PlaneGeometry(b.w, b.d),
-      new THREE.MeshStandardMaterial({ map: ceTex, roughness: 1.0, metalness: 0.0 }));
-    ce.rotation.x = Math.PI/2; ce.position.set(b.x, WH, b.z); scene.add(ce);
+    ceTex.repeat.set(r.w / 10, r.d / 10);
+    const ceMat = new THREE.MeshStandardMaterial({ map: ceTex, roughness: 1.0, metalness: 0.0 });
+    const ce = new THREE.Mesh(new THREE.PlaneGeometry(r.w, r.d), ceMat);
+    ce.rotation.x = Math.PI/2; ce.position.set(r.x, WH, r.z); scene.add(ce);
 
-    // Walls — skip any face that is shared with an adjacent box (that face becomes a doorway)
-    if (!hasN(z0, x0, x1)) addWall(b.x, WH/2, z0, 0,           0,         0, b.w, WH);
-    if (!hasS(z1, x0, x1)) addWall(b.x, WH/2, z1, 0,   Math.PI,           0, b.w, WH);
-    if (!hasW(x0, z0, z1)) addWall(x0,  WH/2, b.z, 0,  Math.PI/2,         0, b.d, WH);
-    if (!hasE(x1, z0, z1)) addWall(x1,  WH/2, b.z, 0, -Math.PI/2,         0, b.d, WH);
+    // Walls — skip any face where an adjacent room/corridor opens up on the other side
+    if (!isWallBlocked(r.x,       r.z-r.d/2, '-z', allBoxes)) addWall(r.x,       WH/2, r.z-r.d/2, 0,          0,          0, r.w, WH);
+    if (!isWallBlocked(r.x,       r.z+r.d/2, '+z', allBoxes)) addWall(r.x,       WH/2, r.z+r.d/2, 0,  Math.PI,            0, r.w, WH);
+    if (!isWallBlocked(r.x-r.w/2, r.z,       '-x', allBoxes)) addWall(r.x-r.w/2, WH/2, r.z,       0,  Math.PI/2,          0, r.d, WH);
+    if (!isWallBlocked(r.x+r.w/2, r.z,       '+x', allBoxes)) addWall(r.x+r.w/2, WH/2, r.z,       0, -Math.PI/2,          0, r.d, WH);
+  });
+
+  layout.corridors.forEach(c => {
+    const flTex = _floorTex.clone();
+    flTex.wrapS = flTex.wrapT = THREE.RepeatWrapping;
+    flTex.repeat.set(c.w / 8, c.d / 8);
+    const flMat = new THREE.MeshStandardMaterial({ map: flTex, roughness: 0.85, metalness: 0.04 });
+    const f2 = new THREE.Mesh(new THREE.PlaneGeometry(c.w, c.d), flMat);
+    f2.rotation.x = -Math.PI/2; f2.position.set(c.x, 0, c.z); scene.add(f2);
+
+    const ceTex = _ceilTex.clone();
+    ceTex.wrapS = ceTex.wrapT = THREE.RepeatWrapping;
+    ceTex.repeat.set(c.w / 10, c.d / 10);
+    const ceMat = new THREE.MeshStandardMaterial({ map: ceTex, roughness: 1.0, metalness: 0.0 });
+    const c2 = new THREE.Mesh(new THREE.PlaneGeometry(c.w, c.d), ceMat);
+    c2.rotation.x = Math.PI/2; c2.position.set(c.x, WH, c.z); scene.add(c2);
+
+    // Corridor side walls — skip faces that open into a room/corridor on the other side
+    if (!isWallBlocked(c.x,       c.z-c.d/2, '-z', allBoxes)) addWall(c.x,       WH/2, c.z-c.d/2, 0,          0,          0, c.w, WH);
+    if (!isWallBlocked(c.x,       c.z+c.d/2, '+z', allBoxes)) addWall(c.x,       WH/2, c.z+c.d/2, 0,  Math.PI,            0, c.w, WH);
+    if (!isWallBlocked(c.x-c.w/2, c.z,       '-x', allBoxes)) addWall(c.x-c.w/2, WH/2, c.z,       0,  Math.PI/2,          0, c.d, WH);
+    if (!isWallBlocked(c.x+c.w/2, c.z,       '+x', allBoxes)) addWall(c.x+c.w/2, WH/2, c.z,       0, -Math.PI/2,          0, c.d, WH);
+
+    // Warm point light at corridor midpoint — guides players through dark tunnels
+    const cl = new THREE.PointLight(0xffaa44, 1.0, 20);
+    cl.position.set(c.x, 6, c.z); scene.add(cl);
   });
 
   layout.pillars.forEach(([px, pz]) => {
@@ -394,14 +414,6 @@ function renderDungeon(layout) {
   });
 }
 renderDungeon(DEFAULT_DUNGEON);
-
-// Corridor lights — one point light per corridor center; boss approach uses warm red
-DEFAULT_DUNGEON.corridors.forEach((c, i) => {
-  const color = (i === 5) ? 0xff5500 : 0xffaa44; // index 5 = boss approach connector
-  const light = new THREE.PointLight(color, 1.0, 20);
-  light.position.set(c.x, 6, c.z);
-  scene.add(light);
-});
 
 // === PROPS ===
 // All props use Three.js r128 primitives; no new CDN imports.
@@ -641,6 +653,7 @@ function makeLabelCanvas(text) {
 function createPortal(color, position, label) {
   const g = new THREE.Group();
   g.position.copy(position);
+  // No rotation.x — portal stands vertical in the XY plane; rotation.y on the group orients it
   // Outer ring — MeshStandardMaterial with emissive gives glow without post-processing
   const ring = new THREE.Mesh(
     new THREE.TorusGeometry(PORTAL_RING_RADIUS, PORTAL_RING_TUBE, 16, 64),
@@ -701,7 +714,7 @@ function createPortal(color, position, label) {
 
 // Exit portal inside west wing — faces east so player approaching from spawn (0,0,0) sees the ring face-on
 const exitPortalGroup = createPortal(0x00ff00, new THREE.Vector3(-30, PLAYER_HEIGHT, 0), 'VIBE JAM 2026');
-exitPortalGroup.rotation.y = Math.PI / 2; // faces east toward spawn at (0,0,0)
+exitPortalGroup.rotation.y = Math.PI / 2; // face east so player approaching from spawn sees ring head-on
 let startPortalGroup = null, startPortalReady = false;
 if (incomingPortal && safeRef) {
   startPortalGroup = createPortal(0xff0000, new THREE.Vector3(0, PLAYER_HEIGHT, 25), null);
@@ -718,104 +731,6 @@ const _toonGradientMap = (() => {
   tex.needsUpdate = true;
   return tex;
 })();
-
-// === VOXEL ASSETS ===
-// Shared voxel dragon asset used in-world and in /assets viewer page.
-const VOXEL_DRAGON_PALETTE = {
-  body:     0x0f2134,
-  shadow:   0x08131f,
-  cyan:     0x1b9bb3,
-  horn:     0xbe9d83,
-  claw:     0xead8bc,
-  eye:      0x0a0a0a,
-};
-function buildVoxelDragonVoxels() {
-  const v = [];
-  const add = (x, y, z, c) => v.push([x, y, z, c]);
-
-  // Torso core
-  for (let x = -3; x <= 3; x++) {
-    for (let y = 3; y <= 6; y++) {
-      for (let z = -2; z <= 2; z++) {
-        if (Math.abs(x) + Math.abs(z) <= 6) add(x, y, z, 'body');
-      }
-    }
-  }
-  // Belly cyan striping
-  for (let x = -2; x <= 2; x++) for (let z = -1; z <= 1; z++) add(x, 3, z, 'cyan');
-
-  // Neck + head
-  for (let i = 0; i < 4; i++) {
-    for (let y = 5; y <= 6; y++) for (let z = -1; z <= 1; z++) add(4 + i, y, z, 'body');
-  }
-  for (let y = 5; y <= 7; y++) for (let z = -2; z <= 2; z++) add(8, y, z, 'body');
-  for (let z = -1; z <= 1; z++) { add(9, 6, z, 'body'); add(10, 6, z, 'body'); }
-  add(9, 5, 0, 'cyan'); add(10, 5, 0, 'cyan');
-  add(10, 7, -1, 'eye'); add(10, 7, 1, 'eye');
-
-  // Horns
-  for (let i = 0; i < 5; i++) {
-    add(7 + i, 8 + Math.floor(i / 2), -2 - i, 'horn');
-    add(7 + i, 8 + Math.floor(i / 2),  2 + i, 'horn');
-  }
-
-  // Wings (voxel arcs)
-  for (let side of [-1, 1]) {
-    for (let i = 0; i < 8; i++) {
-      add(-1 - i, 7 + Math.floor(i / 3), side * (4 + i), 'horn');
-      add(-1 - i, 6, side * (3 + i), 'shadow');
-      if (i > 1 && i < 7) add(-2 - i, 5, side * (3 + i), 'cyan');
-    }
-  }
-
-  // Legs
-  const legs = [[-2, -1], [-2, 1], [2, -1], [2, 1]];
-  for (const [x0, z0] of legs) {
-    for (let y = 0; y <= 2; y++) {
-      add(x0, y, z0, 'shadow');
-      add(x0 + (x0 > 0 ? 1 : -1), y, z0, 'body');
-    }
-    add(x0, -1, z0, 'claw');
-    add(x0 + (x0 > 0 ? 1 : -1), -1, z0, 'claw');
-  }
-
-  // Tail
-  for (let i = 0; i < 9; i++) {
-    const x = -4 - i;
-    const y = 4 + Math.floor(i / 3);
-    add(x, y, 0, 'body');
-    if (i % 2 === 0) add(x, y - 1, 0, 'cyan');
-  }
-  add(-13, 7, -1, 'claw'); add(-13, 7, 1, 'claw');
-  return v;
-}
-function createVoxelAsset(voxels, { cubeSize = 0.55, gradientMap = null } = {}) {
-  const grouped = new Map();
-  for (const [x, y, z, key] of voxels) {
-    if (!grouped.has(key)) grouped.set(key, []);
-    grouped.get(key).push([x, y, z]);
-  }
-  const geo = new THREE.BoxGeometry(cubeSize, cubeSize, cubeSize);
-  const root = new THREE.Group();
-  for (const [key, pos] of grouped) {
-    const mat = new THREE.MeshToonMaterial({ color: VOXEL_DRAGON_PALETTE[key], gradientMap });
-    const im = new THREE.InstancedMesh(geo, mat, pos.length);
-    const m = new THREE.Matrix4();
-    pos.forEach(([x, y, z], i) => { m.setPosition(x * cubeSize, y * cubeSize, z * cubeSize); im.setMatrixAt(i, m); });
-    im.instanceMatrix.needsUpdate = true;
-    root.add(im);
-  }
-  root.position.y = 0.55;
-  return root;
-}
-const DRAGON_VOXELS = buildVoxelDragonVoxels();
-const enemyDragon = {
-  group: createVoxelAsset(DRAGON_VOXELS, { cubeSize: 0.5, gradientMap: _toonGradientMap }),
-  baseY: PLAYER_HEIGHT - 2.6,
-};
-enemyDragon.group.position.set(12, enemyDragon.baseY, -22);
-enemyDragon.group.rotation.y = -0.35;
-scene.add(enemyDragon.group);
 
 // Per-player color derived from id string
 function hashColor(id) {
@@ -1203,19 +1118,19 @@ const keys={};
 let yaw=0, pitch=0, isLocked=false;
 // Virtual joystick direction (mobile) — read by updateLocal each frame
 let touchMoveX=0, touchMoveZ=0;
+// Interact state — set each frame by proximity checks, read by doInteract and the hint display
+let _interactNear = null;
 function doInteract() {
-  if (!localPlayer) return;
-  const pp = localPlayer.position;
-  if (dist2D(pp, { x: 0, z: -57 }) < 8) {
-    // Altar examine — show flavour text briefly
-    interactHintEl.textContent = '✦ The altar hums with ancient magic…';
-    setTimeout(() => { if (interactHintEl.textContent.startsWith('✦')) interactHintEl.textContent = '[F] Examine Altar'; }, 2500);
+  if (_interactNear === 'altar') {
+    interactHintEl.textContent = 'Dark energies pulse through the stone\u2026';
+    setTimeout(() => { if (_interactNear === 'altar') interactHintEl.textContent = '[F] Examine Altar'; }, 2000);
   }
 }
+
 document.addEventListener('keydown',e=>{
   keys[e.code]=true;
   if(e.code==='KeyE'&&isLocked) castSpell('telekinesis');
-  if(e.code==='KeyF') doInteract();
+  if(e.code==='KeyF'&&isLocked) doInteract();
 });
 document.addEventListener('keyup',e=>{ keys[e.code]=false; });
 document.addEventListener('mousemove',e=>{
@@ -1312,18 +1227,8 @@ if ('ontouchstart' in window) {
 const portalHintEl=document.getElementById('portal-hint');
 const minimapEl=document.getElementById('minimap');
 const interactHintEl=document.getElementById('interact-hint');
-interactHintEl.addEventListener('touchstart', e=>{ e.preventDefault(); doInteract(); }, {passive:false});
+interactHintEl.addEventListener('touchstart',e=>{e.preventDefault();doInteract();},{passive:false});
 let _minimapFrame=0;
-
-// Portrait-mode warning (mobile only)
-const rotatePromptEl = document.getElementById('rotate-prompt');
-function _updateRotatePrompt() {
-  const portrait = window.innerHeight > window.innerWidth && 'ontouchstart' in window;
-  rotatePromptEl.style.display = portrait ? 'flex' : 'none';
-}
-window.addEventListener('resize', _updateRotatePrompt);
-window.addEventListener('orientationchange', _updateRotatePrompt);
-_updateRotatePrompt();
 let portalPreloaded=false, traveling=false;
 function dist2D(a,b){const dx=a.x-b.x,dz=a.z-b.z;return Math.sqrt(dx*dx+dz*dz);}
 function checkPortals() {
@@ -1385,32 +1290,32 @@ new THREE.GLTFLoader().load('/models/Character_Male_1.gltf',
 );
 net.connect(defaultName);
 
-// Settings gear toggle
-const _settingsPanel = document.getElementById('settings-panel');
-document.getElementById('settings-gear').addEventListener('click',()=>{
-  _settingsPanel.classList.toggle('open');
-  if(_settingsPanel.classList.contains('open')) document.getElementById('rename-input').focus();
-});
-
-// Rename panel (inside settings)
-function _submitRename(){
+// Rename panel
+document.getElementById('rename-btn').addEventListener('click',()=>{
   const v=document.getElementById('rename-input').value.trim();
-  if(v){ net.requestRename(v); _settingsPanel.classList.remove('open'); }
-}
-document.getElementById('rename-btn').addEventListener('click', _submitRename);
+  if(v) net.requestRename(v);
+});
 document.getElementById('rename-input').addEventListener('keydown',e=>{
   // Prevent WASD/movement keys from firing while user is typing in the rename field
   e.stopPropagation();
-  if(e.key==='Enter') _submitRename();
+  if(e.key==='Enter'){const v=document.getElementById('rename-input').value.trim();if(v) net.requestRename(v);}
 });
 
 // === GAME LOOP ===
-// Window resize
+// Window resize + portrait warning (touch devices only)
+const _rotatePromptEl = document.getElementById('rotate-prompt');
+function _updatePortraitWarning() {
+  if (!('ontouchstart' in window)) return;
+  const portrait = window.innerHeight > window.innerWidth;
+  _rotatePromptEl.style.display = portrait ? 'flex' : 'none';
+}
 window.addEventListener('resize',()=>{
   camera.aspect=window.innerWidth/window.innerHeight;
   camera.updateProjectionMatrix();
   renderer.setSize(window.innerWidth,window.innerHeight);
+  _updatePortraitWarning();
 });
+_updatePortraitWarning();
 
 // Portal particle animator — animates in group-local XY space; group.rotation handles world orientation
 function _animPortalParticles(group, t, speed) {
@@ -1467,16 +1372,13 @@ function gameLoop() {
     if (startPortalGroup._light) startPortalGroup._light.intensity = PORTAL_LIGHT_INTENSITY * (1.0 + 0.30 * Math.sin(elapsedSecs * 2.3 + Math.PI));
     _animPortalParticles(startPortalGroup, elapsedSecs, -1.4);
   }
-  // Voxel enemy idle animation
-  enemyDragon.group.position.y = enemyDragon.baseY + Math.sin(elapsedSecs * 2.4) * 0.28;
-  enemyDragon.group.rotation.y = -0.35 + Math.sin(elapsedSecs * 1.35) * 0.12;
   checkPortals(); updateHud();
 
   // Rotate floor runes (purple rune + boss ritual circle)
   for (const r of rotatingRunes) r.rotation.z += dt * 0.12;
 
   // Chest proximity auto-open + ease-out cubic lid animation
-  let _interactNear = null;
+  _interactNear = null; // reset each frame; set below by proximity checks
   if (localPlayer) {
     const pp = localPlayer.position;
     for (const ch of chests) {
