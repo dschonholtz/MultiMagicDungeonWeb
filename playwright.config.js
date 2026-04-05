@@ -25,7 +25,7 @@ export default defineConfig({
   // Starts vite automatically before tests run; reuses if already running.
   // Change WS_URL in index.html to ws://localhost:8080 before running tests locally.
   webServer: {
-    command: 'npx vite --port 3000',
+    command: 'npx vite --port 3000 --strictPort',
     port: 3000,
     reuseExistingServer: true,
     timeout: 15_000,
