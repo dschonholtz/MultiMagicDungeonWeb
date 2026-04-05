@@ -3,66 +3,69 @@
 **Status:** planning
 **Created:** 2026-04-05
 
-Add the game's first enemy: a voxel-based monster built from Three.js `BoxGeometry` cubes, assembled into a Minecraft-style character. Roams the dungeon, reacts to the player's presence, and can be hit by spells.
+Add the game's first enemy: a voxel-based monster built to match the existing wizard's aesthetic — `BoxGeometry` blocks, `MeshToonMaterial` cel-shading, dot eyes, same scale. The wizard is the reference: the monster should feel like it belongs in the same world.
 
 ---
 
-## What "Voxel-Based" Means Here
+## Style Reference
 
-Rather than smooth procedural geometry (spheres, cylinders), the monster is built entirely from rectangular `BoxGeometry` pieces — head, body, arms, legs — giving a blocky, retro look. Each body part is a separate `Mesh` parented to a group for animation (bob, walk cycle, head turn). This is the same approach as classic voxel games and is simple to implement in Three.js r128 without any external assets.
+The wizard (already in game) uses:
+- Large boxy head with two small black dot eyes
+- Rectangular body, separate arm/leg blocks
+- `MeshToonMaterial` with a gradient map for cel-shading
+- Clean, flat colors — teal/green tones on the wizard
 
-*Note: if you had a reference image in mind when you said "like this," share it and I'll match the style more precisely.*
+The monster should follow the exact same construction pattern but with a distinct silhouette and color that reads as "enemy." Proposed: a **red/dark-red goblin** — same proportions as the wizard but slightly shorter, wider head, angry dot eyes (closer together, tilted inward).
 
 ---
 
 ## Options Considered
 
 ### Option A — Static voxel dummy (no AI)
-A voxel monster mesh that stands in the dungeon. No movement, no behavior. Just proves the art style works.
-**Pros:** Fast, easy to test visually.
-**Cons:** Not a real monster — no gameplay.
+Just a mesh, no behavior. Proves the art style works.
+**Chosen for v1? No** — not meaningful gameplay.
 
 ### Option B — Patrol AI (wander + player detection)
-Monster patrols between two waypoints. When the player enters a detection radius, it turns to face them. When the player leaves, it resumes patrolling.
-**Pros:** Feels alive. Establishes the AI pattern for future enemies.
-**Cons:** More code, requires collision/radius checks.
+Patrols between two waypoints. Stops and faces player when within detection radius.
+**Chosen.** Feels alive. Establishes the AI pattern for all future enemies.
 
 ### Option C — Full hostile AI (patrol + chase + attack)
-Monster patrols, detects player, chases, and deals damage on contact. Has health; destroyed by spells.
-**Pros:** Complete gameplay loop.
-**Cons:** Significant scope — health system, damage, death effects all need to be added.
-
-**Chosen: Option B** — patrol + player detection. Enough to feel like a real monster without building the full combat system. Option C is the natural next task.
+Full combat loop — chase, deal damage, take damage.
+**Next task** after this one is solid.
 
 ---
 
-## Voxel Monster Design
+## Monster Design (matching wizard aesthetic)
 
 ```
-Head:    BoxGeometry(2, 2, 2)        — centered at y=4
-Body:    BoxGeometry(2, 3, 1)        — centered at y=1.5
-L Arm:   BoxGeometry(0.8, 2.5, 0.8) — at x=-1.4, y=1.5
-R Arm:   BoxGeometry(0.8, 2.5, 0.8) — at x=+1.4, y=1.5
-L Leg:   BoxGeometry(0.9, 2.5, 0.9) — at x=-0.6, y=-1.25
-R Leg:   BoxGeometry(0.9, 2.5, 0.9) — at x=+0.6, y=-1.25
+Head:    BoxGeometry(2.2, 2.2, 2.2)  — y=3.8, slightly wider than wizard
+Body:    BoxGeometry(2.0, 2.5, 1.0)  — y=1.5
+L Arm:   BoxGeometry(0.8, 2.0, 0.8)  — x=-1.4, y=1.5
+R Arm:   BoxGeometry(0.8, 2.0, 0.8)  — x=+1.4, y=1.5
+L Leg:   BoxGeometry(0.9, 2.0, 0.9)  — x=-0.5, y=-0.75
+R Leg:   BoxGeometry(0.9, 2.0, 0.9)  — x=+0.5, y=-0.75
+Eyes:    PlaneGeometry(0.3, 0.3) ×2  — black, slightly inward-tilted (angry look)
 ```
 
-Color: `MeshToonMaterial` in dark green (`0x2d6a2d`) with a slightly lighter face panel. Eyes: two small flat quads in white + black.
+Colors (`MeshToonMaterial`, same gradientMap as wizard):
+- Head + body: `0x8B0000` (dark red)
+- Arms + legs: `0x6B0000` (slightly darker)
+- Eyes: `0x111111`
 
-Animation:
-- Idle: gentle y-axis bob (same as wizard)
-- Walk: arms/legs swing opposite phase (left arm forward = right leg forward)
+Animation (same pattern as wizard):
+- Idle: gentle y-bob at 0.8× wizard speed
+- Walk: arm/leg swing opposite phase, ±15° rotation
 
 ---
 
 ## Success Criteria
 
-1. Voxel monster appears in the dungeon (at least one instance, hardcoded spawn point)
-2. Monster patrols between two waypoints, walking animation plays
+1. Monster appears in the dungeon matching the wizard's voxel aesthetic (BoxGeometry + MeshToonMaterial)
+2. Monster patrols between two waypoints with walk animation
 3. When player enters 12-unit detection radius, monster stops and faces player
-4. Monster can be hit by fireball — visual response (flash red, then resume)
-5. Monster has health (3 hits); on death, body parts scatter with physics then disappear
-6. All 28 existing Playwright tests still pass (monster not tested in Playwright yet)
+4. Monster flashes bright red when hit by a fireball
+5. Monster has 3 health; on death, body parts explode outward then fade
+6. All 28 existing Playwright tests still pass
 
 ---
 
@@ -70,27 +73,27 @@ Animation:
 
 | Criterion | How to verify |
 |-----------|---------------|
-| 1-3 | Manual: walk near monster, observe patrol → detection behavior |
-| 4-5 | Manual: shoot fireball at monster 3× |
+| 1 | Screenshot — monster visible, matching toon style |
+| 2-3 | Manual: walk near monster, observe patrol → alert transition |
+| 4-5 | Manual: shoot fireball 3× |
 | 6 | `npm test` — 28/28 pass |
 
 ---
 
 ## Plan
 
-1. Read current dungeon layout in `index.html` — find a good spawn point inside a room
-2. Write `createVoxelMonster()` function returning a `THREE.Group` with all body parts
-3. Write `VoxelMonster` class (or plain object) with:
-   - `position`, `rotation`, `health = 3`
-   - `waypoints: [Vec3, Vec3]` — patrol path
+1. Find wizard construction code in `index.html` — use as direct template for monster geometry
+2. Write `createVoxelMonster(color)` mirroring `createWizard()` structure
+3. Write `VoxelMonster` update object:
    - `state: 'patrol' | 'alert'`
-   - `update(dt, playerPos)` — patrol or face-player logic
-   - `takeDamage()` — flash red; decrement health; on 0, trigger scatter/death
-4. Add monster to the scene in the dungeon init block
-5. Call `monster.update(dt, player.position)` in the animation loop
-6. Add spell hit detection: for each active spell, check distance to monster position; on hit call `monster.takeDamage()`
+   - `waypoints`: two points inside the same dungeon room
+   - `update(dt, playerPos)`: move toward next waypoint OR rotate to face player
+   - `takeDamage()`: flash + health decrement; `die()`: scatter + fade
+4. In dungeon init: spawn one monster at a hardcoded room position
+5. In animation loop: call `monster.update(dt, player.position)`
+6. In spell update loop: check fireball distance to monster; call `takeDamage()` on hit
 7. `node --check` + `grep conflict` + `npm test`
-8. Commit (no deploy — awaits Step 3 sign-off)
+8. Commit (no deploy)
 
 ---
 
