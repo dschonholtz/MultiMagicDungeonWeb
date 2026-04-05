@@ -65,10 +65,10 @@ const HP_MAX              = 100;
 const SEND_MOVE_HZ        = 20;
 // Portal geometry
 const PORTAL_RING_RADIUS       = 4.0;   // torus major radius (units)
-const PORTAL_RING_TUBE         = 0.25;  // torus tube radius
-const PORTAL_VOID_SIZE         = 4.0;   // inner void plane width/height
-const PORTAL_EMISSIVE_INTENSITY = 1.2;
-const PORTAL_LIGHT_INTENSITY   = 1.5;
+const PORTAL_RING_TUBE         = 0.5;   // torus tube radius
+const PORTAL_VOID_SIZE         = 9.0;   // inner void plane width/height (≥ ring diameter)
+const PORTAL_EMISSIVE_INTENSITY = 2.0;
+const PORTAL_LIGHT_INTENSITY   = 3.0;
 const PORTAL_LIGHT_DIST        = 40;    // point light falloff distance
 // Portal animation
 const PORTAL_RING_SPIN         = 0.8;   // rad/sec ring rotation speed
@@ -213,7 +213,7 @@ function makeLabelCanvas(text) {
 }
 function createPortal(color, position, label) {
   const g = new THREE.Group();
-  g.position.copy(position); g.rotation.x = -Math.PI / 2;
+  g.position.copy(position);
   // Outer ring — MeshStandardMaterial with emissive gives glow without post-processing
   const ring = new THREE.Mesh(
     new THREE.TorusGeometry(PORTAL_RING_RADIUS, PORTAL_RING_TUBE, 16, 64),
@@ -224,7 +224,7 @@ function createPortal(color, position, label) {
   // Inner void — translucent plane, counter-rotates for hypnotic effect
   const voidMesh = new THREE.Mesh(
     new THREE.PlaneGeometry(PORTAL_VOID_SIZE, PORTAL_VOID_SIZE),
-    new THREE.MeshStandardMaterial({ color, transparent: true, opacity: 0.4, side: THREE.DoubleSide })
+    new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.4, side: THREE.DoubleSide })
   );
   g.add(voidMesh);
   g._void = voidMesh;
@@ -237,8 +237,9 @@ function createPortal(color, position, label) {
   scene.add(g); return g;
 }
 
-// Exit portal inside west wing (reachable without wall clipping) — horizontal summoning circle
+// Exit portal inside west wing — faces east so player approaching from spawn (0,0,0) sees the ring face-on
 const exitPortalGroup = createPortal(0x00ff00, new THREE.Vector3(-30, PLAYER_HEIGHT, 0), 'VIBE JAM 2026');
+exitPortalGroup.rotation.y = Math.PI / 2;
 let startPortalGroup = null, startPortalReady = false;
 if (incomingPortal && safeRef) {
   startPortalGroup = createPortal(0xff0000, new THREE.Vector3(0, PLAYER_HEIGHT, 25), null);
@@ -297,12 +298,12 @@ class MmdPlayer {
       };
 
       // Robe skirt — wide at base, reads instantly as wizard robes
-      const skirt = new THREE.Mesh(flatBox(2.6, 2.0, 2.2), toonMat(colors.legs));
-      skirt.position.y = 1.0; addWithOutline(this.mesh, skirt);
+      const skirt = new THREE.Mesh(flatBox(3.0, 2.2, 2.6), toonMat(colors.legs));
+      skirt.position.y = 1.1; addWithOutline(this.mesh, skirt);
 
       // Torso — narrower upper robe (hourglass silhouette when combined with skirt)
-      const torso = new THREE.Mesh(flatBox(2.0, 1.8, 1.8), toonMat(colors.body));
-      torso.position.y = 2.9; addWithOutline(this.mesh, torso);
+      const torso = new THREE.Mesh(flatBox(1.8, 1.6, 1.6), toonMat(colors.body));
+      torso.position.y = 3.0; addWithOutline(this.mesh, torso);
 
       // Arms — pivot groups at shoulder so rotation.z swings naturally for casting animation
       this.leftArm = new THREE.Group();
@@ -317,24 +318,24 @@ class MmdPlayer {
       rArmMesh.position.y = -0.7; addWithOutline(this.rightArm, rArmMesh);
       this.mesh.add(this.rightArm);
 
-      // Head — big chibi head (~42% of body height), instantly readable at distance
-      this.headMesh = new THREE.Mesh(flatBox(2.2, 2.4, 2.0), toonMat(colors.head));
-      this.headMesh.position.y = 5.0; addWithOutline(this.mesh, this.headMesh);
+      // Head — big chibi head, larger than torso for readability; 0.2-unit neck gap above torso
+      this.headMesh = new THREE.Mesh(flatBox(2.6, 2.4, 2.2), toonMat(colors.head));
+      this.headMesh.position.y = 5.2; addWithOutline(this.mesh, this.headMesh);
 
       // Eyes — two dark spheres on the front face
       const eyeMat = new THREE.MeshBasicMaterial({ color: 0x111111 });
       const eyeGeo = new THREE.SphereGeometry(0.2, 6, 6);
-      const lEye = new THREE.Mesh(eyeGeo, eyeMat); lEye.position.set(-0.52, 5.15, -1.01);
-      const rEye = new THREE.Mesh(eyeGeo, eyeMat); rEye.position.set( 0.52, 5.15, -1.01);
+      const lEye = new THREE.Mesh(eyeGeo, eyeMat); lEye.position.set(-0.55, 5.35, -1.11);
+      const rEye = new THREE.Mesh(eyeGeo, eyeMat); rEye.position.set( 0.55, 5.35, -1.11);
       this.mesh.add(lEye); this.mesh.add(rEye);
 
       // Wizard hat brim — wide flat box gives that classic sorcerer silhouette
       const brim = new THREE.Mesh(flatBox(2.9, 0.18, 2.7), toonMat(hatColor));
-      brim.position.y = 6.29; addWithOutline(this.mesh, brim);
+      brim.position.y = 6.5; addWithOutline(this.mesh, brim);
 
-      // Wizard hat cone — pointy top, iconic from across the dungeon
-      this.hatMesh = new THREE.Mesh(new THREE.ConeGeometry(1.1, 2.0, 8), toonMat(hatColor));
-      this.hatMesh.position.y = 7.38; addWithOutline(this.mesh, this.hatMesh);
+      // Wizard hat cone — taller pointy top, dramatic wizard silhouette
+      this.hatMesh = new THREE.Mesh(new THREE.ConeGeometry(1.0, 2.5, 8), toonMat(hatColor));
+      this.hatMesh.position.y = 7.84; addWithOutline(this.mesh, this.hatMesh);
       const nc=document.createElement('canvas'); nc.width=256; nc.height=48;
       const ctx=nc.getContext('2d');
       ctx.font='bold 20px monospace'; ctx.fillStyle='#fff'; ctx.textAlign='center';
