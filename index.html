@@ -809,13 +809,94 @@ function createVoxelAsset(voxels, { cubeSize = 0.55, gradientMap = null } = {}) 
   return root;
 }
 const DRAGON_VOXELS = buildVoxelDragonVoxels();
-const enemyDragon = {
-  group: createVoxelAsset(DRAGON_VOXELS, { cubeSize: 0.5, gradientMap: _toonGradientMap }),
-  baseY: PLAYER_HEIGHT - 2.6,
-};
-enemyDragon.group.position.set(12, enemyDragon.baseY, -22);
-enemyDragon.group.rotation.y = -0.35;
-scene.add(enemyDragon.group);
+
+// === VOXEL DRAGON ENEMY ===
+class VoxelDragon {
+  constructor(scene, startX, startZ) {
+    this.mesh = createVoxelAsset(DRAGON_VOXELS, { cubeSize: 0.35, gradientMap: _toonGradientMap });
+    this.baseY = PLAYER_HEIGHT - 2.6;
+    this.mesh.position.set(startX, this.baseY, startZ);
+    scene.add(this.mesh);
+    this.hp = 3;
+    this.state = 'patrol'; // 'patrol' | 'alert' | 'dead'
+    this.waypoints = [{x: startX - 8, z: startZ}, {x: startX + 8, z: startZ}];
+    this.waypointIndex = 0;
+    this.speed = 2.5;
+    this.t = 0;
+  }
+
+  update(dt, playerPos, spells) {
+    if (this.state === 'dead') return;
+    this.t += dt;
+
+    const dx = playerPos.x - this.mesh.position.x;
+    const dz = playerPos.z - this.mesh.position.z;
+    const dist = Math.sqrt(dx * dx + dz * dz);
+
+    // Detection
+    if (dist < 12) this.state = 'alert';
+    else if (dist > 16 && this.state === 'alert') this.state = 'patrol';
+
+    // Idle bob
+    this.mesh.position.y = this.baseY + Math.sin(this.t * 1.2) * 0.1;
+
+    // Patrol movement
+    if (this.state === 'patrol') {
+      const target = this.waypoints[this.waypointIndex];
+      const tdx = target.x - this.mesh.position.x;
+      const tdz = target.z - this.mesh.position.z;
+      const d = Math.sqrt(tdx * tdx + tdz * tdz);
+      if (d < 0.3) {
+        this.waypointIndex = (this.waypointIndex + 1) % this.waypoints.length;
+      } else {
+        this.mesh.position.x += (tdx / d) * this.speed * dt;
+        this.mesh.position.z += (tdz / d) * this.speed * dt;
+        this.mesh.rotation.y = Math.atan2(tdx, tdz);
+      }
+    }
+
+    // Alert: face player
+    if (this.state === 'alert') {
+      this.mesh.rotation.y = Math.atan2(dx, dz);
+    }
+
+    // Spell hit detection
+    for (const sp of spells) {
+      if (!sp.alive) continue;
+      const sdx = this.mesh.position.x - sp.mesh.position.x;
+      const sdy = this.mesh.position.y - sp.mesh.position.y;
+      const sdz = this.mesh.position.z - sp.mesh.position.z;
+      if (Math.sqrt(sdx * sdx + sdy * sdy + sdz * sdz) < 1.5) {
+        spawnImpactFlash(sp.mesh.position.clone(), sp.def.color);
+        sp.destroy();
+        this.takeDamage();
+        break;
+      }
+    }
+  }
+
+  takeDamage() {
+    this.hp--;
+    // Flash red briefly
+    this.mesh.traverse(m => { if (m.isMesh && m.material.emissive) m.material.emissive.setHex(0xff0000); });
+    setTimeout(() => {
+      this.mesh.traverse(m => { if (m.isMesh && m.material.emissive) m.material.emissive.setHex(0x000000); });
+    }, 150);
+    if (this.hp <= 0) this.die();
+  }
+
+  die() {
+    this.state = 'dead';
+    this.mesh.traverse(m => { if (m.isMesh) m.visible = false; });
+    setTimeout(() => { this.mesh.parent?.remove(this.mesh); }, 500);
+  }
+}
+
+// Spawn dragons in non-starting rooms
+const monsters = [
+  new VoxelDragon(scene, 80, 0),    // east room
+  new VoxelDragon(scene, 0, -200),   // boss chamber
+];
 
 // Per-player color derived from id string
 function hashColor(id) {
@@ -1467,9 +1548,10 @@ function gameLoop() {
     if (startPortalGroup._light) startPortalGroup._light.intensity = PORTAL_LIGHT_INTENSITY * (1.0 + 0.30 * Math.sin(elapsedSecs * 2.3 + Math.PI));
     _animPortalParticles(startPortalGroup, elapsedSecs, -1.4);
   }
-  // Voxel enemy idle animation
-  enemyDragon.group.position.y = enemyDragon.baseY + Math.sin(elapsedSecs * 2.4) * 0.28;
-  enemyDragon.group.rotation.y = -0.35 + Math.sin(elapsedSecs * 1.35) * 0.12;
+  // Voxel dragon enemies — patrol, alert, hit detection
+  if (localPlayer) {
+    for (const m of monsters) m.update(dt, localPlayer.position, spellProjectiles);
+  }
   checkPortals(); updateHud();
 
   // Rotate floor runes (purple rune + boss ritual circle)
@@ -1610,6 +1692,7 @@ window.__TEST__ = {
     teleport:     (x, z) => { if (localPlayer) localPlayer.position.set(x, localPlayer.position.y, z); },
     setUsername:  (name) => { if (localPlayer) localPlayer.username = name.trim().slice(0, 24); },
   },
+  monsters,
 };
 // Flip ready once localPlayer exists; interval clears itself immediately after
 const _testReadyInterval = setInterval(() => {
