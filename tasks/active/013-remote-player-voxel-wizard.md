@@ -30,53 +30,72 @@ The suspected flow:
 
 ## Options Considered
 
-### Option A — Fix the animation clip selection
+### Option A — Fix the animation clip selection only
 If wrong clip name is used (death instead of idle), fix the string.
-**Pros:** Minimal. **Cons:** Doesn't fix the look.
+**Pros:** Minimal, preserves GLTF look. **Cons:** Doesn't add wizard style.
 
-### Option B — Replace GLTF remote players with voxel wizard
-Build a voxel wizard using `createVoxelAsset()`. Animate with simple math, no AnimationMixer.
-**Pros:** Consistent with dragon. Removes AnimationMixer issues. Each player gets their hashed color.
-**Chosen.**
+### Option B — Add voxel wizard alongside GLTF (CHOSEN)
+Build `createVoxelWizard(color)` using `createVoxelAsset()`. Wire it up as the remote player
+representation. **Keep the GLTF code intact** — don't delete `MmdPlayer` or the GLTF loader.
+Comment it out / gate it with a `USE_VOXEL_PLAYERS` flag so it can be toggled back easily.
+**Pros:** Wizard look, no AnimationMixer death loop, each player gets hashed color, GLTF preserved.
+**Cons:** Two code paths to maintain (acceptable short-term).
 
-### Option C — Keep GLTF but fix reconnect
-**Cons:** Doesn't make them look like wizards.
+### Option C — Keep GLTF, fix reconnect instead
+**Cons:** Doesn't make them look like wizards. WS reconnect is Task 011.
+
+---
+
+## Important: Preserve the GLTF Player
+
+**Do NOT delete `MmdPlayer` or the GLTF loading code.**
+The GLTF humanoid may be useful again (e.g. for NPCs, cutscenes, or if voxel wizard is reverted).
+Gate with a flag at the top of the remote-player section:
+
+```js
+const USE_VOXEL_PLAYERS = true; // set false to revert to GLTF MmdPlayer
+```
+
+When `USE_VOXEL_PLAYERS` is true, spawn `createVoxelWizard(hashColor(id))`.
+When false, fall through to the existing `new MmdPlayer(...)` path.
 
 ---
 
 ## Voxel Wizard Design (~80 cubes)
 
 - Hat: tall pointed shape, 4 stacked layers decreasing in size
-- Head: 3×3×2 block with dot eyes  
+- Head: 3×3×2 block with dot eyes
 - Robe: 3×5×2 torso, slightly flared at bottom
 - Arms: 4 cubes each
 - Staff: 6 cube vertical line from one hand
 - Colors: `hashColor(playerId)` for robe hue, darker shade for hat, black eyes
 
-Animation: bob + gentle y-rotation. No AnimationMixer.
+Animation: bob + gentle y-rotation using frame time math. No AnimationMixer.
 
 ---
 
 ## Success Criteria
 
-1. Remote players show as voxel wizards, not GLTF humanoids
+1. Remote players show as voxel wizards when `USE_VOXEL_PLAYERS = true`
 2. No death loop — remote players idle-bob smoothly
 3. Each remote player has their hashed color on the robe
 4. Voxel wizard entry in `/assets` viewer
-5. All 28 Playwright tests pass
+5. GLTF `MmdPlayer` code preserved and reachable via flag
+6. All 28 Playwright tests pass
 
 ---
 
 ## Plan
 
 1. Investigate `Character_Male_1.gltf` animation clips — find root cause of death loop
-2. Design `WIZARD_VOXELS` array
+2. Design `WIZARD_VOXELS` array (~80 cubes)
 3. Write `createVoxelWizard(color)` using `createVoxelAsset()`
-4. Replace `new MmdPlayer(...)` with `createVoxelWizard(hashColor(id))`
-5. Wire remote player bob/rotate update each frame
-6. Add `'voxel-wizard'` to `assets/index.html`
-7. `npm test` — 28/28
-8. Commit
+4. Add `USE_VOXEL_PLAYERS` flag; gate spawn logic
+5. Preserve existing `MmdPlayer` path under the flag (comment, don't delete)
+6. Wire remote player bob/rotate update each frame
+7. Add `'voxel-wizard'` entry to `assets/index.html`
+8. `npm test` — 28/28
+9. Commit
 
 ---
 
