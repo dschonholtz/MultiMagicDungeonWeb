@@ -8,10 +8,9 @@ Sister project: [MultiMagicDungeon (UE5)](https://github.com/dschonholtz/MultiMa
 
 ## How to pick up current work
 
-1. Read `docs/PROGRESS.md` — shows active task and current state
-2. Open the active task file in `docs/tasks/`
-3. Read `docs/design/ROADMAP.md` for phase context
-4. Open `index.html` in browser — verify portal system works before touching code
+1. Check `tasks/active/` — the current in-flight task file has the full context
+2. Read `docs/PROGRESS.md` for overall state
+3. Open `index.html` in browser — verify portal system works before touching code
 
 ## Repo structure
 
@@ -20,24 +19,24 @@ index.html              # Entire game (single file for Vibe Jam simplicity)
 CLAUDE.md               # This file
 README.md
 LICENSE
+tasks/
+  active/               # In-flight task files (NNN-short-title.md)
+  done/                 # Completed tasks, archived
+  TEMPLATE.md           # Copy this to start a new task
 docs/
   PROGRESS.md           # Current active tasks + state
   design/
     VISION.md           # Core vision and design pillars
     ROADMAP.md          # Phased task list (TASK-001+)
     ARCHITECTURE.md     # System design and file structure plan
-  tasks/
-    TASK-001-*.md       # Individual task specs
-    TASK-002-*.md
-    ...
 ```
 
 ## Tech stack
 
 - **Runtime**: Vanilla JS ES modules, Three.js r128 (CDN)
 - **Dev server**: `npx vite` (no install needed)
-- **Deploy**: GitHub Pages or Vercel (static, no server needed for Phase 0)
-- **Phase 2**: Node.js WebSocket server for multiplayer
+- **Deploy**: Hetzner VPS at `5.161.208.234`, pm2 manages http-server (port 3000) + ws-server (port 8080)
+- **SSH key**: `~/.ssh/mmd_deploy`
 
 ## Code conventions
 
@@ -47,6 +46,45 @@ docs/
 - Spells follow the primitive interface: `{ cast(player, scene), update(dt), onHit(target) }`
 - No global state except `game` object on window (for debugging only)
 - Comments explain WHY, not WHAT
+
+## Task Workflow
+
+All non-trivial work follows a strict 4-step process. **Never skip steps or run them out of order.** See `.claude/skills/task-workflow/SKILL.md` for the full agent checklist and `tasks/TEMPLATE.md` for the task file structure.
+
+### Step 1 — Plan _(STOP after this step — wait for user approval)_
+1. Create `tasks/active/NNN-short-title.md` from `tasks/TEMPLATE.md`
+2. Document 2–3 options with pros/cons
+3. Pick the best option with clear reasoning
+4. Write numbered, **measurable** success criteria — specific and testable (not "looks better")
+5. Write a testing strategy: map each criterion to a verification method
+6. Write a step-by-step implementation plan
+7. **Message the user:** _"Plan ready for [task name] — please review `tasks/active/NNN.md` and reply 'approved' to proceed."_
+8. **STOP. Do not write any implementation code until the user explicitly approves.**
+
+### Step 2 — Execute _(only after user approves Step 1)_
+1. Update task status to `executing`
+2. Implement the chosen approach
+3. Log significant decisions and plan deviations in the **Execution Log** section of the task file
+4. **Message the user:** _"Execution complete — moving to Step 3 (code review + testing)."_
+
+### Step 3 — Review & Test _(complete before any deploy)_
+1. Update task status to `reviewing`
+2. Run the full pre-commit checklist (see below)
+3. Run `npm test` — **ALL Playwright tests must pass**
+4. Take a screenshot of the running game
+5. For every success criterion in the task file, mark it **✅ PASS** or **❌ FAIL**
+6. Fix any failures, re-test, repeat until all criteria are ✅
+7. **Message the user:** _"Step 3 complete — all [N] criteria pass. [Brief summary of notable findings.]"_
+
+### Step 4 — Deploy _(only after user sees the Step 3 summary)_
+1. Update task status to `deployed`
+2. Deploy: `ssh -i ~/.ssh/mmd_deploy root@5.161.208.234 "cd /root/MultiMagicDungeonWeb && git pull origin main && pm2 restart all"`
+3. Confirm 200: `curl -s -o /dev/null -w "%{http_code}" http://5.161.208.234:3000/`
+4. Take screenshots of the live deploy
+5. Fill in the Step 4 section of the task file; move it from `tasks/active/` to `tasks/done/`
+6. **Message the user** with screenshots, any issues encountered, and the live link
+
+---
 
 ## Testing Requirements (MANDATORY — not optional)
 
