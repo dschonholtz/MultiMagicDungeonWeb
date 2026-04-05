@@ -140,6 +140,12 @@ portalGroup.rotation.y = Math.PI / 2; // rotate so ring faces along X axis
 ```
 Always check which axis the player approaches from and rotate accordingly.
 
+### Portal ring x-tilt (DO NOT add rotation.x to portal groups)
+Adding `group.rotation.x` to a wall portal makes the ring face partly toward the floor — it shows as a squashed ellipse instead of a full circle. For wall portals, leave `rotation.x = 0`. Only apply x-tilt for portals meant to lie flat on the floor.
+
+### Portal ring sizing — scale with dungeon dimensions
+A `TorusGeometry(2.0, ...)` ring (4-unit diameter) is nearly invisible across an 80×60-unit dungeon room. Use at least **radius 3.5** (7-unit diameter) so players can spot the portal from spawn. The inner void plane should be `≥ diameter` of the ring (e.g., `PlaneGeometry(7, 7)` for a radius-3.5 ring).
+
 ### Portal placement inside dungeon walls
 The dungeon main room spans roughly x=[-40, 40]. Placing a portal at x=-55 puts it outside the west wall — unreachable. Keep portals at least 10 units inside the nearest wall (e.g., x=-30 for a west-wall portal in this dungeon).
 
@@ -162,3 +168,24 @@ const rimLight = new THREE.DirectionalLight(0xff8844, 0.6);
 rimLight.position.set(0, 20, -40);
 ```
 This creates visible depth separation without post-processing.
+
+## Target Module Architecture
+
+The current monolith (index.html ~1000+ lines) is technical debt. Target structure (no build step needed — native ES modules):
+
+```
+src/
+  constants.js   — all SCREAMING_SNAKE constants
+  dungeon.js     — DEFAULT_DUNGEON, renderDungeon()
+  spells.js      — SPELL_DEFS, MmdSpell
+  player.js      — MmdPlayer
+  network.js     — MmdNetworkClient
+  portals.js     — createPortal(), portal animation
+  ui.js          — HUD, rename panel, player count
+  game.js        — scene, camera, renderer, animate loop
+index.html       — loads src/game.js as <script type="module">
+```
+
+Use `import { THREE } from` via importmap for CDN Three.js. No webpack/vite needed.
+
+**Do not split until the game is playable end-to-end.** Current monolith is acceptable for Vibe Jam sprint.
