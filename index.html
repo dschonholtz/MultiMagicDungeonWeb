@@ -66,9 +66,10 @@ const SEND_MOVE_HZ        = 20;
 // Portal geometry
 const PORTAL_RING_RADIUS       = 4.0;   // torus major radius (units)
 const PORTAL_RING_TUBE         = 0.5;   // torus tube radius
-const PORTAL_VOID_SIZE         = 9.0;   // inner void plane width/height (≥ ring diameter)
-const PORTAL_EMISSIVE_INTENSITY = 2.0;
-const PORTAL_LIGHT_INTENSITY   = 3.0;
+const PORTAL_VOID_SIZE         = 8.0;   // inner void plane — fits inside 4.0-radius ring (8-unit diameter)
+const PORTAL_VOID_EMISSIVE     = 0.6;   // void plane emissive — subtle glow, not blinding
+const PORTAL_EMISSIVE_INTENSITY = 2.0;  // ring torus emissive — bright, this is the visible beacon
+const PORTAL_LIGHT_INTENSITY   = 1.5;  // point light — reduced to avoid green-washing the dungeon
 const PORTAL_LIGHT_DIST        = 40;    // point light falloff distance
 // Portal animation
 const PORTAL_RING_SPIN         = 0.8;   // rad/sec ring rotation speed
@@ -224,7 +225,7 @@ function createPortal(color, position, label) {
   // Inner void — translucent plane, counter-rotates for hypnotic effect
   const voidMesh = new THREE.Mesh(
     new THREE.PlaneGeometry(PORTAL_VOID_SIZE, PORTAL_VOID_SIZE),
-    new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.4, side: THREE.DoubleSide })
+    new THREE.MeshStandardMaterial({ color, emissive: color, emissiveIntensity: PORTAL_VOID_EMISSIVE, transparent: true, opacity: 0.4, side: THREE.DoubleSide })
   );
   g.add(voidMesh);
   g._void = voidMesh;
