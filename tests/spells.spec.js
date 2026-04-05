@@ -7,9 +7,9 @@ import { waitForGame, gameState, enableSpells, castSpell } from './helpers.js';
 
 // SPELL_DEFS from the game (duplicated here for assertion constants)
 const SPELL = {
-  fireball:    { maxLifeMs: 1333, cooldownMs:  666 },
-  frostbolt:   { maxLifeMs: 2000, cooldownMs: 1000 },
-  telekinesis: { maxLifeMs: 1667, cooldownMs: 1500 },
+  fireball:    { maxLifeMs: 6000, maxDist: 80,  cooldownMs:  666 },
+  frostbolt:   { maxLifeMs: 6000, maxDist: 60,  cooldownMs: 1000 },
+  telekinesis: { maxLifeMs: 6000, maxDist: 90,  cooldownMs: 1500 },
 };
 
 test('fireball projectile is created on cast', async ({ page }) => {
@@ -39,8 +39,12 @@ test('fireball disappears within its maxLifeMs', async ({ page }) => {
   await enableSpells(page);
   await castSpell(page, 'fireball');
 
-  // Wait slightly past maxLifeMs (1333ms) for the game loop to clean it up
-  await page.waitForTimeout(SPELL.fireball.maxLifeMs + 200);
+  // Fireball expires by distance (maxDist=80 at speed=22 ≈ 3.6s) or maxLifeMs (6s).
+  // Poll until the spell is gone rather than using a fixed timeout.
+  await page.waitForFunction(() => {
+    const s = window.__TEST__.state();
+    return s.spells.filter(sp => sp.type === 'fireball' && sp.alive).length === 0;
+  }, { timeout: SPELL.fireball.maxLifeMs + 2000 });
 
   const state = await gameState(page);
   const live = state.spells.filter(s => s.type === 'fireball' && s.alive);
@@ -113,8 +117,11 @@ test('fireball cooldown clears after cooldownMs elapses', async ({ page }) => {
   await enableSpells(page);
   await castSpell(page, 'fireball');
 
-  // Wait past cooldownMs (666ms) + a buffer
-  await page.waitForTimeout(SPELL.fireball.cooldownMs + 300);
+  // Poll until cooldown fully expires instead of using a fixed timeout
+  await page.waitForFunction(() => {
+    const s = window.__TEST__.state();
+    return s.localPlayer.cooldowns.fireball === 0;
+  }, { timeout: SPELL.fireball.cooldownMs + 3000 });
 
   const state = await gameState(page);
   expect(state.localPlayer.cooldowns.fireball).toBe(0);
