@@ -503,7 +503,10 @@ function checkPortals() {
   }
   if(dExit<PORTAL_ENTER_DIST) {
     traveling=true; net.disconnect();
-    const p=new URLSearchParams({portal:'true',ref:window.location.origin,username:localPlayer.username,color:'white',speed:PLAYER_SPEED.toFixed(2),hp:Math.round(localPlayer.hp)});
+    // Use window.location.host (hostname:port, no protocol) so safeRef's REF_PATTERN can validate it.
+    // window.location.origin includes the protocol (https://...) which REF_PATTERN rejects, causing
+    // the return portal to never appear for visitors who came from this dungeon.
+    const p=new URLSearchParams({portal:'true',ref:window.location.host,username:localPlayer.username,color:'white',speed:PLAYER_SPEED.toFixed(2),hp:Math.round(localPlayer.hp)});
     window.location.href=PORTAL_EXIT_URL+'?'+p; return;
   }
   if(startPortalGroup&&startPortalReady) {
