@@ -128,8 +128,13 @@ const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerH
 const clock  = new THREE.Clock();
 
 // Lighting
-const ambient = new THREE.AmbientLight(0x221122, 0.6);
-scene.add(ambient);
+// HemisphereLight approximates AO: ceiling-tinted sky keeps upper walls readable,
+// dark warm ground color pools shadows at floor level — no post-processing needed
+const hemiLight = new THREE.HemisphereLight(0x221133, 0x110a06, 0.6);
+scene.add(hemiLight);
+// Central room point light — warm glow anchor so the dungeon reads as inhabited
+const centerLight = new THREE.PointLight(0xffaa44, 0.8, 60);
+centerLight.position.set(0, 8, 0); scene.add(centerLight);
 const torch1  = new THREE.PointLight(0xff6600, 1.5, 60);
 torch1.position.set(20, 10, 20); scene.add(torch1);
 const torch2  = new THREE.PointLight(0x4444ff, 1.0, 60);
@@ -318,13 +323,26 @@ class MmdPlayer {
   }
   applyServerUpdate({ x,y,z,yaw }) { this.targetPos.set(x,y,z); this.targetYaw=yaw; }
   interpolate(dt) {
-    const a=Math.min(1,dt*12);
+    // Clamp alpha to 1.0 — prevents lerp overshoot when dt spikes at low frame rates
+    const a=Math.min(dt*12, 1.0);
     this.position.lerp(this.targetPos,a);
     this.yaw+=(this.targetYaw-this.yaw)*a;
     this.mesh.position.copy(this.position); this.mesh.rotation.y=this.yaw;
     if(this.namePlateMesh) this.namePlateMesh.lookAt(camera.position);
   }
-  destroy() { if(this.mesh) scene.remove(this.mesh); }
+  destroy() {
+    if (!this.mesh) return;
+    scene.remove(this.mesh);
+    // Dispose every child mesh's geometry and material to prevent GPU memory leaks.
+    // The name-plate canvas texture also needs explicit disposal.
+    this.mesh.traverse(child => {
+      if (child.isMesh) {
+        child.geometry.dispose();
+        if (child.material.map) child.material.map.dispose();
+        child.material.dispose();
+      }
+    });
+  }
 }
 
 // MmdSpell - delta-time based, pooled geo/mat
@@ -346,7 +364,13 @@ class MmdSpell {
     if(this.lifeMs>this.maxLifeMs){this.destroy();return;}
     if(Math.abs(this.mesh.position.x)>115||Math.abs(this.mesh.position.z)>115) this.destroy();
   }
-  destroy() { if(!this.alive)return; this.alive=false; scene.remove(this.mesh); }
+  destroy() {
+    if(!this.alive)return; this.alive=false;
+    // Remove child PointLight before removing mesh so it doesn't linger in the scene graph
+    while(this.mesh.children.length) this.mesh.remove(this.mesh.children[0]);
+    scene.remove(this.mesh);
+    // Geometry and material are pooled (_geoCache/_matCache) — do NOT dispose them here
+  }
 }
 
 // MmdNetworkClient - WebSocket with offline fallback
@@ -423,7 +447,8 @@ function _createOfflinePlayer(username) {
   localPlayer=new MmdPlayer({id:'offline-'+Date.now(),username,x:0,y:PLAYER_HEIGHT,z:0,hp:incomingHp,isLocal:true});
 }
 function _updatePlayerCount() {
-  const n=1+remotePlayers.size;
+  // 1 = local player always present; remotePlayers.size is decremented by player_leave before this runs
+  const n=Math.max(1, 1+remotePlayers.size);
   const el=document.getElementById('player-count');
   if(el) el.textContent=n+(n===1?' player in dungeon':' players in dungeon');
 }
