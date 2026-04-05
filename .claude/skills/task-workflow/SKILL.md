@@ -1,72 +1,40 @@
 # Skill: Task Workflow
 
-Use this checklist for every non-trivial piece of work. Four steps, always in order. Never skip or merge steps.
+Use this checklist whenever starting or resuming structured work.
 
 ---
 
-## Step 1 — Plan _(requires user approval before any code is written)_
+## Step 1 — Plan
 
-- [ ] Create `tasks/active/NNN-short-title.md` from `tasks/TEMPLATE.md`
-- [ ] Document 2–3 options with pros/cons
-- [ ] Pick the best option and explain why, clearly
-- [ ] Write numbered, measurable **success criteria** (not "looks better" — testable outcomes)
-- [ ] Write a **testing strategy** table mapping each criterion to a verification method
-- [ ] Write a step-by-step **plan**
-- [ ] Send user: _"Plan ready for [task name] — please review `tasks/active/NNN-short-title.md` and reply 'approved' to proceed."_
-- [ ] **STOP. Wait for explicit user approval. Do not write any code yet.**
+- [ ] Create `tasks/active/NNN-task-name.md` from `tasks/TEMPLATE.md`
+- [ ] Document 2-3 options with pros/cons
+- [ ] Pick approach and explain why
+- [ ] Write numbered, measurable success criteria
+- [ ] Write testing strategy per criterion
+- [ ] Tell user: "Plan ready — review `tasks/active/NNN-task-name.md` and approve to proceed"
+- [ ] **STOP. Do not proceed until user approves.**
 
----
+## Step 2 — Execute
 
-## Step 2 — Execute _(only after user approves Step 1)_
+- [ ] Implement chosen approach
+- [ ] Log significant decisions under "Execution Log" in task file
+- [ ] Tell user: "Execution complete, moving to Step 3"
 
-- [ ] Update task status to `executing`
-- [ ] Implement the chosen approach
-- [ ] Log significant decisions and deviations in the **Execution Log** section
-- [ ] Keep changes focused — resist scope creep
-- [ ] When implementation is complete, send user: _"Execution complete — moving to Step 3 (code review + testing)."_
+## Step 3 — Review & Test
 
----
+- [ ] Code review: no dead code, no regressions, no hacks, consistent style
+- [ ] `node --check index.html` — passes
+- [ ] `grep -c "<<<<<<" index.html` — returns 0
+- [ ] `npm test` — all pass
+- [ ] Screenshot the game
+- [ ] Mark each success criterion PASS/FAIL in task file
+- [ ] All criteria PASS before continuing
+- [ ] Tell user: "Step 3 complete — all [N] criteria pass. [brief notes]"
 
-## Step 3 — Review & Test _(complete before any deploy)_
+## Step 4 — Deploy & Report
 
-- [ ] Update task status to `reviewing`
-- [ ] **Code review checklist:**
-  - No dead code or commented-out blocks
-  - No `console.log` in production paths
-  - No merge conflict markers (`grep -c "<<<<<<" index.html` returns 0)
-  - `node --check index.html` passes (syntax check)
-  - Style consistent with surrounding code
-  - Non-obvious logic has WHY comments
-  - No regressions introduced
-- [ ] Run full Playwright suite: `npm test` — **ALL tests must pass**
-- [ ] Take a screenshot of the running game to confirm visual state
-- [ ] For each success criterion: mark **✅ PASS** or **❌ FAIL** in the task file
-- [ ] If any criterion fails: fix, re-test, update task file
-- [ ] Only proceed when **every** criterion is ✅ PASS
-- [ ] Send user: _"Step 3 complete — all [N] success criteria pass. [Brief summary of any issues found and fixed]."_
-
----
-
-## Step 4 — Deploy _(only after user sees Step 3 summary)_
-
-- [ ] Update task status to `deployed`
-- [ ] Deploy to Hetzner:
-  ```bash
-  ssh -i ~/.ssh/mmd_deploy root@5.161.208.234 "cd /root/MultiMagicDungeonWeb && git pull origin main && pm2 restart all"
-  ```
-- [ ] `curl -s -o /dev/null -w "%{http_code}" http://5.161.208.234:3000/` must return 200
-- [ ] Take screenshots of the live deploy
-- [ ] Fill in **Step 4** section of the task file: deploy commit, issues, screenshots
-- [ ] Move task file from `tasks/active/` to `tasks/done/`
-- [ ] Send user: _"Deployed. [What's new / what issues came up / anything to watch]. Live at http://5.161.208.234:3000 — please review and let me know."_
-
----
-
-## Quick reference
-
-| Step | Gate to enter | Gate to exit |
-|------|---------------|--------------|
-| 1 Plan | (new task) | User says "approved" |
-| 2 Execute | User approval received | Implementation complete |
-| 3 Review | Implementation done | All criteria ✅ PASS |
-| 4 Deploy | Step 3 summary sent | User reviews live deploy |
+- [ ] Deploy to Hetzner
+- [ ] Attach screenshots in task file
+- [ ] List issues encountered and resolutions
+- [ ] Move task file: `tasks/active/` → `tasks/done/`
+- [ ] Tell user: "Deployed. [screenshots + notes]" + link to http://5.161.208.234:3000

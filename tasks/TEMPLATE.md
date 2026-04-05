@@ -1,122 +1,28 @@
-# Task NNN: [Short Title]
-
-**Status:** planning | executing | reviewing | deployed
-**Created:** YYYY-MM-DD
-
----
+# Task: [Short title]
 
 ## Options Considered
-
-### Option A — [Name]
-**Approach:** [Brief description]
-**Pros:** [List]
-**Cons:** [List]
-
-### Option B — [Name]
-**Approach:** [Brief description]
-**Pros:** [List]
-**Cons:** [List]
-
-### Option C — [Name] _(optional)_
-**Approach:** [Brief description]
-**Pros:** [List]
-**Cons:** [List]
-
----
+<!-- List 2-3 approaches with pros/cons -->
 
 ## Chosen Approach
-
-**Choosing Option [A/B/C]** because [reason — focus on why this is better for this project specifically].
-
----
+<!-- Which option and why -->
 
 ## Success Criteria
-
-1. [Specific, measurable, testable outcome]
-2. [Specific, measurable, testable outcome]
-3. [Specific, measurable, testable outcome]
-
-_(Each must be verifiable — not "looks good", but "portal ring is vertical within ±5°".)
-
----
+<!-- Numbered list of measurable things that must be true when done -->
 
 ## Testing Strategy
-
-| Criterion | How to verify |
-|-----------|---------------|
-| 1. [criterion] | [playwright test / visual screenshot / curl check / manual step] |
-| 2. [criterion] | [playwright test / visual screenshot / curl check / manual step] |
-| 3. [criterion] | [playwright test / visual screenshot / curl check / manual step] |
-
-Full Playwright suite (`npm test`) must pass before Step 4.
-
----
+<!-- How each success criterion will be verified -->
 
 ## Plan
+<!-- Step-by-step implementation plan -->
 
-Step-by-step implementation plan. Specific enough that another agent could pick this up.
-
-1. [Step]
-2. [Step]
-3. [Step]
-
----
 ---
 
 ## Step 2: Execution Log
-
-_Filled in during execution. Note significant decisions, deviations from plan, and why._
-
-- [Date] [What was done, any surprises]
-
----
+<!-- Notes added during implementation -->
 
 ## Step 3: Code Review & Test Results
-
-### Code Review Notes
-_Things found, fixed, or intentionally left as-is with rationale._
-
-- [ ] No dead code or commented-out blocks
-- [ ] No console.log in production paths
-- [ ] No merge conflict markers (`grep -c "<<<<<<" index.html` returns 0)
-- [ ] `node --check index.html` passes
-- [ ] Style consistent with surrounding code
-- [ ] Non-obvious logic has comments explaining WHY
-- [ ] No regressions introduced
-
-### Playwright Results
-```
-npm test output here
-```
-
-### Success Criteria Results
-
-| # | Criterion | Result | Notes |
-|---|-----------|--------|-------|
-| 1 | [criterion] | ✅ PASS / ❌ FAIL | |
-| 2 | [criterion] | ✅ PASS / ❌ FAIL | |
-| 3 | [criterion] | ✅ PASS / ❌ FAIL | |
-
-**All criteria pass: YES / NO**
-
-### Process Friction Notes
-_What made this task harder than it needed to be? Be specific — these feed the DX improvement backlog._
-
-- [Friction point] — [Suggested fix or task to create]
-
----
+<!-- Review findings, test output, any issues found and fixed -->
+<!-- Must explicitly state each success criterion as PASS/FAIL -->
 
 ## Step 4: Deploy & Screenshots
-
-**Deploy commit:** [hash]
-**Live URL:** http://5.161.208.234:3000
-**Deployed at:** [timestamp]
-
-### Issues encountered
-- [Issue] → [How it was resolved]
-
-### Screenshots
-_Attach screenshots here or reference filenames._
-
-### User sign-off
-_Space for user feedback after review._
+<!-- Screenshots attached, issues encountered, deploy URL -->

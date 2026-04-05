@@ -200,6 +200,45 @@ After /review: identify anything that can be deleted or collapsed without losing
 | Constants | SCREAMING_SNAKE | PORTAL_RADIUS |
 | Methods | camelCase | castFireball() |
 
+## Task Workflow
+
+All non-trivial work follows a 4-step process. Task files live in `tasks/active/` during work and move to `tasks/done/` after deploy.
+
+### Step 1 — Plan (requires user approval before proceeding)
+
+- Create a task file in `tasks/active/NNN-task-name.md` using `tasks/TEMPLATE.md`
+- Document 2-3 options with pros/cons
+- Pick the best approach and explain why
+- Write measurable success criteria
+- Write testing strategy
+- Message user: "Plan ready for [task name] — please review `tasks/active/NNN-task.md` and approve to proceed"
+- **STOP and wait for approval**
+
+### Step 2 — Execute
+
+- Implement the chosen approach
+- Log significant decisions in the task file's "Execution Log" section
+- When done: "Execution complete, moving to Step 3 — code review and testing"
+
+### Step 3 — Review & Test
+
+- Thorough code review: no dead code, no regressions, no hacks, style consistent
+- Run full Playwright suite (`npm test`) — all must pass
+- Run `node --check index.html` — must pass
+- Screenshot the game
+- Go back through each success criterion and mark PASS/FAIL in the task file
+- Only proceed when ALL criteria pass
+- Message user: "Step 3 complete — all [N] success criteria pass. Summary: [brief notes]"
+
+### Step 4 — Deploy & Report
+
+- Deploy to Hetzner (see `/deploy` skill or `dev.md`)
+- Attach screenshots in the task file
+- List any issues encountered and how they were resolved
+- Move task file from `tasks/active/` to `tasks/done/`
+- Message user: "Deployed. Here's what I found... [screenshots + notes]"
+- Live URL: http://5.161.208.234:3000
+
 ## Multiplayer plan (Phase 2)
 
 WebSocket server (Node.js) will handle:
