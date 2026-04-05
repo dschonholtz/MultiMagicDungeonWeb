@@ -64,8 +64,8 @@ const PLAYER_HEIGHT       = 5;
 const HP_MAX              = 100;
 const SEND_MOVE_HZ        = 20;
 // Portal geometry
-const PORTAL_RING_RADIUS       = 2.0;   // torus major radius (units)
-const PORTAL_RING_TUBE         = 0.15;  // torus tube radius
+const PORTAL_RING_RADIUS       = 4.0;   // torus major radius (units)
+const PORTAL_RING_TUBE         = 0.25;  // torus tube radius
 const PORTAL_VOID_SIZE         = 4.0;   // inner void plane width/height
 const PORTAL_EMISSIVE_INTENSITY = 1.2;
 const PORTAL_LIGHT_INTENSITY   = 1.5;
@@ -150,7 +150,7 @@ const clock  = new THREE.Clock();
 
 // Lighting
 // Darkened ambient creates depth pools between torches instead of flat even lighting
-const ambient = new THREE.AmbientLight(0x221122, 0.25);
+const ambient = new THREE.AmbientLight(0x221122, 0.35);
 scene.add(ambient);
 // Central room point light — warm glow anchor so the dungeon reads as inhabited
 const centerLight = new THREE.PointLight(0xffaa44, 0.8, 60);
@@ -213,7 +213,7 @@ function makeLabelCanvas(text) {
 }
 function createPortal(color, position, label) {
   const g = new THREE.Group();
-  g.position.copy(position); g.rotation.x = 0.35;
+  g.position.copy(position); g.rotation.x = -Math.PI / 2;
   // Outer ring — MeshStandardMaterial with emissive gives glow without post-processing
   const ring = new THREE.Mesh(
     new THREE.TorusGeometry(PORTAL_RING_RADIUS, PORTAL_RING_TUBE, 16, 64),
@@ -237,10 +237,8 @@ function createPortal(color, position, label) {
   scene.add(g); return g;
 }
 
-// Exit portal inside west wing (reachable without wall clipping)
+// Exit portal inside west wing (reachable without wall clipping) — horizontal summoning circle
 const exitPortalGroup = createPortal(0x00ff00, new THREE.Vector3(-30, PLAYER_HEIGHT, 0), 'VIBE JAM 2026');
-// Face the ring along the X axis so player sees it head-on when walking west
-exitPortalGroup.rotation.y = Math.PI / 2;
 let startPortalGroup = null, startPortalReady = false;
 if (incomingPortal && safeRef) {
   startPortalGroup = createPortal(0xff0000, new THREE.Vector3(0, PLAYER_HEIGHT, 25), null);
@@ -280,7 +278,7 @@ class MmdPlayer {
     if (!isLocal) {
       this.mesh = new THREE.Group();
       const colors = hashColor(id);
-      const toonMat = c => new THREE.MeshToonMaterial({ color:c, gradientMap:_toonGradientMap, flatShading:true });
+      const toonMat = c => new THREE.MeshToonMaterial({ color:c, gradientMap:_toonGradientMap });
       const addWithOutline = (group, mesh) => {
         group.add(mesh);
         const ol = mesh.clone();
