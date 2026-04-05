@@ -715,6 +715,104 @@ const _toonGradientMap = (() => {
   return tex;
 })();
 
+// === VOXEL ASSETS ===
+// Shared voxel dragon asset used in-world and in /assets viewer page.
+const VOXEL_DRAGON_PALETTE = {
+  body:     0x0f2134,
+  shadow:   0x08131f,
+  cyan:     0x1b9bb3,
+  horn:     0xbe9d83,
+  claw:     0xead8bc,
+  eye:      0x0a0a0a,
+};
+function buildVoxelDragonVoxels() {
+  const v = [];
+  const add = (x, y, z, c) => v.push([x, y, z, c]);
+
+  // Torso core
+  for (let x = -3; x <= 3; x++) {
+    for (let y = 3; y <= 6; y++) {
+      for (let z = -2; z <= 2; z++) {
+        if (Math.abs(x) + Math.abs(z) <= 6) add(x, y, z, 'body');
+      }
+    }
+  }
+  // Belly cyan striping
+  for (let x = -2; x <= 2; x++) for (let z = -1; z <= 1; z++) add(x, 3, z, 'cyan');
+
+  // Neck + head
+  for (let i = 0; i < 4; i++) {
+    for (let y = 5; y <= 6; y++) for (let z = -1; z <= 1; z++) add(4 + i, y, z, 'body');
+  }
+  for (let y = 5; y <= 7; y++) for (let z = -2; z <= 2; z++) add(8, y, z, 'body');
+  for (let z = -1; z <= 1; z++) { add(9, 6, z, 'body'); add(10, 6, z, 'body'); }
+  add(9, 5, 0, 'cyan'); add(10, 5, 0, 'cyan');
+  add(10, 7, -1, 'eye'); add(10, 7, 1, 'eye');
+
+  // Horns
+  for (let i = 0; i < 5; i++) {
+    add(7 + i, 8 + Math.floor(i / 2), -2 - i, 'horn');
+    add(7 + i, 8 + Math.floor(i / 2),  2 + i, 'horn');
+  }
+
+  // Wings (voxel arcs)
+  for (let side of [-1, 1]) {
+    for (let i = 0; i < 8; i++) {
+      add(-1 - i, 7 + Math.floor(i / 3), side * (4 + i), 'horn');
+      add(-1 - i, 6, side * (3 + i), 'shadow');
+      if (i > 1 && i < 7) add(-2 - i, 5, side * (3 + i), 'cyan');
+    }
+  }
+
+  // Legs
+  const legs = [[-2, -1], [-2, 1], [2, -1], [2, 1]];
+  for (const [x0, z0] of legs) {
+    for (let y = 0; y <= 2; y++) {
+      add(x0, y, z0, 'shadow');
+      add(x0 + (x0 > 0 ? 1 : -1), y, z0, 'body');
+    }
+    add(x0, -1, z0, 'claw');
+    add(x0 + (x0 > 0 ? 1 : -1), -1, z0, 'claw');
+  }
+
+  // Tail
+  for (let i = 0; i < 9; i++) {
+    const x = -4 - i;
+    const y = 4 + Math.floor(i / 3);
+    add(x, y, 0, 'body');
+    if (i % 2 === 0) add(x, y - 1, 0, 'cyan');
+  }
+  add(-13, 7, -1, 'claw'); add(-13, 7, 1, 'claw');
+  return v;
+}
+function createVoxelAsset(voxels, { cubeSize = 0.55, gradientMap = null } = {}) {
+  const grouped = new Map();
+  for (const [x, y, z, key] of voxels) {
+    if (!grouped.has(key)) grouped.set(key, []);
+    grouped.get(key).push([x, y, z]);
+  }
+  const geo = new THREE.BoxGeometry(cubeSize, cubeSize, cubeSize);
+  const root = new THREE.Group();
+  for (const [key, pos] of grouped) {
+    const mat = new THREE.MeshToonMaterial({ color: VOXEL_DRAGON_PALETTE[key], gradientMap });
+    const im = new THREE.InstancedMesh(geo, mat, pos.length);
+    const m = new THREE.Matrix4();
+    pos.forEach(([x, y, z], i) => { m.setPosition(x * cubeSize, y * cubeSize, z * cubeSize); im.setMatrixAt(i, m); });
+    im.instanceMatrix.needsUpdate = true;
+    root.add(im);
+  }
+  root.position.y = 0.55;
+  return root;
+}
+const DRAGON_VOXELS = buildVoxelDragonVoxels();
+const enemyDragon = {
+  group: createVoxelAsset(DRAGON_VOXELS, { cubeSize: 0.5, gradientMap: _toonGradientMap }),
+  baseY: PLAYER_HEIGHT - 2.6,
+};
+enemyDragon.group.position.set(12, enemyDragon.baseY, -22);
+enemyDragon.group.rotation.y = -0.35;
+scene.add(enemyDragon.group);
+
 // Per-player color derived from id string
 function hashColor(id) {
   let h = 0;
@@ -1357,6 +1455,9 @@ function gameLoop() {
     if (startPortalGroup._light) startPortalGroup._light.intensity = PORTAL_LIGHT_INTENSITY * (1.0 + 0.30 * Math.sin(elapsedSecs * 2.3 + Math.PI));
     _animPortalParticles(startPortalGroup, elapsedSecs, -1.4);
   }
+  // Voxel enemy idle animation
+  enemyDragon.group.position.y = enemyDragon.baseY + Math.sin(elapsedSecs * 2.4) * 0.28;
+  enemyDragon.group.rotation.y = -0.35 + Math.sin(elapsedSecs * 1.35) * 0.12;
   checkPortals(); updateHud();
 
   // Rotate floor runes (purple rune + boss ritual circle)
