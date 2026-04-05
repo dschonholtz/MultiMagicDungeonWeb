@@ -116,10 +116,8 @@ export class MessageHandler {
     const session = this.sessionManager.getSessionForPlayer(player.id);
     if (!session) return;
 
-    const out = JSON.stringify({ type: 'player_rename', playerId: player.id, username });
-    for (const p of session.players.values()) {
-      if (p.ws.readyState === 1) p.ws.send(out);
-    }
+    // Use _broadcast (excludes sender) — client updates own name locally via requestRename()
+    this._broadcast(session, player.id, { type: 'player_rename', playerId: player.id, username });
 
     console.log(`[Rename] ${player.id.slice(0, 8)} → ${username}`);
   }
