@@ -35,7 +35,8 @@
 1. [Specific, measurable, testable outcome]
 2. [Specific, measurable, testable outcome]
 3. [Specific, measurable, testable outcome]
-_(Add more as needed. Each must be verifiable — not "looks good", but "portal ring is vertical within ±5°".)_
+
+_(Each must be verifiable — not "looks good", but "portal ring is vertical within ±5°".)
 
 ---
 
@@ -53,7 +54,7 @@ Full Playwright suite (`npm test`) must pass before Step 4.
 
 ## Plan
 
-Step-by-step implementation plan. Be specific enough that another agent could pick this up.
+Step-by-step implementation plan. Specific enough that another agent could pick this up.
 
 1. [Step]
 2. [Step]
@@ -77,7 +78,8 @@ _Things found, fixed, or intentionally left as-is with rationale._
 
 - [ ] No dead code or commented-out blocks
 - [ ] No console.log in production paths
-- [ ] No merge conflict markers
+- [ ] No merge conflict markers (`grep -c "<<<<<<" index.html` returns 0)
+- [ ] `node --check index.html` passes
 - [ ] Style consistent with surrounding code
 - [ ] Non-obvious logic has comments explaining WHY
 - [ ] No regressions introduced
