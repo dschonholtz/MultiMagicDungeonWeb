@@ -33,6 +33,7 @@
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
 <script>
 const VOXEL_DRAGON_PALETTE = {
   body:    0x0f2134,
@@ -216,12 +217,43 @@ function createVoxelAsset(voxels, { cubeSize = 0.55 } = {}) {
   return root;
 }
 
+let activeMixer = null;
+const clock = new THREE.Clock();
+
+function loadMeshyModel(path, targetScene, onLoaded) {
+  const loader = new THREE.GLTFLoader();
+  loader.load(path, (gltf) => {
+    const model = gltf.scene;
+    targetScene.add(model);
+    let mixer = null;
+    if (gltf.animations && gltf.animations.length > 0) {
+      mixer = new THREE.AnimationMixer(model);
+      const clip = gltf.animations[0];
+      mixer.clipAction(clip).play();
+    }
+    if (onLoaded) onLoaded(model, mixer);
+  }, undefined, (err) => {
+    console.error('Failed to load GLB:', path, err);
+  });
+}
+
 const assetDefs = [{
   id: 'dragon-azure',
   name: 'Azure Horn Dragon',
   description: 'Primary voxel enemy inspired by reference dragon; dark body with cyan markings and tan horns.',
   voxels: buildVoxelDragonVoxels,
   cubeSize: 0.5,
+}, {
+  id: 'meshy-wizard',
+  name: 'Meshy Wizard',
+  description: 'AI-generated chibi wizard via Meshy.ai — rigged with idle animation.',
+  glb: '/public/models/wizard_idle.glb',
+  fallbackGlb: '/public/models/wizard_refined.glb',
+}, {
+  id: 'meshy-dragon',
+  name: 'Meshy Dragon',
+  description: 'AI-generated fantasy dragon via Meshy.ai — refined model (non-humanoid, no rig).',
+  glb: '/public/models/dragon_refined.glb',
 }];
 
 const sidebarList = document.getElementById('asset-list');
@@ -252,10 +284,36 @@ controls.update();
 let activeModel = null;
 function selectAsset(def) {
   if (activeModel) scene.remove(activeModel);
-  activeModel = createVoxelAsset(def.voxels(), { cubeSize: def.cubeSize });
-  activeModel.position.y = 0.6;
-  scene.add(activeModel);
-  meta.innerHTML = `<b>${def.name}</b><br/>Voxel count: ${def.voxels().length}<br/>${def.description}`;
+  activeModel = null;
+  activeMixer = null;
+
+  if (def.glb) {
+    // GLB model (Meshy)
+    meta.innerHTML = `<b>${def.name}</b><br/>Loading GLB...<br/>${def.description}`;
+    const tryLoad = (path) => {
+      loadMeshyModel(path, scene, (model, mixer) => {
+        activeModel = model;
+        activeMixer = mixer;
+        model.position.y = 0.6;
+        const box = new THREE.Box3().setFromObject(model);
+        const size = box.getSize(new THREE.Vector3());
+        const maxDim = Math.max(size.x, size.y, size.z);
+        if (maxDim > 0) {
+          const scale = 8 / maxDim;
+          model.scale.setScalar(scale);
+        }
+        const animInfo = mixer ? `Animations: ${mixer._actions.length}` : 'No animations';
+        meta.innerHTML = `<b>${def.name}</b><br/>${animInfo}<br/>${def.description}`;
+      });
+    };
+    tryLoad(def.glb);
+  } else {
+    // Voxel model
+    activeModel = createVoxelAsset(def.voxels(), { cubeSize: def.cubeSize });
+    activeModel.position.y = 0.6;
+    scene.add(activeModel);
+    meta.innerHTML = `<b>${def.name}</b><br/>Voxel count: ${def.voxels().length}<br/>${def.description}`;
+  }
   [...sidebarList.querySelectorAll('button')].forEach(btn => btn.classList.toggle('active', btn.dataset.id === def.id));
 }
 
@@ -277,6 +335,8 @@ window.addEventListener('resize', () => {
 
 function animate() {
   requestAnimationFrame(animate);
+  const delta = clock.getDelta();
+  if (activeMixer) activeMixer.update(delta);
   if (activeModel) activeModel.rotation.y += 0.007;
   controls.update();
   renderer.render(scene, camera);
