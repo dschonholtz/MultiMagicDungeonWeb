@@ -486,48 +486,69 @@ class MmdPlayer {
           this.mixer.clipAction(_charGltf.animations[0]).play();
         }
       } else {
-        // Box-geometry wizard fallback (used if GLTF hasn't loaded yet)
-        const colors = hashColor(id);
+        // Box-geometry chibi wizard fallback (used if GLTF hasn't loaded yet)
         let _h = 0;
         for (let i = 0; i < id.length; i++) _h = (_h * 31 + id.charCodeAt(i)) | 0;
-        const hatColor = new THREE.Color().setHSL((Math.abs(_h) % 360) / 360, 0.75, 0.22);
+        // Hat varies per-player in the dark purple/midnight blue range for variety
+        const hatColor = new THREE.Color().setHSL(((Math.abs(_h) % 40) + 250) / 360, 0.85, 0.22);
+        const robeColor = new THREE.Color(0x6B21A8); // royal purple
+        const faceColor = new THREE.Color(0xE8D5F5); // light lavender
         const toonMat = c => new THREE.MeshToonMaterial({ color:c, gradientMap:_toonGradientMap });
         const addWithOutline = (group, mesh) => {
           group.add(mesh);
           const ol = mesh.clone();
           ol.material = new THREE.MeshBasicMaterial({ color:0x000000, side:THREE.BackSide });
-          ol.scale.setScalar(1.08);
+          ol.scale.setScalar(1.06);
           group.add(ol);
         };
         const flatBox = (w, ht, d) => {
           const g = new THREE.BoxGeometry(w, ht, d).toNonIndexed();
           g.computeVertexNormals(); return g;
         };
-        const skirt = new THREE.Mesh(flatBox(3.0, 2.2, 2.6), toonMat(colors.legs));
-        skirt.position.y = 1.1; addWithOutline(this.mesh, skirt);
-        const torso = new THREE.Mesh(flatBox(1.8, 1.6, 1.6), toonMat(colors.body));
-        torso.position.y = 3.0; addWithOutline(this.mesh, torso);
+        // Chibi proportions — group grounded at y=0, total height ~9.5 units
+        // Robe/skirt: wide trapezoid silhouette at ground level
+        const skirt = new THREE.Mesh(flatBox(3.4, 2.0, 2.8), toonMat(robeColor));
+        skirt.position.y = 1.0; addWithOutline(this.mesh, skirt);
+        // Torso: short and wide
+        const torso = new THREE.Mesh(flatBox(2.4, 1.4, 2.0), toonMat(robeColor));
+        torso.position.y = 2.7; addWithOutline(this.mesh, torso);
+        // Arms: stubby, pivot at shoulder for natural swing
         this.leftArm = new THREE.Group();
-        this.leftArm.position.set(-1.4, 3.6, 0); this.leftArm.rotation.z = 0.5;
-        const lArmMesh = new THREE.Mesh(flatBox(0.5, 1.4, 0.5), toonMat(colors.body));
-        lArmMesh.position.y = -0.7; addWithOutline(this.leftArm, lArmMesh);
+        this.leftArm.position.set(-1.7, 3.2, 0); this.leftArm.rotation.z = 0.3;
+        const lArmMesh = new THREE.Mesh(flatBox(0.55, 1.1, 0.55), toonMat(faceColor));
+        lArmMesh.position.y = -0.55; addWithOutline(this.leftArm, lArmMesh);
         this.mesh.add(this.leftArm);
         this.rightArm = new THREE.Group();
-        this.rightArm.position.set( 1.4, 3.6, 0); this.rightArm.rotation.z = -0.5;
-        const rArmMesh = new THREE.Mesh(flatBox(0.5, 1.4, 0.5), toonMat(colors.body));
-        rArmMesh.position.y = -0.7; addWithOutline(this.rightArm, rArmMesh);
+        this.rightArm.position.set( 1.7, 3.2, 0); this.rightArm.rotation.z = -0.3;
+        const rArmMesh = new THREE.Mesh(flatBox(0.55, 1.1, 0.55), toonMat(faceColor));
+        rArmMesh.position.y = -0.55; addWithOutline(this.rightArm, rArmMesh);
         this.mesh.add(this.rightArm);
-        this.headMesh = new THREE.Mesh(flatBox(2.6, 2.4, 2.2), toonMat(colors.head));
-        this.headMesh.position.y = 5.2; addWithOutline(this.mesh, this.headMesh);
-        const eyeMat = new THREE.MeshBasicMaterial({ color: 0x111111 });
-        const eyeGeo = new THREE.SphereGeometry(0.2, 6, 6);
-        const lEye = new THREE.Mesh(eyeGeo, eyeMat); lEye.position.set(-0.55, 5.35, -1.11);
-        const rEye = new THREE.Mesh(eyeGeo, eyeMat); rEye.position.set( 0.55, 5.35, -1.11);
+        // Head: big chibi head, slightly wider than tall (~38% of total height)
+        this.headMesh = new THREE.Mesh(flatBox(3.2, 2.8, 2.8), toonMat(faceColor));
+        this.headMesh.position.y = 4.8; addWithOutline(this.mesh, this.headMesh);
+        // Expressive eyes: large dark spheres with white highlight for personality
+        const eyeMat = new THREE.MeshBasicMaterial({ color: 0x111122 });
+        const eyeGeo = new THREE.SphereGeometry(0.3, 8, 8);
+        const lEye = new THREE.Mesh(eyeGeo, eyeMat);
+        lEye.position.set(-0.72, 4.95, -1.41); lEye.scale.set(1.0, 1.2, 0.8);
+        const rEye = new THREE.Mesh(eyeGeo, eyeMat);
+        rEye.position.set( 0.72, 4.95, -1.41); rEye.scale.set(1.0, 1.2, 0.8);
         this.mesh.add(lEye); this.mesh.add(rEye);
-        const brim = new THREE.Mesh(flatBox(2.9, 0.18, 2.7), toonMat(hatColor));
-        brim.position.y = 6.5; addWithOutline(this.mesh, brim);
-        this.hatMesh = new THREE.Mesh(new THREE.ConeGeometry(1.0, 2.5, 8), toonMat(hatColor));
-        this.hatMesh.position.y = 7.84; addWithOutline(this.mesh, this.hatMesh);
+        const hlMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
+        const hlGeo = new THREE.SphereGeometry(0.11, 6, 6);
+        const lHl = new THREE.Mesh(hlGeo, hlMat); lHl.position.set(-0.57, 5.06, -1.42);
+        const rHl = new THREE.Mesh(hlGeo, hlMat); rHl.position.set( 0.87, 5.06, -1.42);
+        this.mesh.add(lHl); this.mesh.add(rHl);
+        // Hat brim: tapered cylinder disc
+        const brim = new THREE.Mesh(new THREE.CylinderGeometry(1.7, 2.0, 0.22, 16), toonMat(hatColor));
+        brim.position.y = 6.3; addWithOutline(this.mesh, brim);
+        // Hat cone: tall and dramatic
+        this.hatMesh = new THREE.Mesh(new THREE.ConeGeometry(1.2, 3.2, 8), toonMat(hatColor));
+        this.hatMesh.position.y = 7.9; addWithOutline(this.mesh, this.hatMesh);
+        // Gold star at hat tip for extra charm
+        const starMat = new THREE.MeshBasicMaterial({ color: 0xF5C518 });
+        const star = new THREE.Mesh(new THREE.SphereGeometry(0.18, 6, 6), starMat);
+        star.position.y = 9.5; this.mesh.add(star);
       }
       const nc=document.createElement('canvas'); nc.width=256; nc.height=48;
       const ctx=nc.getContext('2d');
@@ -535,7 +556,7 @@ class MmdPlayer {
       ctx.fillText(username.slice(0,18), 128, 32);
       this.nameLabel=new THREE.Mesh(new THREE.PlaneGeometry(8,1.5),
         new THREE.MeshBasicMaterial({ map:new THREE.CanvasTexture(nc), transparent:true, side:THREE.DoubleSide }));
-      this.nameLabel.position.y=9.8; this.mesh.add(this.nameLabel);
+      this.nameLabel.position.y=10.8; this.mesh.add(this.nameLabel);
       this.namePlateMesh=this.nameLabel;
       this.mesh.position.copy(this.position); scene.add(this.mesh);
       this.targetPos=this.position.clone(); this.targetYaw=yaw;
@@ -585,9 +606,9 @@ class MmdPlayer {
     this.isMoving=this.targetPos.distanceToSquared(this.lastTargetPos)>0.0001;
     this.lastTargetPos.copy(this.targetPos);
     const t=elapsedSecs; const ph=this.phaseOffset;
-    // Idle bob — mesh Y floats above logical position
+    // Idle bob — grounded at y=0, logical position.y is eye/camera height not floor height
     this.mesh.position.copy(this.position);
-    this.mesh.position.y=this.position.y+Math.sin(t*2.2+ph)*0.07;
+    this.mesh.position.y=Math.sin(t*2.2+ph)*0.08;
     this.mesh.rotation.y=this.yaw;
     if(this.namePlateMesh) this.namePlateMesh.lookAt(camera.position);
     // Hat sway
