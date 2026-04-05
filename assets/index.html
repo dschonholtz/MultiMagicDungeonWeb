@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>MultiMagicDungeonWeb Assets</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: monospace; background: #0b0f1a; color: #e6f2ff; overflow: hidden; }
+  #layout { display: grid; grid-template-columns: 280px 1fr; height: 100vh; }
+  #sidebar { padding: 16px; border-right: 1px solid #223047; background: #0e1424; }
+  #sidebar h1 { font-size: 16px; margin-bottom: 12px; }
+  #sidebar p { color: #9db4d8; font-size: 12px; margin-bottom: 14px; }
+  #asset-list { display: flex; flex-direction: column; gap: 8px; }
+  .asset-btn { text-align: left; border: 1px solid #35507a; background: #14203a; color: #e6f2ff; border-radius: 6px; padding: 10px; cursor: pointer; }
+  .asset-btn.active { background: #1f2f56; border-color: #6ca4ff; }
+  #meta { margin-top: 14px; font-size: 12px; color: #a8c1ea; line-height: 1.4; }
+  #viewer { width: 100%; height: 100%; }
+  #hint { position: fixed; bottom: 12px; right: 16px; font-size: 12px; color: #b6caf0; background: rgba(9,14,26,0.8); padding: 6px 10px; border-radius: 5px; border: 1px solid #2f4365; }
+</style>
+</head>
+<body>
+<div id="layout">
+  <aside id="sidebar">
+    <h1>Asset Viewer</h1>
+    <p>Use this page to quickly inspect voxel models under <b>/assets</b>.</p>
+    <div id="asset-list"></div>
+    <div id="meta"></div>
+  </aside>
+  <div id="viewer"></div>
+</div>
+<div id="hint">Drag = orbit · Wheel = zoom</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+<script>
+const VOXEL_DRAGON_PALETTE = {
+  body:   0x0f2134,
+  shadow: 0x08131f,
+  cyan:   0x1b9bb3,
+  horn:   0xbe9d83,
+  claw:   0xead8bc,
+  eye:    0x0a0a0a,
+};
+function buildVoxelDragonVoxels() {
+  const v = [];
+  const add = (x, y, z, c) => v.push([x, y, z, c]);
+  for (let x = -3; x <= 3; x++) for (let y = 3; y <= 6; y++) for (let z = -2; z <= 2; z++) if (Math.abs(x) + Math.abs(z) <= 6) add(x, y, z, 'body');
+  for (let x = -2; x <= 2; x++) for (let z = -1; z <= 1; z++) add(x, 3, z, 'cyan');
+  for (let i = 0; i < 4; i++) for (let y = 5; y <= 6; y++) for (let z = -1; z <= 1; z++) add(4 + i, y, z, 'body');
+  for (let y = 5; y <= 7; y++) for (let z = -2; z <= 2; z++) add(8, y, z, 'body');
+  for (let z = -1; z <= 1; z++) { add(9, 6, z, 'body'); add(10, 6, z, 'body'); }
+  add(9, 5, 0, 'cyan'); add(10, 5, 0, 'cyan'); add(10, 7, -1, 'eye'); add(10, 7, 1, 'eye');
+  for (let i = 0; i < 5; i++) { add(7 + i, 8 + Math.floor(i / 2), -2 - i, 'horn'); add(7 + i, 8 + Math.floor(i / 2), 2 + i, 'horn'); }
+  for (let side of [-1, 1]) {
+    for (let i = 0; i < 8; i++) {
+      add(-1 - i, 7 + Math.floor(i / 3), side * (4 + i), 'horn');
+      add(-1 - i, 6, side * (3 + i), 'shadow');
+      if (i > 1 && i < 7) add(-2 - i, 5, side * (3 + i), 'cyan');
+    }
+  }
+  const legs = [[-2, -1], [-2, 1], [2, -1], [2, 1]];
+  for (const [x0, z0] of legs) {
+    for (let y = 0; y <= 2; y++) { add(x0, y, z0, 'shadow'); add(x0 + (x0 > 0 ? 1 : -1), y, z0, 'body'); }
+    add(x0, -1, z0, 'claw'); add(x0 + (x0 > 0 ? 1 : -1), -1, z0, 'claw');
+  }
+  for (let i = 0; i < 9; i++) {
+    const x = -4 - i, y = 4 + Math.floor(i / 3);
+    add(x, y, 0, 'body');
+    if (i % 2 === 0) add(x, y - 1, 0, 'cyan');
+  }
+  add(-13, 7, -1, 'claw'); add(-13, 7, 1, 'claw');
+  return v;
+}
+function createVoxelAsset(voxels, { cubeSize = 0.55 } = {}) {
+  const byColor = new Map();
+  for (const [x, y, z, color] of voxels) {
+    if (!byColor.has(color)) byColor.set(color, []);
+    byColor.get(color).push([x, y, z]);
+  }
+  const root = new THREE.Group();
+  const geo = new THREE.BoxGeometry(cubeSize, cubeSize, cubeSize);
+  for (const [color, pts] of byColor) {
+    const mesh = new THREE.InstancedMesh(geo, new THREE.MeshToonMaterial({ color: VOXEL_DRAGON_PALETTE[color] }), pts.length);
+    const m = new THREE.Matrix4();
+    pts.forEach(([x, y, z], i) => { m.setPosition(x * cubeSize, y * cubeSize, z * cubeSize); mesh.setMatrixAt(i, m); });
+    mesh.instanceMatrix.needsUpdate = true;
+    root.add(mesh);
+  }
+  return root;
+}
+
+const assetDefs = [{
+  id: 'dragon-azure',
+  name: 'Azure Horn Dragon',
+  description: 'Primary voxel enemy inspired by reference dragon; dark body with cyan markings and tan horns.',
+  voxels: buildVoxelDragonVoxels,
+  cubeSize: 0.5,
+}];
+
+const sidebarList = document.getElementById('asset-list');
+const meta = document.getElementById('meta');
+const viewer = document.getElementById('viewer');
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x6ea9ee);
+const camera = new THREE.PerspectiveCamera(58, viewer.clientWidth / viewer.clientHeight, 0.1, 1000);
+camera.position.set(20, 15, 20);
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setSize(viewer.clientWidth, viewer.clientHeight);
+viewer.appendChild(renderer.domElement);
+
+scene.add(new THREE.AmbientLight(0xffffff, 0.75));
+const keyLight = new THREE.DirectionalLight(0xffffff, 0.8);
+keyLight.position.set(15, 30, 20);
+scene.add(keyLight);
+const ground = new THREE.Mesh(new THREE.CircleGeometry(22, 64), new THREE.MeshStandardMaterial({ color: 0x5d8fd8, roughness: 0.9 }));
+ground.rotation.x = -Math.PI / 2;
+scene.add(ground);
+
+const controls = new THREE.OrbitControls(camera, renderer.domElement);
+controls.enableDamping = true;
+controls.target.set(0, 4, 0);
+controls.update();
+
+let activeModel = null;
+function selectAsset(def) {
+  if (activeModel) scene.remove(activeModel);
+  activeModel = createVoxelAsset(def.voxels(), { cubeSize: def.cubeSize });
+  activeModel.position.y = 0.6;
+  scene.add(activeModel);
+  meta.innerHTML = `<b>${def.name}</b><br/>Voxel count: ${def.voxels().length}<br/>${def.description}`;
+  [...sidebarList.querySelectorAll('button')].forEach(btn => btn.classList.toggle('active', btn.dataset.id === def.id));
+}
+
+for (const def of assetDefs) {
+  const btn = document.createElement('button');
+  btn.className = 'asset-btn';
+  btn.dataset.id = def.id;
+  btn.textContent = def.name;
+  btn.addEventListener('click', () => selectAsset(def));
+  sidebarList.appendChild(btn);
+}
+selectAsset(assetDefs[0]);
+
+window.addEventListener('resize', () => {
+  camera.aspect = viewer.clientWidth / viewer.clientHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(viewer.clientWidth, viewer.clientHeight);
+});
+
+function animate() {
+  requestAnimationFrame(animate);
+  if (activeModel) activeModel.rotation.y += 0.007;
+  controls.update();
+  renderer.render(scene, camera);
+}
+animate();
+</script>
+</body>
+</html>
