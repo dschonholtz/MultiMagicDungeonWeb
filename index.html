@@ -47,6 +47,8 @@
   <div id="rename-panel"><input id="rename-input" type="text" placeholder="Rename…" maxlength="24" /><button id="rename-btn">Set</button></div>
 </div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/utils/SkeletonUtils.js"></script>
 <script>
 // ============================================================
 // MultiMagicDungeonWeb - Vibe Jam 2026
@@ -106,6 +108,7 @@ const SPELL_DEFS = {
 };
 // Shared geo/mat cache - no per-projectile GPU alloc
 const _geoCache = {}, _matCache = {};
+let _charGltf = null; // Character GLTF — loaded once, cloned per remote player
 function getSpellGeo(s)  { return _geoCache[s] ??= new THREE.SphereGeometry(s, 8, 8); }
 function getSpellMat(c)  { return _matCache[c] ??= new THREE.MeshBasicMaterial({ color: c }); }
 
@@ -280,64 +283,86 @@ class MmdPlayer {
     this.cooldowns = Object.fromEntries(Object.keys(SPELL_DEFS).map(k=>[k,0]));
     if (!isLocal) {
       this.mesh = new THREE.Group();
-      const colors = hashColor(id);
-      // Derive hat color: darker, more saturated shade of the player's hue
-      let _h = 0;
-      for (let i = 0; i < id.length; i++) _h = (_h * 31 + id.charCodeAt(i)) | 0;
-      const hatColor = new THREE.Color().setHSL((Math.abs(_h) % 360) / 360, 0.75, 0.22);
-      const toonMat = c => new THREE.MeshToonMaterial({ color:c, gradientMap:_toonGradientMap });
-      const addWithOutline = (group, mesh) => {
-        group.add(mesh);
-        const ol = mesh.clone();
-        ol.material = new THREE.MeshBasicMaterial({ color:0x000000, side:THREE.BackSide });
-        ol.scale.setScalar(1.08);
-        group.add(ol);
-      };
-      // flatBox: toNonIndexed + computeVertexNormals gives crisp toon bands on flat faces
-      const flatBox = (w, ht, d) => {
-        const g = new THREE.BoxGeometry(w, ht, d).toNonIndexed();
-        g.computeVertexNormals(); return g;
-      };
-
-      // Robe skirt — wide at base, reads instantly as wizard robes
-      const skirt = new THREE.Mesh(flatBox(3.0, 2.2, 2.6), toonMat(colors.legs));
-      skirt.position.y = 1.1; addWithOutline(this.mesh, skirt);
-
-      // Torso — narrower upper robe (hourglass silhouette when combined with skirt)
-      const torso = new THREE.Mesh(flatBox(1.8, 1.6, 1.6), toonMat(colors.body));
-      torso.position.y = 3.0; addWithOutline(this.mesh, torso);
-
-      // Arms — pivot groups at shoulder so rotation.z swings naturally for casting animation
-      this.leftArm = new THREE.Group();
-      this.leftArm.position.set(-1.4, 3.6, 0); this.leftArm.rotation.z = 0.5;
-      const lArmMesh = new THREE.Mesh(flatBox(0.5, 1.4, 0.5), toonMat(colors.body));
-      lArmMesh.position.y = -0.7; addWithOutline(this.leftArm, lArmMesh);
-      this.mesh.add(this.leftArm);
-
-      this.rightArm = new THREE.Group();
-      this.rightArm.position.set( 1.4, 3.6, 0); this.rightArm.rotation.z = -0.5;
-      const rArmMesh = new THREE.Mesh(flatBox(0.5, 1.4, 0.5), toonMat(colors.body));
-      rArmMesh.position.y = -0.7; addWithOutline(this.rightArm, rArmMesh);
-      this.mesh.add(this.rightArm);
-
-      // Head — big chibi head, larger than torso for readability; 0.2-unit neck gap above torso
-      this.headMesh = new THREE.Mesh(flatBox(2.6, 2.4, 2.2), toonMat(colors.head));
-      this.headMesh.position.y = 5.2; addWithOutline(this.mesh, this.headMesh);
-
-      // Eyes — two dark spheres on the front face
-      const eyeMat = new THREE.MeshBasicMaterial({ color: 0x111111 });
-      const eyeGeo = new THREE.SphereGeometry(0.2, 6, 6);
-      const lEye = new THREE.Mesh(eyeGeo, eyeMat); lEye.position.set(-0.55, 5.35, -1.11);
-      const rEye = new THREE.Mesh(eyeGeo, eyeMat); rEye.position.set( 0.55, 5.35, -1.11);
-      this.mesh.add(lEye); this.mesh.add(rEye);
-
-      // Wizard hat brim — wide flat box gives that classic sorcerer silhouette
-      const brim = new THREE.Mesh(flatBox(2.9, 0.18, 2.7), toonMat(hatColor));
-      brim.position.y = 6.5; addWithOutline(this.mesh, brim);
-
-      // Wizard hat cone — taller pointy top, dramatic wizard silhouette
-      this.hatMesh = new THREE.Mesh(new THREE.ConeGeometry(1.0, 2.5, 8), toonMat(hatColor));
-      this.hatMesh.position.y = 7.84; addWithOutline(this.mesh, this.hatMesh);
+      this.mixer = null;
+      if (_charGltf) {
+        // Clone GLTF model — SkeletonUtils preserves independent bone hierarchies per player
+        const model = THREE.SkeletonUtils.clone(_charGltf.scene);
+        // Normalize to 8 units tall via mesh-only bounds (avoids armature bone float)
+        model.updateMatrixWorld(true);
+        const meshBox = new THREE.Box3();
+        model.traverse(c => {
+          if (c.isMesh && c.geometry) {
+            c.geometry.computeBoundingBox();
+            meshBox.union(c.geometry.boundingBox.clone().applyMatrix4(c.matrixWorld));
+          }
+        });
+        if (!meshBox.isEmpty()) {
+          const scale = 8.0 / meshBox.getSize(new THREE.Vector3()).y;
+          model.scale.setScalar(scale);
+          model.updateMatrixWorld(true);
+          // Recompute after scale to pin feet to y=0
+          const groundBox = new THREE.Box3();
+          model.traverse(c => {
+            if (c.isMesh && c.geometry)
+              groundBox.union(c.geometry.boundingBox.clone().applyMatrix4(c.matrixWorld));
+          });
+          model.position.y = -groundBox.min.y;
+        }
+        // Tint each mesh with the player's hash color — clone material to keep instances independent
+        const colors = hashColor(id);
+        model.traverse(c => {
+          if (c.isMesh) { c.material = c.material.clone(); c.material.color.set(colors.body); }
+        });
+        this.mesh.add(model);
+        // AnimationMixer — animation clips come from the cached GLTF, mixer drives the clone
+        if (_charGltf.animations && _charGltf.animations.length > 0) {
+          this.mixer = new THREE.AnimationMixer(model);
+          this.mixer.clipAction(_charGltf.animations[0]).play();
+        }
+      } else {
+        // Box-geometry wizard fallback (used if GLTF hasn't loaded yet)
+        const colors = hashColor(id);
+        let _h = 0;
+        for (let i = 0; i < id.length; i++) _h = (_h * 31 + id.charCodeAt(i)) | 0;
+        const hatColor = new THREE.Color().setHSL((Math.abs(_h) % 360) / 360, 0.75, 0.22);
+        const toonMat = c => new THREE.MeshToonMaterial({ color:c, gradientMap:_toonGradientMap });
+        const addWithOutline = (group, mesh) => {
+          group.add(mesh);
+          const ol = mesh.clone();
+          ol.material = new THREE.MeshBasicMaterial({ color:0x000000, side:THREE.BackSide });
+          ol.scale.setScalar(1.08);
+          group.add(ol);
+        };
+        const flatBox = (w, ht, d) => {
+          const g = new THREE.BoxGeometry(w, ht, d).toNonIndexed();
+          g.computeVertexNormals(); return g;
+        };
+        const skirt = new THREE.Mesh(flatBox(3.0, 2.2, 2.6), toonMat(colors.legs));
+        skirt.position.y = 1.1; addWithOutline(this.mesh, skirt);
+        const torso = new THREE.Mesh(flatBox(1.8, 1.6, 1.6), toonMat(colors.body));
+        torso.position.y = 3.0; addWithOutline(this.mesh, torso);
+        this.leftArm = new THREE.Group();
+        this.leftArm.position.set(-1.4, 3.6, 0); this.leftArm.rotation.z = 0.5;
+        const lArmMesh = new THREE.Mesh(flatBox(0.5, 1.4, 0.5), toonMat(colors.body));
+        lArmMesh.position.y = -0.7; addWithOutline(this.leftArm, lArmMesh);
+        this.mesh.add(this.leftArm);
+        this.rightArm = new THREE.Group();
+        this.rightArm.position.set( 1.4, 3.6, 0); this.rightArm.rotation.z = -0.5;
+        const rArmMesh = new THREE.Mesh(flatBox(0.5, 1.4, 0.5), toonMat(colors.body));
+        rArmMesh.position.y = -0.7; addWithOutline(this.rightArm, rArmMesh);
+        this.mesh.add(this.rightArm);
+        this.headMesh = new THREE.Mesh(flatBox(2.6, 2.4, 2.2), toonMat(colors.head));
+        this.headMesh.position.y = 5.2; addWithOutline(this.mesh, this.headMesh);
+        const eyeMat = new THREE.MeshBasicMaterial({ color: 0x111111 });
+        const eyeGeo = new THREE.SphereGeometry(0.2, 6, 6);
+        const lEye = new THREE.Mesh(eyeGeo, eyeMat); lEye.position.set(-0.55, 5.35, -1.11);
+        const rEye = new THREE.Mesh(eyeGeo, eyeMat); rEye.position.set( 0.55, 5.35, -1.11);
+        this.mesh.add(lEye); this.mesh.add(rEye);
+        const brim = new THREE.Mesh(flatBox(2.9, 0.18, 2.7), toonMat(hatColor));
+        brim.position.y = 6.5; addWithOutline(this.mesh, brim);
+        this.hatMesh = new THREE.Mesh(new THREE.ConeGeometry(1.0, 2.5, 8), toonMat(hatColor));
+        this.hatMesh.position.y = 7.84; addWithOutline(this.mesh, this.hatMesh);
+      }
       const nc=document.createElement('canvas'); nc.width=256; nc.height=48;
       const ctx=nc.getContext('2d');
       ctx.font='bold 20px monospace'; ctx.fillStyle='#fff'; ctx.textAlign='center';
@@ -384,6 +409,7 @@ class MmdPlayer {
   }
   applyServerUpdate({ x,y,z,yaw }) { this.targetPos.set(x,y,z); this.targetYaw=yaw; }
   interpolate(dt) {
+    if (this.mixer) this.mixer.update(dt);
     // Clamp alpha to 1.0 — prevents lerp overshoot when dt spikes at low frame rates
     const a=Math.min(dt*12, 1.0);
     this.position.lerp(this.targetPos,a);
@@ -413,6 +439,7 @@ class MmdPlayer {
   }
   destroy() {
     if (!this.mesh) return;
+    if (this.mixer) { this.mixer.stopAllAction(); this.mixer = null; }
     scene.remove(this.mesh);
     // Dispose every child mesh's geometry and material to prevent GPU memory leaks.
     // The name-plate canvas texture also needs explicit disposal.
@@ -631,6 +658,12 @@ if(safeRef){
   el.style.display='block'; el.textContent='Arrived from: '+safeRef;
   setTimeout(()=>{el.style.display='none';},6000);
 }
+// Preload character model — cloned per remote player via SkeletonUtils once loaded
+new THREE.GLTFLoader().load('/models/Character_Male_1.gltf',
+  gltf => { _charGltf = gltf; },
+  undefined,
+  err => console.warn('[GLTF] character model unavailable, using box fallback:', err)
+);
 net.connect(defaultName);
 
 // Rename panel
