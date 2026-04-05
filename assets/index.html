@@ -35,41 +35,167 @@
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
 <script>
 const VOXEL_DRAGON_PALETTE = {
-  body:   0x0f2134,
-  shadow: 0x08131f,
-  cyan:   0x1b9bb3,
-  horn:   0xbe9d83,
-  claw:   0xead8bc,
-  eye:    0x0a0a0a,
+  body:    0x0f2134,
+  shadow:  0x08131f,
+  cyan:    0x1b9bb3,
+  horn:    0xbe9d83,
+  claw:    0xead8bc,
+  eye:     0x0a0a0a,
+  eyeGold: 0xffd700,
+  eyeWhite:0xeeeeee,
+  nostril: 0x050a10,
+  mouth:   0x1a0505,
+  scale:   0x122a44,
 };
 function buildVoxelDragonVoxels() {
   const v = [];
   const add = (x, y, z, c) => v.push([x, y, z, c]);
-  for (let x = -3; x <= 3; x++) for (let y = 3; y <= 6; y++) for (let z = -2; z <= 2; z++) if (Math.abs(x) + Math.abs(z) <= 6) add(x, y, z, 'body');
-  for (let x = -2; x <= 2; x++) for (let z = -1; z <= 1; z++) add(x, 3, z, 'cyan');
-  for (let i = 0; i < 4; i++) for (let y = 5; y <= 6; y++) for (let z = -1; z <= 1; z++) add(4 + i, y, z, 'body');
-  for (let y = 5; y <= 7; y++) for (let z = -2; z <= 2; z++) add(8, y, z, 'body');
-  for (let z = -1; z <= 1; z++) { add(9, 6, z, 'body'); add(10, 6, z, 'body'); }
-  add(9, 5, 0, 'cyan'); add(10, 5, 0, 'cyan'); add(10, 7, -1, 'eye'); add(10, 7, 1, 'eye');
-  for (let i = 0; i < 5; i++) { add(7 + i, 8 + Math.floor(i / 2), -2 - i, 'horn'); add(7 + i, 8 + Math.floor(i / 2), 2 + i, 'horn'); }
+
+  // === BODY (x=-3..3) — chunky torso ===
+  for (let x = -3; x <= 3; x++)
+    for (let y = 3; y <= 6; y++)
+      for (let z = -2; z <= 2; z++)
+        if (Math.abs(x) + Math.abs(z) <= 6) add(x, y, z, 'body');
+  // Belly cyan stripe
+  for (let x = -2; x <= 2; x++)
+    for (let z = -1; z <= 1; z++) add(x, 3, z, 'cyan');
+  // Dorsal spine ridges
+  for (let x = -3; x <= 6; x += 2) add(x, 7, 0, 'horn');
+  // Shoulder bulk (wing attachment)
+  for (let z of [-3, 3]) { add(-1, 6, z, 'body'); add(0, 6, z, 'body'); add(1, 6, z, 'body'); }
+  for (let z of [-3, 3]) { add(-1, 5, z, 'body'); add(0, 5, z, 'body'); }
+  // Scale detail on flanks
+  for (let x = -2; x <= 2; x += 2) { add(x, 4, -2, 'scale'); add(x, 4, 2, 'scale'); }
+
+  // === NECK (x=4..6) — muscular ===
+  for (let i = 0; i < 3; i++) {
+    const x = 4 + i;
+    for (let y = 4; y <= 7; y++)
+      for (let z = -1; z <= 1; z++) add(x, y, z, 'body');
+    if (i < 2) { add(x, 5, -2, 'body'); add(x, 5, 2, 'body'); add(x, 6, -2, 'body'); add(x, 6, 2, 'body'); }
+    add(x, 4, 0, 'cyan');
+  }
+
+  // === HEAD — skull + brow + snout + jaw ===
+  // Skull back (x=7): wide cranium
+  for (let y = 4; y <= 7; y++)
+    for (let z = -2; z <= 2; z++) add(7, y, z, 'body');
+  for (let z = -1; z <= 1; z++) add(7, 8, z, 'body');
+
+  // Mid skull (x=8): cheekbones + temporal ridge
+  for (let y = 4; y <= 7; y++)
+    for (let z = -2; z <= 2; z++) add(8, y, z, 'body');
+  add(8, 7, -3, 'body'); add(8, 7, 3, 'body');
+
+  // Heavy brow ridge — shadow colored, overhangs eyes
+  for (let z = -3; z <= 3; z++) add(8, 8, z, 'shadow');
+  for (let z = -2; z <= 2; z++) add(9, 8, z, 'shadow');
+  add(10, 8, -1, 'shadow'); add(10, 8, 0, 'shadow'); add(10, 8, 1, 'shadow');
+
+  // Upper snout (x=9..10): wide reptilian muzzle
+  for (let y = 6; y <= 7; y++)
+    for (let z = -2; z <= 2; z++) add(9, y, z, 'body');
+  for (let y = 6; y <= 7; y++)
+    for (let z = -1; z <= 1; z++) add(10, y, z, 'body');
+  add(10, 7, -2, 'body'); add(10, 7, 2, 'body');
+
+  // Snout bridge (x=11): narrowing
+  add(11, 7, -1, 'body'); add(11, 7, 0, 'body'); add(11, 7, 1, 'body');
+  add(11, 6, -1, 'body'); add(11, 6, 0, 'body'); add(11, 6, 1, 'body');
+
+  // Snout tip (x=12..13)
+  add(12, 7, 0, 'body'); add(12, 6, 0, 'body');
+  add(12, 6, -1, 'body'); add(12, 6, 1, 'body');
+  // Nostril pits at very tip
+  add(13, 7, -1, 'nostril'); add(13, 7, 1, 'nostril');
+  add(13, 7, 0, 'body');
+
+  // Mouth gap (y=5) — dark interior
+  for (let z = -1; z <= 1; z++) { add(8, 5, z, 'mouth'); add(9, 5, z, 'mouth'); add(10, 5, z, 'mouth'); }
+
+  // Lower jaw (y=4) — separated from upper jaw
+  for (let z = -2; z <= 2; z++) add(7, 4, z, 'body');
+  for (let z = -2; z <= 2; z++) add(8, 4, z, 'body');
+  for (let z = -1; z <= 1; z++) add(9, 4, z, 'body');
+  for (let z = -1; z <= 1; z++) add(10, 4, z, 'body');
+  add(11, 4, 0, 'body'); add(11, 4, -1, 'body'); add(11, 4, 1, 'body');
+  for (let z = -1; z <= 1; z++) { add(8, 3, z, 'body'); add(9, 3, z, 'body'); }
+  add(7, 3, 0, 'cyan'); add(8, 3, 0, 'cyan'); add(9, 3, 0, 'cyan');
+  // Fangs
+  add(9, 5, -2, 'claw'); add(9, 5, 2, 'claw');
+  add(10, 5, -1, 'claw'); add(10, 5, 1, 'claw');
+
+  // Eyes — gold iris, white sclera, black pupil
+  add(8, 7, -3, 'eyeWhite'); add(8, 7, 3, 'eyeWhite');
+  add(9, 7, -3, 'eyeGold'); add(9, 7, 3, 'eyeGold');
+  add(9, 7, -2, 'eyeGold'); add(9, 7, 2, 'eyeGold');
+  add(10, 7, -2, 'eye'); add(10, 7, 2, 'eye');
+
+  // === HORNS — sweeping back from skull ===
+  for (let i = 0; i < 6; i++) {
+    add(7 - i, 9 + Math.floor(i * 0.7), -2 - Math.floor(i / 2), 'horn');
+    add(7 - i, 9 + Math.floor(i * 0.7), 2 + Math.floor(i / 2), 'horn');
+  }
+  add(7, 8, -3, 'horn'); add(7, 8, 3, 'horn');
+  add(8, 8, -3, 'horn'); add(8, 8, 3, 'horn');
+
+  // === WINGS — bat-like membrane ===
   for (let side of [-1, 1]) {
-    for (let i = 0; i < 8; i++) {
-      add(-1 - i, 7 + Math.floor(i / 3), side * (4 + i), 'horn');
-      add(-1 - i, 6, side * (3 + i), 'shadow');
-      if (i > 1 && i < 7) add(-2 - i, 5, side * (3 + i), 'cyan');
+    // Wing arm bone
+    for (let i = 0; i < 10; i++) {
+      add(-1 - i, 7 + Math.floor(i / 3), side * (4 + i), 'shadow');
+      if (i < 3) add(-1 - i, 8 + Math.floor(i / 3), side * (4 + i), 'shadow');
     }
+    // Wing membrane fill
+    for (let i = 0; i < 9; i++) {
+      const tipZ = 4 + i;
+      for (let fz = 4; fz <= tipZ; fz++)
+        add(-1 - i, 6, side * fz, 'shadow');
+      if (i < 6)
+        for (let fz = 4; fz <= Math.min(tipZ, 4 + i); fz++)
+          add(-1 - i, 7, side * fz, 'shadow');
+      if (i > 0 && i < 8) add(-1 - i, 5, side * tipZ, 'shadow');
+    }
+    // Trailing edge cyan
+    for (let i = 1; i < 9; i++)
+      add(-1 - i, 5, side * (4 + i), 'cyan');
+    // Wing finger bones
+    add(-10, 10, side * 13, 'horn');
+    add(-9, 9, side * 12, 'horn');
+    add(-8, 8, side * 11, 'horn');
+    add(-10, 9, side * 13, 'claw');
   }
-  const legs = [[-2, -1], [-2, 1], [2, -1], [2, 1]];
+
+  // === LEGS — digitigrade ===
+  const legs = [[-2, -2], [-2, 2], [2, -2], [2, 2]];
   for (const [x0, z0] of legs) {
-    for (let y = 0; y <= 2; y++) { add(x0, y, z0, 'shadow'); add(x0 + (x0 > 0 ? 1 : -1), y, z0, 'body'); }
-    add(x0, -1, z0, 'claw'); add(x0 + (x0 > 0 ? 1 : -1), -1, z0, 'claw');
+    const dx = x0 > 0 ? 1 : -1;
+    for (let y = 1; y <= 2; y++) {
+      add(x0, y, z0, 'shadow');
+      add(x0 + dx, y, z0, 'body');
+      add(x0, y, z0 + (z0 > 0 ? -1 : 1), 'body');
+    }
+    add(x0, 0, z0, 'shadow'); add(x0 + dx, 0, z0, 'body');
+    add(x0, -1, z0, 'claw'); add(x0 + dx, -1, z0, 'claw');
+    add(x0, -1, z0 + (z0 > 0 ? 1 : -1), 'claw');
   }
-  for (let i = 0; i < 9; i++) {
+
+  // === TAIL — sinuous with spade ===
+  for (let i = 0; i < 11; i++) {
     const x = -4 - i, y = 4 + Math.floor(i / 3);
-    add(x, y, 0, 'body');
-    if (i % 2 === 0) add(x, y - 1, 0, 'cyan');
+    const zOff = Math.round(Math.sin(i * 0.5) * 0.8);
+    add(x, y, zOff, 'body');
+    if (i < 6) { add(x, y, zOff - 1, 'body'); add(x, y, zOff + 1, 'body'); }
+    if (i < 3) add(x, y + 1, zOff, 'body');
+    if (i % 2 === 0) add(x, y - 1, zOff, 'cyan');
+    if (i < 8 && i % 2 === 0) add(x, y + 1, zOff, 'horn');
   }
-  add(-13, 7, -1, 'claw'); add(-13, 7, 1, 'claw');
+  // Tail spade — diamond
+  add(-15, 7, 0, 'shadow');
+  add(-16, 7, -1, 'claw'); add(-16, 7, 1, 'claw');
+  add(-16, 8, 0, 'claw'); add(-16, 6, 0, 'claw');
+  add(-16, 7, 0, 'claw'); add(-17, 7, 0, 'claw');
+
   return v;
 }
 function createVoxelAsset(voxels, { cubeSize = 0.55 } = {}) {
