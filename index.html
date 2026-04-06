@@ -364,10 +364,12 @@ const wallMeshes = [];
 function renderDungeon(layout) {
   const pMat = new THREE.MeshStandardMaterial({ color: 0x3a2e50, roughness: 0.9, metalness: 0.05 });
   const pGeo = new THREE.CylinderGeometry(1.5, 2, 20, 8);
-  const WH   = 20;
-  const EPS  = 0.5; // snap tolerance for shared-face detection
+  const WH      = 20;
+  const DOOR_H  = 10; // doorway opening height — leaves a solid lintel above
+  const EPS     = 0.5; // snap tolerance for shared-face detection
 
   const addWall = (px, py, pz, rx, ry, rz, gw, gh) => {
+    if (gw < EPS || gh < EPS) return; // skip degenerate panels
     const mat = makeWallMat(gw / 12, gh / 12);
     const m = new THREE.Mesh(new THREE.PlaneGeometry(gw, gh), mat);
     m.position.set(px, py, pz); m.rotation.set(rx, ry, rz); scene.add(m);
@@ -386,7 +388,60 @@ function renderDungeon(layout) {
   const hasW = (x, z0, z1) => allBoxes.some(b => Math.abs(b.maxX - x) < EPS && b.minZ < z1 - EPS && b.maxZ > z0 + EPS);
   const hasE = (x, z0, z1) => allBoxes.some(b => Math.abs(b.minX - x) < EPS && b.minZ < z1 - EPS && b.maxZ > z0 + EPS);
 
-  // Unified loop over rooms + corridors — doorways open automatically where boxes share a face
+  // Find the overlap span in X between this box face (at z) and its neighbour.
+  // Returns [lo, hi] clamped to [x0, x1].
+  const overlapN = (z, x0, x1) => {
+    const nb = allBoxes.find(b => Math.abs(b.maxZ - z) < EPS && b.minX < x1 - EPS && b.maxX > x0 + EPS);
+    return nb ? [Math.max(x0, nb.minX), Math.min(x1, nb.maxX)] : [x0, x1];
+  };
+  const overlapS = (z, x0, x1) => {
+    const nb = allBoxes.find(b => Math.abs(b.minZ - z) < EPS && b.minX < x1 - EPS && b.maxX > x0 + EPS);
+    return nb ? [Math.max(x0, nb.minX), Math.min(x1, nb.maxX)] : [x0, x1];
+  };
+  const overlapW = (x, z0, z1) => {
+    const nb = allBoxes.find(b => Math.abs(b.maxX - x) < EPS && b.minZ < z1 - EPS && b.maxZ > z0 + EPS);
+    return nb ? [Math.max(z0, nb.minZ), Math.min(z1, nb.maxZ)] : [z0, z1];
+  };
+  const overlapE = (x, z0, z1) => {
+    const nb = allBoxes.find(b => Math.abs(b.minX - x) < EPS && b.minZ < z1 - EPS && b.maxZ > z0 + EPS);
+    return nb ? [Math.max(z0, nb.minZ), Math.min(z1, nb.maxZ)] : [z0, z1];
+  };
+
+  // Draw doorway framing for a North/South wall face (opening lies along X axis).
+  // Emits: left jamb, right jamb (full height), lintel (above door), and the door opening stays open.
+  // rx/ry/rz are the wall's rotation arguments passed straight through to addWall.
+  const frameNS = (faceX, faceZ, wallX0, wallX1, rx, ry, rz) => {
+    const [openX0, openX1] = faceX; // [overlapLo, overlapHi] in world X
+    // Left jamb: from wall left edge to opening left edge
+    const lw = openX0 - wallX0;
+    if (lw > EPS) addWall(wallX0 + lw / 2, WH / 2, faceZ, rx, ry, rz, lw, WH);
+    // Right jamb: from opening right edge to wall right edge
+    const rw = wallX1 - openX1;
+    if (rw > EPS) addWall(openX1 + rw / 2, WH / 2, faceZ, rx, ry, rz, rw, WH);
+    // Lintel: spans the opening width, sits between DOOR_H and WH
+    const lintH = WH - DOOR_H;
+    const openW = openX1 - openX0;
+    if (openW > EPS && lintH > EPS)
+      addWall((openX0 + openX1) / 2, DOOR_H + lintH / 2, faceZ, rx, ry, rz, openW, lintH);
+  };
+
+  // Draw doorway framing for an East/West wall face (opening lies along Z axis).
+  const frameEW = (openZ, faceX, wallZ0, wallZ1, rx, ry, rz) => {
+    const [openZ0, openZ1] = openZ; // [overlapLo, overlapHi] in world Z
+    // Left jamb (lower Z)
+    const lw = openZ0 - wallZ0;
+    if (lw > EPS) addWall(faceX, WH / 2, wallZ0 + lw / 2, rx, ry, rz, lw, WH);
+    // Right jamb (higher Z)
+    const rw = wallZ1 - openZ1;
+    if (rw > EPS) addWall(faceX, WH / 2, openZ1 + rw / 2, rx, ry, rz, rw, WH);
+    // Lintel
+    const lintH = WH - DOOR_H;
+    const openW = openZ1 - openZ0;
+    if (openW > EPS && lintH > EPS)
+      addWall(faceX, DOOR_H + lintH / 2, (openZ0 + openZ1) / 2, rx, ry, rz, openW, lintH);
+  };
+
+  // Unified loop over rooms + corridors — solid walls where no neighbour; framed doorway where shared
   [...layout.rooms, ...layout.corridors].forEach(b => {
     const x0 = b.x - b.w / 2, x1 = b.x + b.w / 2;
     const z0 = b.z - b.d / 2, z1 = b.z + b.d / 2;
@@ -399,11 +454,15 @@ function renderDungeon(layout) {
     const ce = new THREE.Mesh(new THREE.PlaneGeometry(b.w, b.d), makeCeilMat(b.w / 10, b.d / 10));
     ce.rotation.x = Math.PI/2; ce.position.set(b.x, WH, b.z); scene.add(ce);
 
-    // Walls — skip any face that is shared with an adjacent box (that face becomes a doorway)
+    // Walls — solid where no neighbour, framed doorway where a face is shared with an adjacent box
     if (!hasN(z0, x0, x1)) addWall(b.x, WH/2, z0, 0,           0,         0, b.w, WH);
+    else frameNS(overlapN(z0, x0, x1), z0, x0, x1, 0,           0,         0);
     if (!hasS(z1, x0, x1)) addWall(b.x, WH/2, z1, 0,   Math.PI,           0, b.w, WH);
+    else frameNS(overlapS(z1, x0, x1), z1, x0, x1, 0,   Math.PI,           0);
     if (!hasW(x0, z0, z1)) addWall(x0,  WH/2, b.z, 0,  Math.PI/2,         0, b.d, WH);
+    else frameEW(overlapW(x0, z0, z1), x0, z0, z1, 0,  Math.PI/2,         0);
     if (!hasE(x1, z0, z1)) addWall(x1,  WH/2, b.z, 0, -Math.PI/2,         0, b.d, WH);
+    else frameEW(overlapE(x1, z0, z1), x1, z0, z1, 0, -Math.PI/2,         0);
   });
 
   layout.pillars.forEach(([px, pz]) => {
@@ -1850,6 +1909,7 @@ window.__TEST__ = {
       z:     s.mesh.position.z,
     })),
     playerCountText: document.getElementById('player-count')?.textContent ?? '',
+    wallMeshCount: wallMeshes.length,
     isLocked,
     gameStarted,
     traveling,

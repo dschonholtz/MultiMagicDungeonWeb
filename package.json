@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "pretest": "lsof -ti:3000 | xargs kill -9 2>/dev/null; true",
+    "pretest": "lsof -ti:3001 | xargs kill -9 2>/dev/null; true",
     "test": "playwright test",
     "test:smoke": "playwright test tests/smoke.spec.js",
     "test:headed": "playwright test --headed",
