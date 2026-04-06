@@ -198,7 +198,7 @@ function buildVoxelDragonVoxels() {
 
   return v;
 }
-function createVoxelAsset(voxels, { cubeSize = 0.55 } = {}) {
+function createVoxelAsset(voxels, { cubeSize = 0.55, palette = VOXEL_DRAGON_PALETTE } = {}) {
   const byColor = new Map();
   for (const [x, y, z, color] of voxels) {
     if (!byColor.has(color)) byColor.set(color, []);
@@ -207,7 +207,7 @@ function createVoxelAsset(voxels, { cubeSize = 0.55 } = {}) {
   const root = new THREE.Group();
   const geo = new THREE.BoxGeometry(cubeSize, cubeSize, cubeSize);
   for (const [color, pts] of byColor) {
-    const mesh = new THREE.InstancedMesh(geo, new THREE.MeshToonMaterial({ color: VOXEL_DRAGON_PALETTE[color] }), pts.length);
+    const mesh = new THREE.InstancedMesh(geo, new THREE.MeshToonMaterial({ color: palette[color] }), pts.length);
     const m = new THREE.Matrix4();
     pts.forEach(([x, y, z], i) => { m.setPosition(x * cubeSize, y * cubeSize, z * cubeSize); mesh.setMatrixAt(i, m); });
     mesh.instanceMatrix.needsUpdate = true;
@@ -216,12 +216,63 @@ function createVoxelAsset(voxels, { cubeSize = 0.55 } = {}) {
   return root;
 }
 
+const VOXEL_WIZARD_PALETTE = {
+  robe:  0x6B21A8,
+  hat:   0x3B0764,
+  skin:  0xE8D5B0,
+  eye:   0x111111,
+  staff: 0x8B4513,
+};
+function buildVoxelWizardVoxels() {
+  const v = [];
+  const add = (x, y, z, c) => v.push([x, y, z, c]);
+  // Pointed hat — 4 stacked layers (top to base: 1×1, 2×2, 3×3, 4×4)
+  add(0, 15, 0, 'hat');
+  for (let x = -1; x <= 0; x++)
+    for (let z = -1; z <= 0; z++) add(x, 14, z, 'hat');
+  for (let x = -1; x <= 1; x++)
+    for (let z = -1; z <= 1; z++) add(x, 13, z, 'hat');
+  for (let x = -2; x <= 1; x++)
+    for (let z = -2; z <= 1; z++) add(x, 12, z, 'hat');
+  // Head — 3×3×2 block
+  for (let x = -1; x <= 1; x++)
+    for (let y = 10; y <= 11; y++)
+      for (let z = -1; z <= 1; z++) add(x, y, z, 'skin');
+  // Eyes on front face
+  add(-1, 11, -2, 'eye'); add(1, 11, -2, 'eye');
+  // Robe — 3×5×2 torso
+  for (let x = -1; x <= 1; x++)
+    for (let y = 5; y <= 9; y++)
+      for (let z = 0; z <= 1; z++) add(x, y, z, 'robe');
+  // Lower robe + flared bottom row (wider base)
+  for (let x = -1; x <= 1; x++)
+    for (let y = 2; y <= 4; y++) add(x, y, 0, 'robe');
+  for (let z = 0; z <= 1; z++) {
+    add(-2, 0, z, 'robe'); add(-2, 1, z, 'robe');
+    add(2, 0, z, 'robe'); add(2, 1, z, 'robe');
+  }
+  for (let x = -1; x <= 1; x++)
+    for (let z = 0; z <= 1; z++) { add(x, 0, z, 'robe'); add(x, 1, z, 'robe'); }
+  // Arms — 4 cubes each side, hanging down
+  for (let y = 5; y <= 8; y++) { add(-2, y, 0, 'skin'); add(2, y, 0, 'skin'); }
+  // Staff — 6 cubes vertical in right hand
+  for (let y = 4; y <= 9; y++) add(3, y, 0, 'staff');
+  return v;
+}
+
 const assetDefs = [{
   id: 'dragon-azure',
   name: 'Azure Horn Dragon',
   description: 'Primary voxel enemy inspired by reference dragon; dark body with cyan markings and tan horns.',
   voxels: buildVoxelDragonVoxels,
   cubeSize: 0.5,
+}, {
+  id: 'voxel-wizard',
+  name: 'Voxel Wizard',
+  description: 'Remote player wizard; robe color varies per player via hashColor. Default shown in royal purple.',
+  voxels: buildVoxelWizardVoxels,
+  cubeSize: 0.5,
+  palette: VOXEL_WIZARD_PALETTE,
 }];
 
 const sidebarList = document.getElementById('asset-list');
@@ -252,7 +303,7 @@ controls.update();
 let activeModel = null;
 function selectAsset(def) {
   if (activeModel) scene.remove(activeModel);
-  activeModel = createVoxelAsset(def.voxels(), { cubeSize: def.cubeSize });
+  activeModel = createVoxelAsset(def.voxels(), { cubeSize: def.cubeSize, palette: def.palette || VOXEL_DRAGON_PALETTE });
   activeModel.position.y = 0.6;
   scene.add(activeModel);
   meta.innerHTML = `<b>${def.name}</b><br/>Voxel count: ${def.voxels().length}<br/>${def.description}`;
