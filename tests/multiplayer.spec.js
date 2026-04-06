@@ -16,7 +16,7 @@ async function openPlayer(browser) {
     deviceScaleFactor: 1,
   });
   const page = await ctx.newPage();
-  await page.goto('http://localhost:3000');
+  await page.goto('http://localhost:3001');
   await waitForGame(page);
   return { page, ctx };
 }

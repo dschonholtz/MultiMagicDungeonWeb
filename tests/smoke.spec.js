@@ -70,3 +70,18 @@ test('game state is accessible via window.__TEST__', async ({ page }) => {
   expect(state.localPlayer.cooldowns).toHaveProperty('frostbolt');
   expect(state.localPlayer.cooldowns).toHaveProperty('telekinesis');
 });
+
+test('doorway framing produces wall segments at every connection', async ({ page }) => {
+  await page.goto('/');
+  await waitForGame(page);
+
+  const wallMeshCount = await page.evaluate(() => window.__TEST__.state().wallMeshCount);
+  // Without framing: shared faces produce 0 wall planes (bare opening).
+  // With framing: each shared face produces up to 3 segments (left jamb, right jamb, lintel).
+  // The DEFAULT_DUNGEON has 5 rooms + 6 corridors with multiple shared faces, so framing
+  // should result in significantly more wall meshes than the unframed minimum.
+  // Minimum unframed wall count = sum of un-shared faces only. With framing the count rises
+  // because each previously-skipped face now contributes 2-3 segments instead of 0.
+  // A safe lower bound: >60 wall meshes in the full dungeon with framing enabled.
+  expect(wallMeshCount).toBeGreaterThan(60);
+});

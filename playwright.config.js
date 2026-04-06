@@ -9,7 +9,7 @@ export default defineConfig({
   reporter: [['html'], ['list']],
 
   use: {
-    baseURL: 'http://localhost:3000',
+    baseURL: 'http://localhost:3001',
     viewport: { width: 1280, height: 720 },
     deviceScaleFactor: 1,      // lock DPR so screenshots are consistent across machines
     locale: 'en-US',
@@ -33,8 +33,8 @@ export default defineConfig({
   // Starts vite automatically before tests run; reuses if already running.
   // Change WS_URL in index.html to ws://localhost:8080 before running tests locally.
   webServer: {
-    command: 'npx vite --port 3000 --strictPort',
-    port: 3000,
+    command: 'npx vite --port 3001 --strictPort',
+    port: 3001,
     reuseExistingServer: false,
     timeout: 15_000,
   },
