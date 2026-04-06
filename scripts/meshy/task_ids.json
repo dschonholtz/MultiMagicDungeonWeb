@@ -1,0 +1,13 @@
+{
+  "wizard": {
+    "preview": "019d5e95-fcf6-7dcc-a232-ac510ff4be37",
+    "refine": "019d5e97-cd72-76c5-8a7e-f4e4bb14de01",
+    "rig": "019d5e9d-fcf2-7d39-901a-0232050aa7bc",
+    "anim_idle": "019d5e9f-9807-7b64-bd11-484d9682a652",
+    "anim_walk": "019d5e9f-d955-70c6-a1f2-b18a7b368fe5"
+  },
+  "dragon": {
+    "preview": "019d5e99-10ff-7eb4-92d3-8cb008e08c02",
+    "refine": "019d5e9b-1e90-79c1-8572-3d1f0d60ba2f"
+  }
+}
