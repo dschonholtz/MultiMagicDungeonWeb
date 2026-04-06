@@ -1399,7 +1399,7 @@ if(safeRef){
   setTimeout(()=>{el.style.display='none';},6000);
 }
 // Portal arrivals: hide rename panel for instant load (spec: no input screens)
-if(incomingPortal){ document.getElementById('rename-panel').style.display='none'; }
+if(incomingPortal){ document.getElementById('settings-panel').style.display='none'; }
 // Preload character model — cloned per remote player via SkeletonUtils once loaded
 new THREE.GLTFLoader().load('/models/Character_Male_1.gltf',
   gltf => { _charGltf = gltf; },
